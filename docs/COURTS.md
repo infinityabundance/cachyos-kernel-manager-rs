@@ -21,7 +21,9 @@ Two modes:
    fixture snapshots in disposable KVM VMs:
 
 ```
-fixture image (baked offline: losetup + chroot; qcow2 digest recorded)
+fixture image (baked OFFLINE in a chroot — loop-free: the exported base
+  rootfs directory is copied, mutated by the spec, and mkfs.ext4 -d'd into
+  a raw image; qcow2 digest recorded)
   → fresh overlay → boot → oracle (Xvfb + AT-SPI + strace) → oracle/ evidence
   → fresh overlay (restore identical snapshot) → boot → candidate → candidate/ evidence
   → FRF comparator (normalizers + field diff) → residual.json + evidence.json
@@ -35,6 +37,22 @@ Oracle observation is AT-SPI based (directive §37 prefers accessibility-tree
 over coordinate screenshots; §0 forbids screenshots as proof). The probe
 commands the oracle executes at startup (findmnt/chwd/pacman -Qqs/...) are
 witnessed via strace `execve` capture for archaeology.
+
+## Baseline status (Phase 2)
+
+All 10 baseline kernel-discovery courts PASS (oracle == candidate, 0
+residuals, evidence verified): `minimal`, `several-kernels`,
+`upgrade-available`, `downgrade-visible`, `custom-repo`,
+`cross-repo-installed`, `duplicate-across-repos`, `stale-db`,
+`empty-all-dbs`, `empty-sync-db`. Drift/slew: `minimal` ×3 and
+`upgrade-available` ×2 re-runs on identical overlays are deterministic.
+
+The residuals encountered while establishing the baseline (and their
+resolutions) are recorded in `atlas/residual-ledger.json` (RES-2026-001..008).
+
+Before running courts, `vm-ctl.sh cleanup` removes stale qemu processes
+(they survive process-tree kills because they run in their own systemd
+scopes); the court runner calls it automatically before each side.
 
 ## Case format
 

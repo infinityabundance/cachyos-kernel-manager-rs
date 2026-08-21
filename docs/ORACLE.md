@@ -54,7 +54,7 @@ moving the pinned commit. Each revision produces:
 Tooling: `cargo xtask upstream diff` (compares locked revision vs a candidate
 ref and lists changed surfaces, commands, strings, paths, options, policy).
 
-## VM oracle (Phase 2, pending)
+## VM oracle (Phase 2, active)
 
 Docker is the orchestrator, not the machine model. Disposable QEMU/KVM VMs
 carry the oracle application and the candidate; snapshots are restored between
@@ -65,9 +65,14 @@ privileged courts fail closed unless they can prove they are inside an
 approved disposable VM (machine-id class + fixture marker + snapshot identity
 + test root). The developer host package database is never a mutation target.
 
-## Package hashes (Phase 2, pending)
+## Package hashes (Phase 2, active)
 
-`package_hashes` in the lock file will be populated by
-`cargo xtask oracle pkg-hash` against the CachyOS binary package at freeze
-time. `reference_image_hash` will be populated by `cargo xtask vm build`.
-Both are `pending` until those tools exist and run.
+`package_hashes` in the lock file is populated (`cargo xtask oracle pkg-hash`)
+and `reference_image_hash` is populated (`cargo xtask vm build`). The base
+image was rebuilt on 2026-08-21 after the cachyos pacman.conf restoration
+(the pacman package's own /etc/pacman.conf overwrote the CachyOS config
+during pacstrap, hiding linux-cachyos from oracle discovery); the new hash is
+`sha256:db67e678…` in `oracle/UPSTREAM.lock`. Future base rebuilds will
+produce new hashes — treat each as a new reference-image revision with its
+own residual analysis (the package manifest in `vm/images/manifest.json`
+pins exact package versions).
