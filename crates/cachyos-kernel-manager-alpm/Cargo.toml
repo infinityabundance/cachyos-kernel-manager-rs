@@ -7,11 +7,11 @@ rust-version.workspace = true
 authors.workspace = true
 description = "Typed adapter over system libalpm (package state remains ALPM-authoritative)."
 publish = false
+build = "build.rs"
 
-# The real libalpm FFI binding is Phase 4 and lives behind the `libalpm`
-# feature (off by default so `cargo test` works without a system libalpm).
-# This crate today defines the adapter trait and a null in-memory backend
-# used by tests and pure courts.
+# The real libalpm FFI lives behind the `libalpm` feature (off by default so
+# `cargo test` works without system libalpm). The pure pacman.conf model and
+# the null backend compile always.
 [features]
 default = []
 libalpm = []
@@ -19,3 +19,9 @@ libalpm = []
 [dependencies]
 cachyos-kernel-manager-core = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
+
+[[bin]]
+name = "cachyos-kernel-manager-inspect"
+path = "src/bin/inspect.rs"
+required-features = ["libalpm"]

@@ -1,0 +1,30 @@
+# CLAIM — kernel-discovery/duplicate-across-repos
+claim = "Given the 'duplicate-across-repos' fixture, the candidate's kernel discovery produces the same rows (raw name, version text incl. ∨/∧ markers, category, checked state, order) as the oracle's GUI tree, observed through AT-SPI."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 GUI (libalpm discovery per kernel.cpp:179-286, mINI pacman.conf registration per alpm_utils.cpp:32-47, display per kernel.cpp:56-79 + km-window.cpp:89-106). Candidate: cachyos-kernel-manager-inspect over the same libalpm databases + the same registration/display rules."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked fixture image (identical machine state).",
+  "The oracle runs under Xvfb with AT-SPI enabled; the tree is read from the accessibility tree, never screenshots.",
+  "The 'duplicate-across-repos' fixture is baked offline (losetup + chroot), never by booting and mutating a running system.",
+]
+
+observables = [
+  "Ordered kernel rows: raw name, version column text, category text, checkbox state",
+  "Critical dialog presence/text (No kernels found!) when discovery is empty",
+  "Machine residual identity between the two runs (fixture-integrity)",
+]
+
+witness = "cargo xtask court run kernel-discovery/duplicate-across-repos --vm against fixture 'duplicate-across-repos'."
+
+independence = "The oracle is the real upstream binary executing against real libalpm in a disposable VM; the candidate is a separate Rust implementation observing the identical fixture. Neither generates the other's output."
+
+falsifier = "Any difference in row set, row order, version text, category, checked state, or the empty-discovery dialog condition."
+
+[[evidence]]
+artifact = "oracle/oracle-state.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/candidate-state.json"
+sha256 = "pending"

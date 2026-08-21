@@ -1,0 +1,9 @@
+version = "1.0.0"
+fixture = "stale-db"
+
+# The VM comparison path uses the normalizers; these lists document the
+# raw-evidence comparison policy.
+ignore = ["oracle.stdout", "oracle.stderr", "candidate.stderr", "oracle-trace.log"]
+byte_exact = []
+json_semantic = ["oracle-state.json", "candidate-state.json", "residual.json"]
+volatile_prefixes = ["/tmp/", "/proc/", "/run/user/", "/var/log/"]

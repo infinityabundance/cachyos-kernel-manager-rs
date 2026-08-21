@@ -11,6 +11,10 @@
 
 #![forbid(unsafe_code)]
 
+pub mod evidence;
+pub mod normalize;
+pub mod vm_court;
+
 use cachyos_kernel_manager_frf::{EvidentiaryChain, Residual};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -46,6 +50,10 @@ pub struct Normalizer {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Comparator {
     pub version: String,
+    /// Fixture image to bake for this court (`vm/fixtures/<fixture>`);
+    /// defaults to the case name.
+    #[serde(default)]
+    pub fixture: Option<String>,
     /// Paths (relative to oracle/ or candidate/) excluded from comparison.
     #[serde(default)]
     pub ignore: Vec<String>,
@@ -206,6 +214,8 @@ pub enum CaseError {
     Toml(#[from] toml::de::Error),
     #[error("json error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("{0}")]
+    Other(String),
 }
 
 fn parse_toml<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, CaseError> {

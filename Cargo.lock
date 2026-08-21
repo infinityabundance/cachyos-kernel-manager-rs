@@ -27,6 +27,7 @@ version = "0.1.0"
 dependencies = [
  "cachyos-kernel-manager-core",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -413,6 +414,7 @@ dependencies = [
  "cachyos-kernel-manager-frf",
  "cachyos-kernel-manager-oracle",
  "serde_json",
+ "toml_edit",
 ]
 
 [[package]]

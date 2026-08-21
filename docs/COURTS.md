@@ -9,6 +9,33 @@ compatibility claim through differential execution against the oracle.
 CLAIM → MODEL → ASSUMPTIONS → OBSERVABLES → WITNESS → INDEPENDENCE → FALSIFIER → EVIDENCE
 ```
 
+## Execution model (Phase 2)
+
+Two modes:
+
+1. **Pure courts** (`cargo xtask court run <case>`): fingerprint the case's
+   `oracle/` and `candidate/` directories; used for static corpora and any
+   comparison that does not need the oracle binary.
+2. **Differential VM courts** (`cargo xtask court run <case> --vm`): the
+   real oracle GUI and the candidate inspect tool run against byte-identical
+   fixture snapshots in disposable KVM VMs:
+
+```
+fixture image (baked offline: losetup + chroot; qcow2 digest recorded)
+  → fresh overlay → boot → oracle (Xvfb + AT-SPI + strace) → oracle/ evidence
+  → fresh overlay (restore identical snapshot) → boot → candidate → candidate/ evidence
+  → FRF comparator (normalizers + field diff) → residual.json + evidence.json
+```
+
+The machine residual (pacman -Q, sync db hashes, local db) is captured on
+both sides and compared first: any drift is a fixture-integrity violation,
+not a parity pass.
+
+Oracle observation is AT-SPI based (directive §37 prefers accessibility-tree
+over coordinate screenshots; §0 forbids screenshots as proof). The probe
+commands the oracle executes at startup (findmnt/chwd/pacman -Qqs/...) are
+witnessed via strace `execve` capture for archaeology.
+
 ## Case format
 
 ```

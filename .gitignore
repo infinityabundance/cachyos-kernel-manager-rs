@@ -12,3 +12,7 @@ courts/*/*/oracle/
 courts/*/*/candidate/
 courts/*/*/residual.json
 courts/*/*/evidence.json
+
+# VM build artifacts are regenerable from the build scripts, never committed
+vm/images/
+.scratch/

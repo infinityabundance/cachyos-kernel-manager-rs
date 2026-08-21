@@ -24,19 +24,19 @@ version = "1.19.0"            # CMakeLists.txt `project(... VERSION 1.19.0 ...)`
 tag = "v1.19.0"               # peeled tag commit == develop HEAD at freeze time
 retrieved_at = "2026-08-21"
 source_archive = "oracle/upstream-v1.19.0-6b4a373.tar.gz"
-source_archive_hash = "sha256:1e464db65e410e4452e47ae619bbc490f976e7fe62cfe4936bf3fd96b0680e8f"
 # NOTE: the archive is generated deterministically with
 #   git -C oracle/upstream archive --format=tar.gz -o <out> <commit>
 # and verified reproducible (regeneration yields the identical hash).
 # `cargo xtask oracle archive` regenerates and verifies it.
+source_archive_hash = "sha256:1e464db65e410e4452e47ae619bbc490f976e7fe62cfe4936bf3fd96b0680e8f"
 
 # Package hashes: sha256 of the CachyOS/Arch binary package (`cachyos-kernel-manager`)
 # as shipped in the cachyos repos at freeze time. Populated by `cargo xtask oracle pkg-hash`.
-package_hashes = {}
+package_hashes = { "cachyos-kernel-manager-1.19.0-1" = "sha256:3dd688c687014eb5bdf9c3a7d895ae56d75139396fdcad249f720bafe6d61ea6" }
 
 # Reference image hash: digest of the disposable VM base image used for oracle
-# differential courts. Populated by `cargo xtask vm build`. Pending Phase 2.
-reference_image_hash = "pending"
+# differential courts. Populated by `cargo xtask vm build`.
+reference_image_hash = "sha256:db67e67859776634b24f31642434f479c2b898e6bd578c6cd8355411fbd73243"
 
 [identity]
 # Externally visible application identity, recorded from upstream source at freeze time.

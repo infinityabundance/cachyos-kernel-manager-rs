@@ -6,26 +6,35 @@
 //!       ↓
 //! typed ALPM adapter   (this crate)
 //!       ↓
-//! Rust libalpm binding (unsafe FFI; Phase 4, feature `libalpm`)
+//! Rust libalpm binding (ffi module; feature `libalpm`)
 //!       ↓
 //! system libalpm
 //! ```
 //!
-//! Everything outside the future FFI module is `#![forbid(unsafe_code)]`.
-//! The adapter must preserve the oracle's ALPM usage exactly
-//! (`alpm_utils.cpp` + `kernel.cpp`): initialize with root `/` and dbpath
-//! `/var/lib/pacman/`, register sync dbs from a mINI-style parse of
-//! `/etc/pacman.conf` (skipping `testing` and `options`), search with the
-//! `linux[^ ]*-headers` needle, and compare versions with `alpm_pkg_vercmp`
-//! — never semver.
+//! Everything except the FFI module is `#![forbid(unsafe_code)]`. When the
+//! `libalpm` feature is off, the whole crate forbids unsafe; when it is on,
+//! only `ffi.rs` (the documented, invariant-covered FFI boundary) may use
+//! unsafe — every other module still forbids it at module level.
+//!
+//! The adapter preserves the oracle's ALPM usage exactly (`alpm_utils.cpp` +
+//! `kernel.cpp`): initialize with root `/` and dbpath `/var/lib/pacman/`,
+//! register sync dbs from a mINI-style parse of `/etc/pacman.conf` (skipping
+//! `testing` and `options`), search with the `linux[^ ]*-headers` needle,
+//! and compare versions with `alpm_pkg_vercmp` — never semver.
 
-#![forbid(unsafe_code)]
+#![cfg_attr(not(feature = "libalpm"), forbid(unsafe_code))]
+
+pub mod pacman_conf;
+
+#[cfg(feature = "libalpm")]
+pub mod ffi;
 
 use cachyos_kernel_manager_core::{DbPackage, SyncDb};
 use std::cmp::Ordering;
 
-/// A source of ALPM facts. Implemented by the real libalpm backend (Phase 4)
-/// and by [`NullAlpm`] for tests and pure courts.
+/// A source of ALPM facts. Implemented by the real libalpm backend
+/// (feature `libalpm`, Phase 4) and by [`NullAlpm`] for tests and pure
+/// courts.
 pub trait Alpm {
     /// The registered sync databases in registration (pacman.conf) order.
     fn sync_dbs(&self) -> Vec<SyncDb>;
@@ -70,10 +79,11 @@ impl Alpm for NullAlpm {
 
     fn vercmp(&self, a: &str, b: &str) -> Ordering {
         // Deterministic stand-in so tests are stable. This is NOT the parity
-        // comparator: ALPM's real `alpm_pkg_vercmp` arrives in Phase 4 and
-        // every version-state court compares against it.
-        // Segment-wise numeric comparison handles `6.14.1-1` vs `6.14.1-2`;
-        // non-numeric segments fall back to lexicographic comparison.
+        // comparator: ALPM's real `alpm_pkg_vercmp` is provided by the
+        // `libalpm` feature, and every version-state court compares against
+        // it. Segment-wise numeric comparison handles `6.14.1-1` vs
+        // `6.14.1-2`; non-numeric segments fall back to lexicographic
+        // comparison.
         let seg = |s: &str| -> Vec<String> {
             s.split(|c: char| !c.is_ascii_digit() && c != '.')
                 .filter(|p| !p.is_empty())
@@ -98,9 +108,9 @@ impl Alpm for NullAlpm {
 
 /// The oracle's pacman.conf registration rule (`alpm_utils.cpp:32-47`):
 /// skip `testing` and `options`; register every other section. The mINI
-/// parser semantics themselves live in the `pacman-config` court — this
-/// function encodes the *registration* rule on top of whatever section list
-/// a parser yields.
+/// parser semantics themselves live in [`pacman_conf`] — this function
+/// encodes the *registration* rule on top of whatever section list a parser
+/// yields.
 pub fn register_sections(sections: &[String]) -> Vec<String> {
     sections
         .iter()

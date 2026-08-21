@@ -1,0 +1,15 @@
+assumptions = [
+  "Fixture: base state: linux-cachyos installed from cachyos, all sync dbs as built",
+  "Disposable court VM with the fixture marker (/etc/cachyos-km/fixture.marker); destructive courts fail closed without it.",
+  "Sync databases are NOT refreshed during the run (no -Sy).",
+  "AUR support disabled in the oracle build (default).",
+]
+
+[[normalizers]]
+name = "at-spi-tree-extraction"
+version = "1.0.0"
+source_hash = "pending"
+input_domain = "oracle-state.json (full at-spi tree)"
+transformation = "extract ordered kernel rows (raw/version/category/checked) + dialogs; drop PIDs, dbus names, coordinates"
+justification = "The at-spi tree contains presentation metadata not part of the behavioral contract; row identity/order/text IS the contract."
+falsifier = "A row that the extractor drops or reorders is a real residual (the raw tree remains in evidence)."

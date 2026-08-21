@@ -13,3 +13,4 @@ cachyos-kernel-manager-oracle = { workspace = true }
 cachyos-kernel-manager-casefile = { workspace = true }
 cachyos-kernel-manager-frf = { workspace = true }
 serde_json = { workspace = true }
+toml_edit = "0.22"

@@ -14,11 +14,12 @@ oracle in disposable VMs, and every discrepancy is treated as evidence.
 
 | phase | scope | status |
 |---|---|---|
-| 0 | freeze authority | **done** — `oracle/UPSTREAM.lock` (v1.19.0, `6b4a373e`, deterministic archive `1e464db6…`, hash-verified) |
+| 0 | freeze authority | **done** — `oracle/UPSTREAM.lock` (v1.19.0, `6b4a373e`, deterministic archive `1e464db6…`, package hash `3dd688c6…`, hash-verified) |
 | 1 | archaeology + atlas | **done** — `atlas/inventory.json` (37 surfaces), `docs/*` (full source archaeology), git-history lore |
-| 2 | VM oracle instrumentation | pending (`vm/`, `cargo xtask vm build`) |
-| 3 | pure domain core | **built** — discovery, version state, category, options/transitions, selection, app state machine; 68 tests |
-| 4–13 | alpm/exec/build/…/release | partially modeled (plan, exec, build, config crates have real code + tests); UI, SCX, VMs, packaging pending |
+| 2 | VM oracle instrumentation | **in progress** — docker+qemu image builder, fixture baker (10 baseline fixtures), SSH/9p harness, AT-SPI observation, candidate inspect tool (libalpm FFI), FRF comparator + evidence; base image building |
+| 3 | pure domain core | **built** — discovery, version state, category, options/transitions, selection, app state machine; 80 tests |
+| 4 | ALPM layer | **built (minimal)** — isolated FFI (`alpm_initialize/register/db_get_pkg/pkgcache/vercmp/installed_db`), mINI pacman.conf port, null backend; transaction API deliberately excluded |
+| 5–13 | exec/build/…/release | partially modeled (plan, exec, build, config crates); UI, SCX, packaging, hostile review pending |
 
 Nothing beyond its phase is claimed complete. The GUI lands in Phase 8; the
 current binary is a foundation diagnostic that verifies the oracle freeze.
