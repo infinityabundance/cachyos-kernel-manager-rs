@@ -1,5 +1,102 @@
 {
-  "residual_ledger_version": "1.0.0",
-  "policy": "A mismatch is the most valuable artifact in the project. No unexplained residual disappears from history (docs/COURTS.md §Residual discipline).",
-  "residuals": []
+ "residual_ledger_version": "1.0.0",
+ "policy": "A mismatch is the most valuable artifact in the project. No unexplained residual disappears from history (docs/COURTS.md \u00a7Residual discipline).",
+ "residuals": [
+  {
+   "id": "RES-2026-001",
+   "court": "oracle-infrastructure/base-image",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "sync db cachyos has 0 linux-cachyos entries; rootfs /etc/pacman.conf is stock Arch (no [cachyos])",
+   "candidate_fingerprint": "n/a (infrastructure)",
+   "classification": "environment_dependent",
+   "root_cause": "pacstrap installs the pacman package whose /etc/pacman.conf default overwrites the CachyOS config copied by the builder; the oracle's libalpm then registers only core/extra and linux-cachyos vanishes from discovery.",
+   "resolution": "provision-rootfs.sh restores the cachyos-first pacman.conf after pacstrap; base image rebuilt (reference_image_hash updated in UPSTREAM.lock).",
+   "commit": "8d5fa45",
+   "regression_witness": "court kernel-discovery/minimal passes; pacman -Sl cachyos shows linux-cachyos"
+  },
+  {
+   "id": "RES-2026-002",
+   "court": "alpm-ffi/list-layout",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "n/a",
+   "candidate_fingerprint": "inspect dump SIGKILL (guest OOM, 7.7GB anon rss); strace shows infinite brk/mmap doubling",
+   "classification": "known_bug_compatibility",
+   "root_cause": "RawList declared alpm_list_t with only {data,next}; the real struct has {data,prev,next} so `next` was read at the prev offset, corrupting list walks into an infinite allocation loop.",
+   "resolution": "added the prev field (ffi.rs); list walks now correct.",
+   "commit": "8d5fa45",
+   "regression_witness": "db_packages returns 205/177/7340 packages on the host; all courts pass"
+  },
+  {
+   "id": "RES-2026-003",
+   "court": "alpm-ffi/installed-db-type",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "n/a",
+   "candidate_fingerprint": "inspect dump SIGSEGV (139); gdb: garbage pointer 0x347265766e7a ('znver4') in local_pkg",
+   "classification": "known_bug_compatibility",
+   "root_cause": "alpm_pkg_get_installed_db returns const char* (the provenance db NAME), not alpm_db_t*; calling alpm_db_get_name on the string pointer produced garbage.",
+   "resolution": "declared the correct return type; local_pkg reads the name string.",
+   "commit": "8d5fa45",
+   "regression_witness": "candidate-state.json shows installed_db provenance correctly"
+  },
+  {
+   "id": "RES-2026-004",
+   "court": "kernel-discovery/cross-repo-installed",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "rows 17-18: other/linux-cachyos-court '\u22289.9.9-1' unchecked; fixtures/linux-cachyos-court '9.9.9-1' checked",
+   "candidate_fingerprint": "row omitted for other/linux-cachyos-court",
+   "classification": "known_bug_compatibility",
+   "root_cause": "misread of km-window.cpp:97-104: the `continue` in init_kernels_tree_widget fires AFTER the QTreeWidgetItem was inserted, so a kernel installed from a different repo REMAINS in the tree, unchecked and not immutable \u2014 it is NOT omitted.",
+   "resolution": "removed the candidate's row-skip; the row is emitted with checked=false, immutable=false, version marker computed from the row's own sync package.",
+   "commit": "8d5fa45",
+   "regression_witness": "court kernel-discovery/cross-repo-installed passes"
+  },
+  {
+   "id": "RES-2026-005",
+   "court": "kernel-discovery/empty-all-dbs",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "ALERT node carries only the window title; the 'No kernels found!' message is on a LABEL child",
+   "candidate_fingerprint": "comparator reported oracle dialog condition false",
+   "classification": "underspecified_behavior",
+   "root_cause": "the dialog normalizer read only the ALERT/DIALOG/WINDOW node's own text; Qt puts the message on a descendant label.",
+   "resolution": "dialog extraction gathers descendant text (depth-limited) and prefers the longest (most specific) message.",
+   "commit": "8d5fa45",
+   "regression_witness": "court kernel-discovery/empty-all-dbs passes"
+  },
+  {
+   "id": "RES-2026-006",
+   "court": "oracle-infrastructure/a11y-roles",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "oracle tree reported rows_populated=False while the dump visibly contained 17 rows",
+   "candidate_fingerprint": "n/a (infrastructure)",
+   "classification": "environment_dependent",
+   "root_cause": "pyatspi2 getRole() returns plain ints on this stack; the observer compared role NAMES against numeric strings, and the Qt tree is a FLAT list of TABLE_CELLs with no TREE_ITEM wrappers.",
+   "resolution": "observer maps numeric AT-SPI role ids; wait_for_rows detects the flat layout; normalizer chunks flat TABLE_CELL runs into rows.",
+   "commit": "8d5fa45",
+   "regression_witness": "rows_populated=True on all courts"
+  },
+  {
+   "id": "RES-2026-007",
+   "court": "oracle-infrastructure/machine-residual-json",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "residual.json invalid: missing comma after fixture_marker_present; newline inside sha256 strings; unescaped quotes",
+   "candidate_fingerprint": "n/a (infrastructure)",
+   "classification": "known_bug_compatibility",
+   "root_cause": "residual.sh hand-built JSON: missing comma, awk print newlines, no quote escaping, and set -e could truncate the file on a failing probe.",
+   "resolution": "fixed comma/escaping/tr newline stripping; removed set -e so evidence capture degrades fields instead of truncating.",
+   "commit": "8d5fa45",
+   "regression_witness": "residual.json validates on host and in VM"
+  },
+  {
+   "id": "RES-2026-008",
+   "court": "oracle-infrastructure/host-oom",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "host OOM killer killed zed-editor (11GB anon rss) while a 16GiB court VM ran",
+   "candidate_fingerprint": "n/a (infrastructure)",
+   "classification": "environment_dependent",
+   "root_cause": "qemu VMs allocated 16GiB RAM unconstrained on a memory-stressed host; the host reached global OOM.",
+   "resolution": "qemu runs in systemd user scopes with MemoryMax/MemorySwapMax (12G/4G); VM RAM 16G->8G + virtio-balloon; docker builders capped; stale-qemu detection + cleanup subcommand.",
+   "commit": "8d5fa45",
+   "regression_witness": "cgroup limits verified (memory.max=12G) on running VMs"
+  }
+ ]
 }

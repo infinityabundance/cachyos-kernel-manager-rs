@@ -130,19 +130,12 @@ fn dump(pretty: bool) {
     let mut rows = Vec::new();
     for k in &kernels {
         let local = handle.local_pkg(&k.name);
-        // Oracle display semantics (`km-window.cpp:97-101`): a kernel
-        // installed from a DIFFERENT sync repo is not rendered as a row of
-        // the repo it now belongs to — the tree entry is skipped entirely
-        // (it remains in the discovery model, but the GUI omits it). The
-        // comparator sees the tree, so the candidate's row list must apply
-        // the same rule.
-        if let Some(l) = &local {
-            if let Some(db) = &l.installed_db {
-                if db != &k.repo {
-                    continue;
-                }
-            }
-        }
+        // Oracle display semantics (`km-window.cpp:97-104`): a kernel
+        // installed from a DIFFERENT sync repo is NOT skipped — the
+        // QTreeWidgetItem was already inserted before the `continue`, so
+        // the row REMAINS in the tree, unchecked and NOT immutable (the
+        // `continue` only skips the immutable/checked marking). The
+        // comparator sees the tree, so the candidate emits the same rows.
         let display = match &local {
             Some(l) => DisplayVersion::compute(Some(&l.version), &k.version, |a, b| {
                 handle.vercmp(a, b).cmp(&0)

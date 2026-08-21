@@ -55,8 +55,9 @@ killed unrelated host processes). Two layers enforce this:
    growth.
 
 2. **Docker builder caps** (`vm/base/build-base.sh`, `vm/fixtures/bake.sh`):
-   the privileged builder containers run with `--memory=8g --memory-swap=12g
-   --pids-limit=8192`.
+   the privileged builder containers run with `--memory=16g --memory-swap=20g
+   --pids-limit=8192` (16g is required for `mkfs.ext4 -d` on the full
+   rootfs tree, which builds the inode table in RAM; 8g OOM'd it).
 
 Tuning (deliberate, documented):
 
@@ -91,9 +92,24 @@ CachyOS is rolling; reproducibility is snapshot-based:
 
 ## Fixture matrix (directive §41) — Phase 2 baseline
 
-baked: `minimal`, `several-kernels`, `upgrade-available`, `downgrade-visible`,
-`custom-repo`, `cross-repo-installed`, `duplicate-across-repos`, `stale-db`,
-`empty-all-dbs`, `empty-sync-db`.
+All 10 baseline fixtures are baked and their kernel-discovery courts PASS
+(oracle == candidate, 0 residuals, verified evidence):
+
+| fixture | coverage | status |
+|---|---|---|
+| minimal | base discovery (linux-cachyos installed), row order, checked state | PASS |
+| several-kernels | multi-repo rows, category classification | PASS |
+| upgrade-available | `∧` marker + update flag (local < sync) | PASS |
+| downgrade-visible | `∨` marker (local > sync) | PASS |
+| custom-repo | file-based `[fixtures]` repo discovery | PASS |
+| cross-repo-installed | installed-from-other-repo row stays visible, unchecked | PASS |
+| duplicate-across-repos | same name in two repos -> two rows | PASS |
+| stale-db | cachyos.db removed; section registered, no packages | PASS |
+| empty-all-dbs | no sync dbs -> 'No kernels found!' dialog | PASS |
+| empty-sync-db | registered repo with a zero-package db | PASS |
+
+Drift/slew: `minimal` (3x) and `upgrade-available` (2x) re-run on identical
+overlays — deterministic PASS, no drift.
 
 deferred to later phases (documented, marked): ZFS root (needs a fixture
 `findmnt` wrapper — narrowest verifiable simulation boundary), NVIDIA

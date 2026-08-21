@@ -32,6 +32,14 @@ RAW_IMAGE="$OUT/base.raw"
 QCOW_IMAGE="$OUT/base.qcow2"
 DISK_SIZE=16G
 ROOT_LABEL="cachyoskmroot"
+# The builder container's writable layer is tmpfs-backed (docker data root
+# on /run, 26G) and fills up when the images + the exported rootfs are kept
+# inside it. Big artifacts are written DIRECTLY to the host bind mount
+# (/host-images); only small metadata stays in /out for docker cp.
+BIG_OUT="/host-images"
+RAW_IMAGE="$BIG_OUT/base.raw"
+ROOTFS_IMG="$BIG_OUT/rootfs.img"
+BASE_ROOTFS_EXPORT="$BIG_OUT/base-rootfs"
 
 step() { echo; echo "== [$(date -u +%H:%M:%S)] $*"; }
 
@@ -240,12 +248,15 @@ rm -f "$RAW_IMAGE"
 truncate -s "$DISK_SIZE" "$RAW_IMAGE"
 printf 'type=83, start=2048, bootable\n' | sfdisk "$RAW_IMAGE"
 
-ROOTFS_IMG="$OUT/rootfs.img"
 rm -f "$ROOTFS_IMG"
 truncate -s 8G "$ROOTFS_IMG"
 mkfs.ext4 -q -L "$ROOT_LABEL" -d "$IMG_ROOT" "$ROOTFS_IMG"
+# write back before dd so the cgroup's dirty page cache stays reclaimable
+sync
 dd if="$ROOTFS_IMG" of="$RAW_IMAGE" bs=1M seek=1 conv=notrunc status=none
 sync
+rm -f "$ROOTFS_IMG"
+chmod 644 "$RAW_IMAGE"
 
 # boot kernel + initramfs for qemu -kernel boot (host side)
 mkdir -p "$OUT/boot"
@@ -253,11 +264,12 @@ cp "$IMG_ROOT"/boot/vmlinuz-* "$OUT/boot/"
 cp "$IMG_ROOT"/boot/initramfs-*.img "$OUT/boot/"
 ls -la "$OUT/boot/"
 
-# export the rootfs DIRECTORY for loop-free fixture baking
+# export the rootfs DIRECTORY for loop-free fixture baking (directly to the
+# host mount: the exported tree is several GB and would fill the tmpfs layer)
 step "export base rootfs directory"
-rm -rf "$OUT/base-rootfs"
-cp -a "$IMG_ROOT" "$OUT/base-rootfs"
-chmod -R u+rwX "$OUT/base-rootfs"
+rm -rf "$BASE_ROOTFS_EXPORT"
+cp -a "$IMG_ROOT" "$BASE_ROOTFS_EXPORT"
+chmod -R u+rwX "$BASE_ROOTFS_EXPORT"
 
 step "write manifest (raw)"
 RAW_HASH="$(sha256sum "$RAW_IMAGE" | awk '{print $1}')"

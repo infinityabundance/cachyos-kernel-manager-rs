@@ -427,8 +427,12 @@ fn vm_build() -> ExitCode {
 /// `vm bake <fixture>` — bake a fixture image.
 fn vm_bake(fixture: &str) -> ExitCode {
     let images = vm_images();
-    if !images.join("base.raw").exists() {
-        eprintln!("base.raw missing — run: cargo xtask vm build");
+    if !images.join("base.qcow2").exists() {
+        eprintln!("base.qcow2 missing — run: cargo xtask vm build");
+        return ExitCode::FAILURE;
+    }
+    if !images.join("base-rootfs").is_dir() {
+        eprintln!("base-rootfs/ missing — run: cargo xtask vm build");
         return ExitCode::FAILURE;
     }
     let out = images.join("fixtures").join(fixture).join("fixture.qcow2");
@@ -658,7 +662,7 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         case_fixture_dir.join("fixture-manifest.json"),
     );
     let _ = std::fs::copy(
-        &fixture_dir.join("packages.txt"),
+        fixture_dir.join("packages.txt"),
         case_fixture_dir.join("packages.txt"),
     );
     let _ = evidence.add_directory(&case_fixture_dir, "fixture");

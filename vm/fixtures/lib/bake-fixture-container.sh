@@ -28,8 +28,13 @@ ROOT=/work/rootfs
 OUT=/out
 DISK_SIZE=16G
 ROOT_LABEL="cachyoskmroot"
+# The container's own writable layer is tmpfs-backed (docker data root on
+# tmpfs, 26G) and fills up on larger fixtures. Big image files are written
+# DIRECTLY to the host bind mount instead; only small metadata goes to /out
+# (docker cp'd to the host by bake.sh).
+BIG_OUT="/host-images/fixtures/${FIXTURE:?FIXTURE env required}"
 
-mkdir -p "$OUT"/
+mkdir -p "$OUT" "$BIG_OUT"
 
 step "builder container prerequisites"
 pacman -Syu --noconfirm >/dev/null 2>&1 || true
@@ -59,28 +64,37 @@ trap 'umount "$ROOT/sys" "$ROOT/proc" "$ROOT/dev" 2>/dev/null || true' EXIT
 arch-chroot "$ROOT" bash /opt/cachyos-km-vm/fixture-spec.sh
 umount "$ROOT/sys" "$ROOT/proc" "$ROOT/dev" 2>/dev/null || true
 trap - EXIT
+# flush dirty page cache left by the spec (pacman/installs): the cgroup
+# memory cap counts it, and a burst of dirty pages during mkfs can OOM the
+# builder even when the real working set is far below the cap
+sync
 
 step "capture package manifest"
 arch-chroot "$ROOT" pacman -Q | sort > "$OUT/packages.txt"
 chmod 644 "$OUT/packages.txt"
 
 step "create fixture disk image (loop-free)"
-rm -f "$OUT/fixture.raw"
-truncate -s "$DISK_SIZE" "$OUT/fixture.raw"
-printf 'type=83, start=2048, bootable\n' | sfdisk "$OUT/fixture.raw" >/dev/null
-rm -f "$OUT/rootfs.img"
-truncate -s 8G "$OUT/rootfs.img"
-mkfs.ext4 -q -L "$ROOT_LABEL" -d "$ROOT" "$OUT/rootfs.img"
-dd if="$OUT/rootfs.img" of="$OUT/fixture.raw" bs=1M seek=1 conv=notrunc status=none
+rm -f "$BIG_OUT/fixture.raw"
+truncate -s "$DISK_SIZE" "$BIG_OUT/fixture.raw"
+printf 'type=83, start=2048, bootable\n' | sfdisk "$BIG_OUT/fixture.raw" >/dev/null
+rm -f "$BIG_OUT/rootfs.img"
+truncate -s 8G "$BIG_OUT/rootfs.img"
+mkfs.ext4 -q -L "$ROOT_LABEL" -d "$ROOT" "$BIG_OUT/rootfs.img"
+# write back the fs image before dd so its pages are reclaimable, not dirty
 sync
+dd if="$BIG_OUT/rootfs.img" of="$BIG_OUT/fixture.raw" bs=1M seek=1 conv=notrunc status=none
+sync
+# rootfs.img is an intermediate; drop it right away (the host disk is tight)
+rm -f "$BIG_OUT/rootfs.img"
+chmod 644 "$BIG_OUT/fixture.raw"
 
-RAW_HASH="$(sha256sum "$OUT/fixture.raw" | awk '{print $1}')"
+RAW_HASH="$(sha256sum "$BIG_OUT/fixture.raw" | awk '{print $1}')"
 cat > "$OUT/fixture-manifest.json" <<EOF
 {
-  "fixture": "$(basename "$OUT")",
+  "fixture": "${FIXTURE}",
   "raw_image_hash": "sha256:$RAW_HASH",
   "baked_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
 chmod 644 "$OUT/fixture-manifest.json"
-echo "bake complete: $OUT/fixture.raw"
+echo "bake complete: $BIG_OUT/fixture.raw"

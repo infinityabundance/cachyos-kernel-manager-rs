@@ -102,15 +102,26 @@ fn collect_observations(node: &Value, obs: &mut Observation) {
     let name = node.get("name").and_then(|v| v.as_str()).unwrap_or("");
     let text = node.get("text").and_then(|v| v.as_str()).unwrap_or("");
 
-    // dialogs: ALERT / DIALOG / WINDOW whose text mentions kernels/pacman
+    // dialogs: ALERT / DIALOG / WINDOW whose text mentions kernels/pacman.
+    // Qt puts the real message on a LABEL CHILD (the alert itself carries
+    // only the window title), so descendant text is gathered too.
     if is_dialog_role(role) {
-        let hay = format!("{name} {text}").to_lowercase();
+        let mut texts: Vec<String> = Vec::new();
+        if !text.is_empty() {
+            texts.push(text.to_string());
+        }
+        if !name.is_empty() {
+            texts.push(name.to_string());
+        }
+        gather_texts(node, &mut texts, 4);
+        let hay = texts.join(" ").to_lowercase();
         if hay.contains("kernel") || hay.contains("pacman") || hay.contains("no kernels") {
-            let dialog_text = if !text.is_empty() {
-                text.to_string()
-            } else {
-                name.to_string()
-            };
+            // prefer the most specific descendant text (the message label)
+            let dialog_text = texts
+                .iter()
+                .max_by_key(|t| t.len())
+                .cloned()
+                .unwrap_or_default();
             if !dialog_text.is_empty() && !obs.dialogs.contains(&dialog_text) {
                 obs.dialogs.push(dialog_text);
             }
@@ -185,6 +196,25 @@ fn has_state(node: &Value, state: &str) -> bool {
         .and_then(|v| v.as_array())
         .map(|a| a.iter().any(|s| s.as_str() == Some(state)))
         .unwrap_or(false)
+}
+
+/// Gather non-empty text from a node and its descendants, depth-limited.
+fn gather_texts(node: &Value, out: &mut Vec<String>, depth: usize) {
+    if depth == 0 {
+        return;
+    }
+    if let Some(children) = node.get("children").and_then(|v| v.as_array()) {
+        for child in children {
+            for field in ["name", "text"] {
+                if let Some(t) = child.get(field).and_then(|v| v.as_str()) {
+                    if !t.is_empty() {
+                        out.push(t.to_string());
+                    }
+                }
+            }
+            gather_texts(child, out, depth - 1);
+        }
+    }
 }
 
 /// Column layout of a flat table, derived from the emitted column headers

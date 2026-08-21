@@ -24,6 +24,6 @@ FIXTURES_REPO_DIR="$OTHER_REPO" build_fakepkg linux-cachyos-court 9.5.5 1
 FIXTURES_REPO_DIR="$OTHER_REPO" build_fakepkg linux-cachyos-court-headers 9.5.5 1
 
 repo_add_all
-(cd "$OTHER_REPO" && repo-add -q -R cachyos-km-fixtures.db.tar.zst *.pkg.tar.zst)
+(cd "$OTHER_REPO" && repo-add -q -R other.db.tar.zst *.pkg.tar.zst)
 pacman_sync
 echo "fixture duplicate-across-repos: two rows, none installed"

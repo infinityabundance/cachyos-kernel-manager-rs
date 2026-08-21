@@ -31,6 +31,10 @@ EOF
 # build_fakepkg <name> <pkgver> <pkgrel> [epoch]
 build_fakepkg() {
     local name="$1" ver="$2" rel="$3" epoch="${4:-0}"
+    # the repo dir must exist BEFORE the artifact install below (the dir is
+    # otherwise only created by repo_add_all -> ensure_fixtures_repo, and
+    # install to a missing dir with a trailing slash fails "Not a directory")
+    ensure_fixtures_repo
     local work="/tmp/fakepkg-$name"
     rm -rf "$work"
     mkdir -p "$work"
@@ -51,15 +55,21 @@ EOF
     # makepkg refuses to run as root; build as the `test` user
     chown -R test:test "$work"
     (cd "$work" && sudo -u test makepkg -f --noconfirm --skipinteg)
-    # copy the artifact to the repo dir (and keep a private copy for -U
-    # installs of OLDER versions than the synced one)
-    install -o test -g test -m 644 "$work"/*.pkg.tar.zst "$FIXTURES_REPO_DIR/"
-    cp "$work"/*.pkg.tar.zst /tmp/ 2>/dev/null || true
+    # copy the artifact to the repo dir, and keep a PRIVATE copy under a
+    # deterministic `fakepkg-` prefix in /tmp for -U installs of OLDER
+    # versions than the synced one (the specs reference these paths)
+    local artifact
+    artifact="$(ls "$work"/*.pkg.tar.zst 2>/dev/null | head -1)"
+    [ -n "$artifact" ] || { echo "build_fakepkg: no artifact for $name" >&2; exit 1; }
+    install -o test -g test -m 644 "$artifact" "$FIXTURES_REPO_DIR/"
+    cp "$artifact" "/tmp/fakepkg-$(basename "$artifact")"
 }
 
 repo_add_all() {
     ensure_fixtures_repo
-    (cd "$FIXTURES_REPO_DIR" && repo-add -q -R cachyos-km-fixtures.db.tar.zst *.pkg.tar.zst)
+    # the db must be named after the REPO (`$repo.db` is what pacman fetches
+    # from the Server URL) — repo-add's filename argument is arbitrary
+    (cd "$FIXTURES_REPO_DIR" && repo-add -q -R "$FIXTURES_REPO_NAME.db.tar.zst" *.pkg.tar.zst)
 }
 
 pacman_sync() {

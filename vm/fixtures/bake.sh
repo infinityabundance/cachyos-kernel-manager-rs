@@ -16,6 +16,12 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 VM="$ROOT/vm"
 IMAGES="$VM/images"
 CONTAINER_IMAGE="${KM_BUILDER_IMAGE:-archlinux:latest}"
+# mkfs.ext4 -d on the full rootfs tree is memory-hungry (it builds the
+# inode table in RAM); 8g was observed to OOM the builder on larger
+# fixtures. 16g RAM + generous swap headroom keeps the host safe (the
+# cgroup OOM-kills only the builder, never the host).
+BUILDER_MEM="${KM_BUILDER_MEM_LIMIT:-16g}"
+BUILDER_SWAP="${KM_BUILDER_MEM_SWAP:-32g}"
 
 SPEC="$VM/fixtures/$FIXTURE"
 [ -f "$SPEC/spec.sh" ] || { echo "no such fixture: $FIXTURE ($SPEC/spec.sh)" >&2; exit 1; }
@@ -36,7 +42,7 @@ docker run -d --name "$CID" --privileged \
     -v "$SPEC:/in/fixture:ro" \
     -v "$VM/fixtures/lib/fixture-lib.sh:/in/fixture-lib.sh:ro" \
     -v "$VM/fixtures/lib/bake-fixture-container.sh:/in/bake.sh:ro" \
-    --memory="${KM_BUILDER_MEM_LIMIT:-8g}" --memory-swap="${KM_BUILDER_MEM_SWAP:-12g}" \
+    --memory="$BUILDER_MEM" --memory-swap="$BUILDER_SWAP" \
     --pids-limit=8192 \
     "$CONTAINER_IMAGE" sleep infinity >/dev/null
 trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
@@ -46,17 +52,25 @@ trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
 docker exec "$CID" rm -rf "/host-images/fixtures/$FIXTURE" || true
 mkdir -p "$OUT"
 
-docker exec "$CID" bash /in/bake.sh
+docker exec -e FIXTURE="$FIXTURE" "$CID" bash /in/bake.sh
 
-echo "== copying outputs (host-user ownership)"
-docker cp "$CID:/out/fixture.raw" "$OUT/fixture.raw"
+# the big image files are written directly to /host-images (the container's
+# tmpfs-backed layer is too small); only small metadata is docker cp'd
+chmod 644 "$OUT/fixture.raw" 2>/dev/null || true
+
+echo "== copying metadata (host-user ownership)"
 docker cp "$CID:/out/packages.txt" "$OUT/packages.txt"
 docker cp "$CID:/out/fixture-manifest.json" "$OUT/fixture-manifest.json"
 docker cp "$CID:/out/bake.log" "$OUT/bake.log" 2>/dev/null || true
 
 echo "== converting fixture.raw -> fixture.qcow2"
 qemu-img convert -f raw -O qcow2 "$OUT/fixture.raw" "$OUT/fixture.qcow2"
-chmod 644 "$OUT/fixture.raw" "$OUT/fixture.qcow2" "$OUT/packages.txt" "$OUT/fixture-manifest.json"
+chmod 644 "$OUT/fixture.qcow2" "$OUT/packages.txt" "$OUT/fixture-manifest.json"
+# the raw image is an intermediate; the qcow2 + digest are the evidence
+# (the host disk is tight — 10 fixtures × ~4G raw would otherwise linger).
+# The raw is root-owned (the container wrote it), so remove it as root via
+# docker exec while the container is still alive.
+docker exec "$CID" rm -f "/host-images/fixtures/$FIXTURE/fixture.raw"
 
 FIXTURE_HASH="$(sha256sum "$OUT/fixture.qcow2" | awk '{print $1}')"
 SPEC_HASH="$(sha256sum "$SPEC/spec.sh" | awk '{print $1}')"

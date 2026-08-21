@@ -1,0 +1,7 @@
+{
+ "fixture": "out",
+ "raw_image_hash": "sha256:84e5c1cefe222b36f72cb70ff460fb9ff393ed49b08d10131ba8c27cb2b9c206",
+ "baked_at": "2026-08-21T19:22:31Z",
+ "fixture_digest": "sha256:9e06312cd78e33ca483f20f83e5a5c1c09489d18e5f2faf9b73a75dc38b2c3c2",
+ "spec_sha256": "sha256:72e962122db84f3c5047cae3bd7fb0563e93855489868aad7e14ae2591c4fc87"
+}

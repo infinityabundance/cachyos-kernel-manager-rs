@@ -56,7 +56,7 @@ docker run -d --name "$CONTAINER_NAME" --privileged \
     -v "$ROOT/oracle:/in/oracle:ro" \
     -v "$TARBALL:/in/oracle-src.tar.gz:ro" \
     -v "$VM/in-vm:/in/vm-in-vm:ro" \
-    --memory="${KM_BUILDER_MEM_LIMIT:-8g}" --memory-swap="${KM_BUILDER_MEM_SWAP:-12g}" \
+    --memory="${KM_BUILDER_MEM_LIMIT:-16g}" --memory-swap="${KM_BUILDER_MEM_SWAP:-20g}" \
     --pids-limit=8192 \
     "$CONTAINER_IMAGE" sleep infinity >/dev/null
 
@@ -73,16 +73,23 @@ step "copying outputs out of the container (host-user ownership)"
 for stale in base.raw base.qcow2 manifest.json provision.log base-rootfs boot fixtures; do
     docker exec "$CONTAINER_NAME" rm -rf "/host-images/$stale" || true
 done
-docker cp "$CONTAINER_NAME:/out/base.raw" "$IMAGES/base.raw"
+# base.raw + rootfs.img + the base-rootfs export are written DIRECTLY to
+# /host-images by the provision script (the container's tmpfs layer is too
+# small for them); only small metadata is docker cp'd
 docker cp "$CONTAINER_NAME:/out/manifest.json" "$IMAGES/manifest.json"
 docker cp "$CONTAINER_NAME:/out/provision.log" "$IMAGES/provision.log"
-docker cp "$CONTAINER_NAME:/out/base-rootfs" "$IMAGES/base-rootfs"
 docker cp "$CONTAINER_NAME:/out/boot" "$IMAGES/boot"
+chmod 644 "$IMAGES/manifest.json" "$IMAGES/provision.log" 2>/dev/null || true
 
 # --- convert to qcow2 on the host ---
 step "converting base.raw -> base.qcow2"
+chmod 644 "$IMAGES/base.raw" 2>/dev/null || true
 qemu-img convert -f raw -O qcow2 "$IMAGES/base.raw" "$IMAGES/base.qcow2"
-chmod 644 "$IMAGES/base.raw" "$IMAGES/base.qcow2" "$IMAGES/manifest.json" "$IMAGES/provision.log"
+chmod 644 "$IMAGES/base.qcow2"
+# the raw is a root-owned intermediate; remove it as root while the
+# container is still alive (the qcow2 + manifest are the evidence)
+docker exec "$CONTAINER_NAME" rm -f /host-images/base.raw
+chmod 644 "$IMAGES/manifest.json" "$IMAGES/provision.log"
 
 step "recording reference_image_hash"
 QCOW_HASH="$(sha256sum "$IMAGES/base.qcow2" | awk '{print $1}')"
