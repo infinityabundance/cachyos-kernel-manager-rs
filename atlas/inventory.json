@@ -1,0 +1,296 @@
+{
+  "atlas_version": "1.0.0",
+  "oracle_revision": "6b4a373e6a4e7295a0803034e597c4f2a055a411",
+  "oracle_version": "1.19.0",
+  "generated_at": "2026-08-21",
+  "method": "Full manual archaeology of upstream source at frozen revision. Evidence: oracle/upstream (frozen clone), oracle/upstream-v1.19.0-6b4a373.tar.gz (sha256 1e464db6..., deterministic git archive). Every surface below is quoted from source; every consequential behavior requires a court per docs/COURTS.md.",
+  "surfaces": [
+    {
+      "id": "identity.executable_name",
+      "authority": "CMakeLists.txt:9 (project name), meson.build:152",
+      "value": "cachyos-kernel-manager",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Installed to ${bindir}."
+    },
+    {
+      "id": "identity.application_name",
+      "authority": "src/main.cpp:126",
+      "value": "CachyOS-KM",
+      "classification": "REQUIRED_PARITY",
+      "notes": "QApplication::setApplicationName. Affects QSettings/QSharedMemory defaults; single-instance lock uses an explicit key so this is informational."
+    },
+    {
+      "id": "identity.organization_name",
+      "authority": "src/main.cpp:124",
+      "value": "CachyOS",
+      "classification": "REQUIRED_PARITY"
+    },
+    {
+      "id": "identity.organization_domain",
+      "authority": "src/main.cpp:125",
+      "value": "cachyos.org",
+      "classification": "REQUIRED_PARITY"
+    },
+    {
+      "id": "identity.desktop_file_name",
+      "authority": "src/main.cpp:127",
+      "value": "org.cachyos.KernelManager",
+      "classification": "REQUIRED_PARITY"
+    },
+    {
+      "id": "identity.desktop_file_id",
+      "authority": "org.cachyos.KernelManager.desktop",
+      "value": "org.cachyos.KernelManager.desktop",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Name=CachyOS Kernel Manager; GenericName=Kernel Manager; Keywords=cachyos;system;kernel; Exec=cachyos-kernel-manager; Icon=org.cachyos.KernelManager; Terminal=false; StartupNotify=false; Categories=Qt;System; X-AppStream-Ignore=true. Name/GenericName/Keywords/Comment translated for it, ja."
+    },
+    {
+      "id": "identity.icon_id",
+      "authority": "icons/ (10 sizes 16-310), org.cachyos.KernelManager.png",
+      "value": "org.cachyos.KernelManager",
+      "classification": "REQUIRED_PARITY",
+      "notes": "hicolor install layout per CMakeLists install rules."
+    },
+    {
+      "id": "identity.polkit_action",
+      "authority": "org.cachyos.KernelManager.pkexec.policy:9",
+      "value": "org.cachyos.KernelManager.pkexec.policy.run-root-terminal",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Description: Run kernel installation/removal. Message: Authentication is required to run the installation/removal. Defaults: allow_any=no, allow_inactive=no, allow_active=auth_admin. Annotated exec path /usr/lib/cachyos-kernel-manager/rootshell.sh. icon_name=cachyos-kernel-manager."
+    },
+    {
+      "id": "privilege.rootshell",
+      "authority": "src/rootshell.sh",
+      "value": "exec /bin/bash \"$@\"",
+      "classification": "SECURITY_CORRECTION_CANDIDATE",
+      "notes": "Arbitrary root shell via polkit. Candidate replaces with narrow typed helper; shim required if polkit action identity must be preserved. See docs/PRIVILEGE_MODEL.md."
+    },
+    {
+      "id": "single_instance",
+      "authority": "src/main.cpp:45-56,111-114",
+      "value": "QSharedMemory key 'CachyOS-KM-lock'; second instance exits with code -1 (255)",
+      "classification": "REQUIRED_PARITY",
+      "notes": "IsInstanceAlreadyRunning: create(1) fails -> attach+detach -> retry create; still fails => already running. Exit status -1 observed via shell as 255."
+    },
+    {
+      "id": "i18n.locales",
+      "authority": "lang/*.ts + cachyoskm_locale.qrc",
+      "value": "bg ca cs de es it ja ko nl pl ru sk sv tr zh-CN (in qrc); uk.ts present but NOT in qrc",
+      "classification": "COMPATIBILITY_QUIRK",
+      "notes": "Ukranian translations ship in source but are never compiled into the resource. Qt .qm loading order: qt_<lang>, qt_<lang_TERRITORY>, app <lang>, app <lang_TERRITORY> from :/translations/ (aliases are bare lang codes)."
+    },
+    {
+      "id": "alpm.init",
+      "authority": "src/alpm_utils.cpp:24-50, src/km-window.hpp:140",
+      "value": "alpm_initialize(\"/\", \"/var/lib/pacman/\")",
+      "classification": "REQUIRED_PARITY"
+    },
+    {
+      "id": "pacman_conf.parsing",
+      "authority": "src/alpm_utils.cpp:32-47",
+      "value": "mINI parse of /etc/pacman.conf; skip sections 'testing' and 'options'; every other section registered as syncdb with ALPM_SIG_USE_DEFAULT",
+      "classification": "REQUIRED_PARITY",
+      "notes": "NOT pacman's parser: mINI (src/ini.hpp) is case-insensitive, order-preserving (vector+index), '#' lines skipped, ';' comments, trailing ';' stripped on section lines. Include directives are NOT followed (a repo defined only inside an Include file is not registered). Section order preserved -> sync db order follows pacman.conf order. No SigLevel handling. This must be courted against real pacman behavior (docs/COURTS.md, pacman-config court)."
+    },
+    {
+      "id": "kernel.discovery",
+      "authority": "src/kernel.cpp:179-286",
+      "value": "alpm_db_search regex 'linux[^ ]*-headers' per sync db; drop names containing 'linux-api-headers'; headers = db pkg with -headers name; kernel = same db pkg with '-headers' suffix removed; skip if kernel missing in same db",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Output raw name: '<db>/<kernel>' e.g. 'cachyos/linux-cachyos'. Duplicates possible across dbs. HAVE_ALPM_INSTALLED_DB records alpm_pkg_get_installed_db provenance."
+    },
+    {
+      "id": "kernel.category",
+      "authority": "src/kernel.hpp:37-92",
+      "value": "substring search in order: lto->'lto optimized', lts->'longterm', zen->'zen-kernel', hardened->'hardened kernel', deckify->'handheld kernel', server->'server kernel', next->'next release', mainline->'mainline branch', git->'master branch', rc->'release candidate', else 'stable'",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Order matters: substring, not prefix. 'linux-lts' hits lts before others."
+    },
+    {
+      "id": "kernel.version_display",
+      "authority": "src/kernel.cpp:56-79",
+      "value": "AUR -> 'unknown-version'. else sync version; if not installed -> sync version; if installed: vercmp(local, sync): 1 -> '∨<local>', -1 -> '∧<sync>' + update flag, 0 -> sync version",
+      "classification": "REQUIRED_PARITY",
+      "notes": "∨ = U+2228 (down caret, downgrade marker), ∧ = U+2227 (up caret, update marker). Version column sorting strips these prefixes and compares with alpm_pkg_vercmp (km-window.cpp:391-412)."
+    },
+    {
+      "id": "kernel.companion_expansion",
+      "authority": "src/kernel.cpp:226-244",
+      "value": "linux-cachyos*: '{pkg}-zfs', '{pkg}-nvidia', '{pkg}-nvidia-open' in same db. linux/linux-lts: remove ALL 'linux' substrings from name -> 'nvidia[{-lts}]', 'nvidia-open[{-lts}]' in same db",
+      "classification": "REQUIRED_PARITY",
+      "notes": "remove_all replaces every occurrence of 'linux'. Only linux and linux-lts get the bare nvidia names."
+    },
+    {
+      "id": "kernel.zfs_detection",
+      "authority": "src/kernel.cpp:41",
+      "value": "findmnt -ln -o FSTYPE / == 'zfs' exactly (exec at static-init time, once per process)",
+      "classification": "REQUIRED_PARITY",
+      "notes": "exec uses popen('/bin/sh -c ...'). Result cached at first use (static)."
+    },
+    {
+      "id": "kernel.nvidia_detection",
+      "authority": "src/kernel.cpp:44-52,102-135",
+      "value": "chwd --list-installed -d 2>/dev/null | grep Name | awk '{print $4}' -> any profile name starts_with 'nvidia-dkms' / 'nvidia-open-dkms' (static, once); local db checks for nvidia-dkms / nvidia-open-dkms; pacman -Qqs '^linux-cachyos.*-nvidia$' / '^linux-cachyos.*-nvidia-open$'",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Full decision matrix in docs/COMPATIBILITY.md. Prebuilt module preferred if already installed; else chwd profile; DKMS packages suppress prebuilt install; open takes precedence over closed when both somehow relevant."
+    },
+    {
+      "id": "transaction.install",
+      "authority": "src/kernel.cpp:288-304",
+      "value": "pacman -S --needed <install list> in escalated terminal; order [zfs?, nvidia?, kernel, headers]",
+      "classification": "REQUIRED_PARITY",
+      "notes": "install list built by Kernel::install(): zfs first if root-on-zfs && module known; then nvidia prebuilt if applicable && no dkms; then kernel name, then headers name. AUR kernels installed first via makepkg."
+    },
+    {
+      "id": "transaction.remove",
+      "authority": "src/kernel.cpp:137-163,300-303",
+      "value": "pacman -Rsn <kernel + installed companions>; removal only if kernel is installed; companions (headers, zfs, nvidia, nvidia-open modules) appended only if installed locally",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Order: kernel first, then headers, zfs, nvidia, nvidia-open."
+    },
+    {
+      "id": "terminal.launcher",
+      "authority": "src/terminal-helper",
+      "value": "order: alacritty kitty ptyxis konsole kgx gnome-terminal xfce4-terminal lxterminal xterm st foot rio ghostty; $TERMINAL never read despite comment; command written to mktemp file, run as LAUNCHER_CMD \"$file\"; kgx gets 'kill -SIGQUIT $PPID' appended; no terminal -> notify-send 'No terminal installed' and exit 1",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Quirk: final line `eval ... || [[ $terminal != kgx ]] && { rm \"$file\"; exit 2; }` parses as (eval||test)&&{...} so exit 2 also fires after successful terminal close (except kgx failure). Callers absorb: runCmdTerminal returns helper exit code; finished_proc keys on .done-status."
+    },
+    {
+      "id": "terminal.escalation_chain",
+      "authority": "src/utils.cpp:122-135",
+      "value": "terminal-helper -s 'pkexec /usr/lib/cachyos-kernel-manager/rootshell.sh' <cmd>; cmd gets '; read -p \"Press enter to exit\"' appended",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Chain: terminal -> pkexec -> rootshell.sh -> /bin/bash -> script file. read -p keeps terminal open."
+    },
+    {
+      "id": "exec.popen",
+      "authority": "src/utils.cpp:99-120",
+      "value": "popen(cmd, \"r\") — /bin/sh -c; on popen failure returns '-1'; strips exactly one trailing \\n",
+      "classification": "REQUIRED_PARITY",
+      "notes": "All shell command strings are compatibility surfaces (findmnt, chwd, pacman -Qqs, paru, testscripts)."
+    },
+    {
+      "id": "cache.paths",
+      "authority": "src/utils.cpp:198-202, src/aur_kernel.cpp:32-36",
+      "value": "~/.cache/cachyos-km/pkgbuilds (linux-cachyos.git, branch master), ~/.cache/cachyos-km/aur_pkgbuilds/<pkg> (AUR git)",
+      "classification": "REQUIRED_PARITY",
+      "notes": "fix_path replaces ALL '~' with glib home dir. prepare_git_repo: dir without .git is removed entirely; clone; checkout --force master; git clean -fd; git pull. Branch hardcoded 'master'. NOTE: process cwd ends inside repo dir (never restored) — build path derives from it."
+    },
+    {
+      "id": "git.refresh",
+      "authority": "src/utils.cpp:161-196",
+      "value": "git clone <url> <dirname>; git checkout --force master; git clean -fd; git pull; failure printed to stderr, execution continues",
+      "classification": "REQUIRED_PARITY"
+    },
+    {
+      "id": "build.variants",
+      "authority": "src/conf-window.cpp:103,124-148",
+      "value": "kernel_name list: cachyos bore rc rt lts eevdf bmq hardened deckify server; dirs: linux-cachyos, linux-cachyos-bmq, linux-cachyos-bore, linux-cachyos-hardened, linux-cachyos-lts, linux-cachyos-rc, linux-cachyos-rt-bore (!), linux-cachyos-eevdf, linux-cachyos-deckify, linux-cachyos-server; fallback linux-cachyos",
+      "classification": "REQUIRED_PARITY",
+      "notes": "rt maps to linux-cachyos-rt-bore."
+    },
+    {
+      "id": "build.option_values",
+      "authority": "src/conf-window.cpp:104-109",
+      "value": "hz: 1000 750 600 500 300 250 100; tickless: full idle periodic; preempt: full lazy voluntary none; lto: none full thin thin-dist; hugepage: always madvise; cpu_opt: manual native generic_v1 generic_v2 generic_v3 generic_v4 zen4",
+      "classification": "REQUIRED_PARITY"
+    },
+    {
+      "id": "build.env_vars",
+      "authority": "src/conf-window.cpp:186-202,421-451 + compile_options.json",
+      "value": "_cachy_config,_makenconfig,_makexconfig,_localmodcfg,_use_current,_cc_harder,_per_gov,_tcp_bbr3,_HZ_ticks,_tickrate,_preempt,_hugepage,_processor_opt,_use_llvm_lto,_build_zfs,_build_nvidia_open,_build_debug = yes/no or value; _processor_opt only when != manual; lto!=none && custom_name!='$pkgbase' -> _use_lto_suffix=n",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Checkboxes always emit yes/no. setenv into the app process; unset before next build (restore_clean_environment)."
+    },
+    {
+      "id": "build.dynamic_options",
+      "authority": "src/conf-window.cpp:553-602",
+      "value": "lto thin-dist only for non-lts/non-hardened; lto default thin for cachyos/rc else none; preempt Voluntary/None only for hardened/lts; preempt default lazy for server else full; hz default 300 for server else 1000; cachyconfig unchecked for server; builtin_zfs disabled+unchecked for rt",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Switching kernel variant resets lto/preempt/hz/cachyconfig/zfs per these rules and refreshes patches tab."
+    },
+    {
+      "id": "build.pkgbuild_mutation.source_array",
+      "authority": "src/conf-window.cpp:204-216,300-326",
+      "value": "New source=() built from original entries (minus *.patch) + patch list (each quoted), inserted BEFORE prepare() at last \\n; original source=() left in place (last assignment wins in bash)",
+      "classification": "REQUIRED_PARITY",
+      "notes": "No modification if prepare() or preceding newline missing. Local patches get 'file://' prefix when added via dialog. Patches tab shows only entries ending .patch from evaluated source array."
+    },
+    {
+      "id": "build.pkgbuild_mutation.pkgbase",
+      "authority": "src/conf-window.cpp:328-339",
+      "value": "pkgbase=\"<custom_name>\" (with two leading \\n) inserted before _major= at last \\n; no-op if _major= missing",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Default custom name field: '$pkgbase-custom'."
+    },
+    {
+      "id": "build.command",
+      "authority": "src/conf-window.cpp:734",
+      "value": "makepkg -scf --cleanbuild --skipchecksums && touch .done-status  (non-escalated terminal; cwd = <app cwd>/<variant dir>)",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Success marker = .done-status file, not exit code."
+    },
+    {
+      "id": "build.artifact_install",
+      "authority": "src/conf-window.cpp:238-298,378-405",
+      "value": "PKGEXT from /etc/makepkg.conf (fallback .pkg.tar.zst); globs '<pkgfunc-suffix>-<pkgver>-<pkgrel>-*<PKGEXT>' from declare -F package_* functions; sudo pacman -U <globs>",
+      "classification": "REQUIRED_PARITY",
+      "notes": "pkgver-pkgrel read from sourced PKGBUILD echo 'pkgver: $pkgver-$pkgrel'. Uses sudo (not pkexec) inside non-escalated terminal."
+    },
+    {
+      "id": "aur.enablement",
+      "authority": "meson_options.txt, meson.build:39-41, src/kernel.cpp:253-283",
+      "value": "ENABLE_AUR_KERNELS compile flag (meson aur_kernels option, default false); requires /sbin/paru AND /sbin/awk (flip at 5b075dc: was OR, now AND)",
+      "classification": "REQUIRED_PARITY",
+      "notes": "paru --aur -Sl | grep ' linux[^ ]*-headers' | awk '{print $2}'; dedup against repo kernels; version 'unknown-version'; raw 'aur/<name>'; install: makepkg -sicf --cleanbuild --skipchecksums (non-escalated)."
+    },
+    {
+      "id": "scx.button_visibility",
+      "authority": "src/km-window.cpp:185-188",
+      "value": "sched-ext button hidden unless /sys/kernel/sched_ext/state exists",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Button opens scxctl::SchedExtWindow from scxctl-ui (external lib; org.scx.Loader D-Bus)."
+    },
+    {
+      "id": "ui.main_window",
+      "authority": "src/km-window.ui, src/km-window.cpp",
+      "value": "Title 'CachyOS Kernel Manager'; tree columns Check/PkgName/Version/Category/Displayed/Immutable (last two hidden); buttons: sched-ext scheduler config, Configure, Cancel, Execute; ok disabled until change; space/double-click toggle current leaf item",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Installed+current-repo kernels: checked + Immutable='true'. Installed from different repo: row present, unchecked, no immutable marker. Change list semantics: unchecked-immutable -> remove; checked-not-installed -> install; same list drives install and remove phases."
+    },
+    {
+      "id": "ui.configure_window",
+      "authority": "src/conf-window.ui, src/conf-options-page.ui, src/conf-patches-page.ui",
+      "value": "Title 'CachyOS Kernel Manager Configure'; tabs Options/Patches; combo for variant; checkboxes+combos listed in docs/COMPATIBILITY.md; buttons Load/Save/Cancel/Build kernel; patches list with add-remote/add-local/remove/up/down",
+      "classification": "REQUIRED_PARITY",
+      "notes": "ConfOptionsPage hover highlight via stylesheet (issue #69). builtin_nvidia_open toggle refreshes patches tab; lto combo change refreshes; variant change refreshes."
+    },
+    {
+      "id": "config.toml_schema",
+      "authority": "config-option-lib/src/lib.rs:22-49",
+      "value": "booleans: hardly_check per_gov_check tcp_bbr3_check cachy_config_check nconfig_check xconfig_check localmodcfg_check use_current_check builtin_zfs_check builtin_nvidia_open_check build_debug_check; strings: hz_ticks_combo tickrate_combo preempt_combo hugepage_combo lto_combo cpu_opt_combo custom_name_edit; serde(default) all fields",
+      "classification": "REQUIRED_PARITY",
+      "notes": "toml::to_string field order = struct order (as listed). Save dialog filter 'Config file (*.toml)', start dir home. Load: unknown combo values -> 'Config file(%1) is outdated' critical dialog."
+    },
+    {
+      "id": "exit_codes",
+      "authority": "src/main.cpp:113",
+      "value": "second instance exits -1; normal app exit 0",
+      "classification": "REQUIRED_PARITY"
+    },
+    {
+      "id": "user_visible_dialogs",
+      "authority": "src/km-window.cpp, src/conf-window.cpp",
+      "value": "'No kernels found!\\nPlease run `pacman -Sy` to update DB!\\nThis is needed for the app to work properly'; progress: 'Please wait...\\nWe are preparing configuration window for you\\ncloning PKGBUILDs..' / 'Please wait...\\nInitializing kernels..'; 'Do you want to install build packages?'; clone failure: 'Failed to clone repository!\\nPlease check your internet connection and try again'; alpm init/release failures",
+      "classification": "REQUIRED_PARITY",
+      "notes": "All dialogs titled 'CachyOS Kernel Manager'."
+    },
+    {
+      "id": "stdout_stderr",
+      "authority": "src/km-window.cpp:206, src/conf-window.cpp:388-404, src/kernel.cpp:258",
+      "value": "stdout: 'the operation was canceled!', 'success', 'pressed yes', 'pacman_cmd := ...'; stderr: 'Waiting... ' (worker loop), 'Paru and/or AWK are not installed!...', 'failed to add package to be installed (...)', 'Failed to insert new source array into pkgbuild', 'Failed to set custom name in pkgbuild', 'process failed with exit code: N', '[READWHOLEFILE] ...', '[WRITE_TO_FILE] ...', 'popen failed! ...'",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Workers print 'Waiting... ' to stderr on every wake; observable in terminal launches."
+    }
+  ]
+}

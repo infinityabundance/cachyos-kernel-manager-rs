@@ -1,0 +1,186 @@
+{
+  "court_ledger_version": "1.0.0",
+  "policy": "Every surface in atlas/inventory.json maps to at least one court or an explicit rationale. Status: pending | passing | failing | defined.",
+  "entries": [
+    {
+      "surface": "identity.executable_name",
+      "court": "packaging/file-collision",
+      "status": "defined"
+    },
+    {
+      "surface": "identity.polkit_action",
+      "court": "privilege/rootshell-argv",
+      "status": "defined"
+    },
+    {
+      "surface": "privilege.rootshell",
+      "court": "privilege/rootshell-argv",
+      "status": "defined"
+    },
+    {
+      "surface": "single_instance",
+      "court": "single-instance/lock-identity",
+      "status": "defined"
+    },
+    {
+      "surface": "i18n.locales",
+      "court": "i18n/locale-resolution",
+      "status": "defined"
+    },
+    {
+      "surface": "alpm.init",
+      "court": "kernel-discovery/ordinary",
+      "status": "defined"
+    },
+    {
+      "surface": "pacman_conf.parsing",
+      "court": "pacman-config/mini-vs-pacman",
+      "status": "defined"
+    },
+    {
+      "surface": "kernel.discovery",
+      "court": "kernel-discovery/ordinary",
+      "status": "defined"
+    },
+    {
+      "surface": "kernel.category",
+      "court": "category/classifier-matrix",
+      "status": "defined"
+    },
+    {
+      "surface": "kernel.version_display",
+      "court": "version-state/marker-rendering",
+      "status": "defined"
+    },
+    {
+      "surface": "kernel.companion_expansion",
+      "court": "transaction-plan/companion-expansion",
+      "status": "defined"
+    },
+    {
+      "surface": "kernel.zfs_detection",
+      "court": "zfs-companion/root-detection",
+      "status": "defined"
+    },
+    {
+      "surface": "kernel.nvidia_detection",
+      "court": "nvidia-companion/decision-matrix",
+      "status": "defined"
+    },
+    {
+      "surface": "transaction.install",
+      "court": "transaction-plan/install-expansion",
+      "status": "defined"
+    },
+    {
+      "surface": "transaction.remove",
+      "court": "transaction-plan/removal-expansion",
+      "status": "defined"
+    },
+    {
+      "surface": "terminal.launcher",
+      "court": "terminal-helper/emulator-matrix",
+      "status": "defined"
+    },
+    {
+      "surface": "terminal.escalation_chain",
+      "court": "privilege/rootshell-argv",
+      "status": "defined"
+    },
+    {
+      "surface": "exec.popen",
+      "court": "exec/probe-commands",
+      "status": "defined"
+    },
+    {
+      "surface": "cache.paths",
+      "court": "git-cache/lifecycle",
+      "status": "defined"
+    },
+    {
+      "surface": "git.refresh",
+      "court": "git-cache/lifecycle",
+      "status": "defined"
+    },
+    {
+      "surface": "build.variants",
+      "court": "option-transitions/variant-switch",
+      "status": "defined"
+    },
+    {
+      "surface": "build.option_values",
+      "court": "option-transitions/variant-switch",
+      "status": "defined"
+    },
+    {
+      "surface": "build.env_vars",
+      "court": "build-env/env-rendering",
+      "status": "defined"
+    },
+    {
+      "surface": "build.dynamic_options",
+      "court": "option-transitions/variant-switch",
+      "status": "defined"
+    },
+    {
+      "surface": "build.pkgbuild_mutation.source_array",
+      "court": "patch-injection/source-array",
+      "status": "defined"
+    },
+    {
+      "surface": "build.pkgbuild_mutation.pkgbase",
+      "court": "custom-name/pkgbase-injection",
+      "status": "defined"
+    },
+    {
+      "surface": "build.command",
+      "court": "build-env/lifecycle",
+      "status": "defined"
+    },
+    {
+      "surface": "build.artifact_install",
+      "court": "artifact-glob/package-functions",
+      "status": "defined"
+    },
+    {
+      "surface": "aur.enablement",
+      "court": "aur/enablement-matrix",
+      "status": "defined"
+    },
+    {
+      "surface": "scx.button_visibility",
+      "court": "scx/button-visibility",
+      "status": "defined"
+    },
+    {
+      "surface": "ui.main_window",
+      "court": "ui/main-window-semantics",
+      "status": "defined"
+    },
+    {
+      "surface": "ui.configure_window",
+      "court": "ui/configure-window-semantics",
+      "status": "defined"
+    },
+    {
+      "surface": "config.toml_schema",
+      "court": "config-roundtrip/toml-schema",
+      "status": "defined"
+    },
+    {
+      "surface": "exit_codes",
+      "court": "single-instance/lock-identity",
+      "status": "defined"
+    },
+    {
+      "surface": "user_visible_dialogs",
+      "court": "ui/dialog-strings",
+      "status": "defined"
+    },
+    {
+      "surface": "stdout_stderr",
+      "court": "ui/dialog-strings",
+      "status": "defined"
+    }
+  ]
+}

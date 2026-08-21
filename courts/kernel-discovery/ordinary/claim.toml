@@ -1,0 +1,41 @@
+# ============================================================
+# CLAIM — kernel-discovery/ordinary
+# ============================================================
+# What precise compatibility claim is being made?
+claim = "Given identical sync database contents, the candidate's kernel discovery produces the same kernel list (repo/name pairs), headers pairing, and same-database companion resolution as the oracle's `Kernel::get_kernels`."
+
+model = """
+Oracle: iterate sync dbs in pacman.conf section order; alpm_db_search
+needle `linux[^ ]*-headers`; drop names containing `linux-api-headers`;
+headers = matched package; kernel = same-db package with all `-headers`
+removed; skip when kernel absent from that db; companions named per
+kernel.cpp:226-244 and kept only when present in the same db.
+Candidate: cachyos-kernel-manager-core::discovery::discover_kernels.
+"""
+
+assumptions = [
+  "Sync databases are frozen (identical fixture for both runs).",
+  "ALPM regex search semantics equal the implemented needle matcher (courted separately in kernel-discovery/needle).",
+  "No AUR kernels enabled (ENABLE_AUR_KERNELS off) — courted separately in aur/*.",
+]
+
+observables = [
+  "List of (repo, kernel_name, headers_name) tuples",
+  "Companion modules resolved per kernel (zfs/nvidia/nvidia-open) with same-db constraint",
+  "Raw display names `<repo>/<kernel>`",
+  "Row order = sync db order",
+]
+
+witness = "Both binaries run against the same frozen package DB fixture in a disposable VM; the discovery output is serialized to state.json."
+
+independence = "The oracle is the real upstream C++ application executing against the real libalpm; the candidate only observes the same fixture. Neither implementation generates the other's output."
+
+falsifier = "Any difference in the tuple list, companion resolution, or row order between oracle and candidate state.json outputs."
+
+[[evidence]]
+artifact = "oracle/state.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/state.json"
+sha256 = "pending"

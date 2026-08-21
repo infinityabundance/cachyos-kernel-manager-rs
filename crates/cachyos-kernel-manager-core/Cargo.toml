@@ -1,0 +1,15 @@
+[package]
+name = "cachyos-kernel-manager-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Pure domain model for CachyOS Kernel Manager. No GUI, no Iced, no libalpm."
+publish = false
+
+# The core must never depend on Iced (or any presentation technology).
+# It may depend only on fundamental utilities (serde for model serialization).
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

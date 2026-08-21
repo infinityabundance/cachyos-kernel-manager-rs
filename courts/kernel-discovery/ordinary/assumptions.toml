@@ -1,0 +1,15 @@
+assumptions = [
+  "Disposable VM with a controlled CachyOS/Arch package database snapshot.",
+  "pacman.conf fixture: `[core] [extra] [cachyos] [testing]` in that order (testing must be ignored by registration).",
+  "Sync databases are NOT refreshed during the court (no -Sy).",
+  "AUR support disabled in the oracle build (default).",
+]
+
+[[normalizers]]
+name = "state-json-sort"
+version = "1.0.0"
+source_hash = "pending"
+input_domain = "state.json arrays"
+transformation = "stable sort of discovery tuples by (repo, name)"
+justification = "The oracle emits rows in tree order which is db order; the candidate emits the same order; sorting normalizes only if libalpm search order within a db is not guaranteed by the ALPM version under test."
+falsifier = "A row-order difference that persists after normalization is a real residual (db ordering is part of the contract)."

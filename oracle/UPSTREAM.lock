@@ -1,0 +1,61 @@
+# UPSTREAM.lock — frozen oracle authority for cachyos-kernel-manager-rs
+#
+# This file is the immutable freeze point for the behavioral oracle.
+# The implementation target must not silently drift when upstream changes:
+# upstream updates are new oracle revisions, each producing explicit residual
+# analysis against the previous revision (see docs/ORACLE.md).
+#
+# Authority hierarchy when evidence conflicts:
+#   1. real current upstream behavior under controlled execution (VM oracle)
+#   2. current upstream source
+#   3. current packaging scripts and installed package contents
+#   4. upstream tests
+#   5. upstream commit history
+#   6. issue/PR discussions and maintainer comments
+#   7. documentation
+#   8. assumptions
+
+[oracle]
+repository = "https://github.com/CachyOS/kernel-manager"
+branch = "develop"
+commit = "6b4a373e6a4e7295a0803034e597c4f2a055a411"
+tree = "8c07748004ff255368649f6263b48556ff4f04de"
+version = "1.19.0"            # CMakeLists.txt `project(... VERSION 1.19.0 ...)`
+tag = "v1.19.0"               # peeled tag commit == develop HEAD at freeze time
+retrieved_at = "2026-08-21"
+source_archive = "oracle/upstream-v1.19.0-6b4a373.tar.gz"
+source_archive_hash = "sha256:1e464db65e410e4452e47ae619bbc490f976e7fe62cfe4936bf3fd96b0680e8f"
+# NOTE: the archive is generated deterministically with
+#   git -C oracle/upstream archive --format=tar.gz -o <out> <commit>
+# and verified reproducible (regeneration yields the identical hash).
+# `cargo xtask oracle archive` regenerates and verifies it.
+
+# Package hashes: sha256 of the CachyOS/Arch binary package (`cachyos-kernel-manager`)
+# as shipped in the cachyos repos at freeze time. Populated by `cargo xtask oracle pkg-hash`.
+package_hashes = {}
+
+# Reference image hash: digest of the disposable VM base image used for oracle
+# differential courts. Populated by `cargo xtask vm build`. Pending Phase 2.
+reference_image_hash = "pending"
+
+[identity]
+# Externally visible application identity, recorded from upstream source at freeze time.
+binary = "cachyos-kernel-manager"
+desktop_file = "org.cachyos.KernelManager.desktop"
+icon_id = "org.cachyos.KernelManager"
+polkit_action = "org.cachyos.KernelManager.pkexec.policy.run-root-terminal"
+polkit_policy_file = "org.cachyos.KernelManager.pkexec.policy"
+helper_dir = "lib/cachyos-kernel-manager"            # terminal-helper, rootshell.sh
+polkit_exec_path = "/usr/lib/cachyos-kernel-manager/rootshell.sh"
+polkit_defaults = { allow_any = "no", allow_inactive = "no", allow_active = "auth_admin" }
+# NOTE: rootshell.sh is `exec /bin/bash "$@"` — an arbitrary-root-shell helper.
+# Reconstructed in detail in docs/PRIVILEGE_MODEL.md; candidate design in docs/SECURITY.md.
+# NOTE: the polkit <icon_name> is `cachyos-kernel-manager` (not org.cachyos.KernelManager).
+
+[quirks.inventory]
+# Known oracle quirks discovered during Phase 1 archaeology (each gets a court):
+# - terminal-helper exits 2 after a successful terminal session (A || B && C precedence)
+# - cachyos-kernel-manager_uk.ts exists but is NOT listed in cachyoskm_locale.qrc
+# - meson.build references pkg_dummy_impl but meson_options.txt does not declare it
+# - process cwd is mutated by prepare_git_repo (never restored) -> build path derives from it
+# - `$TERMINAL` env var is documented in terminal-helper comment but never actually read

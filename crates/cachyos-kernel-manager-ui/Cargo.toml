@@ -1,0 +1,19 @@
+[package]
+name = "cachyos-kernel-manager-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Iced application (Phase 8). Defines semantic messages/state now; rendering lands in Phase 8."
+publish = false
+
+[dependencies]
+cachyos-kernel-manager-core = { workspace = true }
+cachyos-kernel-manager-plan = { workspace = true }
+cachyos-kernel-manager-build = { workspace = true }
+cachyos-kernel-manager-config = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

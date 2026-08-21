@@ -1,0 +1,12 @@
+[package]
+name = "cachyos-kernel-manager-i18n"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Locale resolution and catalog inventory (Qt-compatible semantics)."
+publish = false
+
+[dependencies]
+serde = { workspace = true }

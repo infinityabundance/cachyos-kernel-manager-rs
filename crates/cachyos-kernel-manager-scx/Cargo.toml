@@ -1,0 +1,12 @@
+[package]
+name = "cachyos-kernel-manager-scx"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "sched-ext / scx_loader integration (Phase 7; interface facts recorded now)."
+publish = false
+
+[dependencies]
+serde = { workspace = true }

@@ -1,0 +1,12 @@
+[package]
+name = "cachyos-kernel-manager-platform"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Platform facts: paths, environment, single-instance lock identity."
+publish = false
+
+[dependencies]
+serde = { workspace = true }

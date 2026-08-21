@@ -1,0 +1,77 @@
+[package]
+name = "cachyos-kernel-manager"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Native Rust custodial reimplementation of CachyOS Kernel Manager (Iced GUI in Phase 8)."
+publish = false
+
+[[bin]]
+name = "cachyos-kernel-manager"
+path = "src/main.rs"
+
+[dependencies]
+cachyos-kernel-manager-core = { workspace = true }
+cachyos-kernel-manager-oracle = { workspace = true }
+cachyos-kernel-manager-config = { workspace = true }
+cachyos-kernel-manager-platform = { workspace = true }
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/cachyos-kernel-manager-core",
+    "crates/cachyos-kernel-manager-alpm",
+    "crates/cachyos-kernel-manager-plan",
+    "crates/cachyos-kernel-manager-exec",
+    "crates/cachyos-kernel-manager-build",
+    "crates/cachyos-kernel-manager-config",
+    "crates/cachyos-kernel-manager-scx",
+    "crates/cachyos-kernel-manager-platform",
+    "crates/cachyos-kernel-manager-i18n",
+    "crates/cachyos-kernel-manager-ui",
+    "crates/cachyos-kernel-manager-casefile",
+    "crates/cachyos-kernel-manager-oracle",
+    "crates/cachyos-kernel-manager-frf",
+    "xtask",
+]
+default-members = [".", "xtask"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "GPL-2.0-or-later"
+# MSRV policy: see docs/ARCHITECTURE.md. Value is provisional until CI
+# confirms the full dependency graph on the CachyOS toolchain.
+rust-version = "1.85"
+authors = ["cachyos-kernel-manager-rs contributors"]
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+thiserror = "2"
+sha2 = "0.10"
+hex = "0.4"
+
+cachyos-kernel-manager-core = { path = "crates/cachyos-kernel-manager-core" }
+cachyos-kernel-manager-alpm = { path = "crates/cachyos-kernel-manager-alpm" }
+cachyos-kernel-manager-plan = { path = "crates/cachyos-kernel-manager-plan" }
+cachyos-kernel-manager-exec = { path = "crates/cachyos-kernel-manager-exec" }
+cachyos-kernel-manager-build = { path = "crates/cachyos-kernel-manager-build" }
+cachyos-kernel-manager-config = { path = "crates/cachyos-kernel-manager-config" }
+cachyos-kernel-manager-scx = { path = "crates/cachyos-kernel-manager-scx" }
+cachyos-kernel-manager-platform = { path = "crates/cachyos-kernel-manager-platform" }
+cachyos-kernel-manager-i18n = { path = "crates/cachyos-kernel-manager-i18n" }
+cachyos-kernel-manager-ui = { path = "crates/cachyos-kernel-manager-ui" }
+cachyos-kernel-manager-casefile = { path = "crates/cachyos-kernel-manager-casefile" }
+cachyos-kernel-manager-oracle = { path = "crates/cachyos-kernel-manager-oracle" }
+cachyos-kernel-manager-frf = { path = "crates/cachyos-kernel-manager-frf" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[profile.dev.package."*"]
+opt-level = 1

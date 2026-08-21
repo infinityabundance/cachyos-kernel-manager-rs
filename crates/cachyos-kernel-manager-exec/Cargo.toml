@@ -1,0 +1,12 @@
+[package]
+name = "cachyos-kernel-manager-exec"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "Typed command plans and argv rendering for the execution boundary."
+publish = false
+
+[dependencies]
+serde = { workspace = true }

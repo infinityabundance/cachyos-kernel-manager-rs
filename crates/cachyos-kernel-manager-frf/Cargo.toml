@@ -1,0 +1,12 @@
+[package]
+name = "cachyos-kernel-manager-frf"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+description = "FRF (Forensic Residual Framework) receipt and evidentiary-chain types."
+publish = false
+
+[dependencies]
+serde = { workspace = true }
