@@ -121,6 +121,18 @@
    "resolution": "install paths now carry the epoch prefix; the 2:9.9.9-1 file is removed from the repo before repo-add so the sync db records 1:9.9.9-1 while the local db keeps 2:9.9.9-1.",
    "commit": "pending",
    "regression_witness": "court kernel-discovery/epoch-versions passes (\u22282:9.9.9-1 downgrade marker witnessed)"
+  },
+  {
+   "id": "RES-2026-011",
+   "court": "nvidia-companion/dkms-installed",
+   "first_observed": "2026-08-22",
+   "oracle_fingerprint": "pacman -S --needed linux-cachyos-court2 linux-cachyos-court2-headers (NO nvidia companion; nvidia-dkms is installed)",
+   "candidate_fingerprint": "pacman -S --needed linux-cachyos-court2-nvidia linux-cachyos-court2 linux-cachyos-court2-headers (companion wrongly added)",
+   "classification": "deterministic_mismatch",
+   "root_cause": "The candidate plan tool built the installed-package set from the DISCOVERED KERNELS only; the oracle's local-db lookups (kernel.cpp:102-109 alpm_db_get_pkg(localdb, 'nvidia-dkms')) cover ANY installed package. dkms_modules_not_installed was wrongly true in the candidate.",
+   "resolution": "alpm FFI gains local_packages() (full local-db enumeration); the plan tool builds installed_set from it.",
+   "commit": "pending (Phase 5)",
+   "regression_witness": "court nvidia-companion/dkms-installed passes after the fix"
   }
  ]
 }

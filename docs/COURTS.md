@@ -49,12 +49,40 @@ Phase 2 kernel-discovery courts (`minimal`, `several-kernels`,
 `companion-resolution`; `pacman-config/testing-and-disabled`,
 `case-sensitivity`, `duplicated-sections`, `malformed`, `missing-conf`).
 
+## Phase 5 status (execution / privilege)
+
+10 more courts PASS (total 28), all with verified evidence:
+
+- **Transaction courts** — the REAL oracle GUI is driven through AT-SPI
+  (checkbox indicator click + Execute) under strace; the witnessed exec
+  chains are compared witness-by-witness against the candidate plan tool's
+  modeled chains (probe argv, pacman argv, terminal-helper argv):
+  - `nvidia-companion/dkms-profile` — chwd nvidia-dkms → prebuilt nvidia
+  - `nvidia-companion/open-profile` — chwd nvidia-open-dkms → prebuilt open
+  - `nvidia-companion/dkms-installed` — nvidia-dkms installed → NO companion
+  - `nvidia-companion/modules-installed` — module family reuse (pacman -Qqs)
+  - `zfs-companion/root-on-zfs` — findmnt=zfs → zfs companion first
+  - `kernel-removal/plan` — removal list kernel→headers→zfs→nvidia
+  - `kernel-removal/update-available-execute` — the upgrade quirk: BOTH
+    `pacman -S --needed` AND `pacman -Rsn` for the same kernel, in order
+- `terminal-helper/emulator-matrix` — exit-code surface per emulator stub
+  (none→1 with tmp-file LEAK, first-fails→2, kgx-fails→0, success→2 (!),
+  `-s` override); the success→2 result is the `A || B && C` precedence
+  quirk in the upstream script (only kgx failure avoids exit 2)
+- `privilege/polkit-identity` + `privilege/helper-scripts` — byte-identity
+  of the polkit policy and the two installed Bash helpers (packaging-level)
+
+The residuals encountered in Phase 5 are in `atlas/residual-ledger.json`
+(RES-2026-011: the candidate's installed-set was built from discovered
+kernels only, so `nvidia-dkms` was invisible; fixed with full local-db
+enumeration).
+
 Drift/slew: `minimal` ×3 and `upgrade-available` ×2 re-runs on identical
 overlays are deterministic.
 
 The residuals encountered while establishing the baseline (and their
 resolutions) are recorded in `atlas/residual-ledger.json`
-(RES-2026-001..010).
+(RES-2026-001..011).
 
 Before running courts, `vm-ctl.sh cleanup` removes stale qemu processes
 (they survive process-tree kills because they run in their own systemd

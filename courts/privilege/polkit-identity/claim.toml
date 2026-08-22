@@ -1,0 +1,27 @@
+claim = "The candidate package ships the polkit policy byte-identical to the frozen oracle's org.cachyos.KernelManager.pkexec.policy: action id org.cachyos.KernelManager.pkexec.policy.run-root-terminal, allow_active auth_admin, and the org.freedesktop.policykit.exec.path annotation /usr/lib/cachyos-kernel-manager/rootshell.sh. The polkit identity is a drop-in compatibility surface (directive §5, §17)."
+
+model = "Polkit policy resolution: pkexec /usr/lib/cachyos-kernel-manager/rootshell.sh matches the action by the org.freedesktop.policykit.exec.path annotation; the action's defaults (allow_any no, allow_inactive no, allow_active auth_admin) govern authentication. The candidate must install the SAME policy so existing systems and automation keep working."
+
+assumptions = [
+  "The frozen oracle policy (oracle/upstream/org.cachyos.KernelManager.pkexec.policy) is the reference.",
+  "Byte-identity is the appropriate comparator: polkit policy is not semantically parsed by the candidate.",
+]
+
+observables = [
+  "Byte-for-byte identity of the policy file",
+  "Action id, defaults, and exec.path annotation (recorded in the atlas)",
+]
+
+witness = "cargo xtask court run privilege/polkit-identity"
+
+independence = "The oracle file comes from the frozen upstream tree (revision 6b4a373e); the candidate file comes from the candidate's packaging tree. Neither is generated from the other at court time."
+
+falsifier = "Any byte difference between the two policy files."
+
+[[evidence]]
+artifact = "oracle/org.cachyos.KernelManager.pkexec.policy"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/org.cachyos.KernelManager.pkexec.policy"
+sha256 = "pending"

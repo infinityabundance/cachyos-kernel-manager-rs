@@ -1,0 +1,13 @@
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked fixture image (identical machine state).",
+  "The oracle runs under Xvfb with AT-SPI enabled; the transaction is driven through the accessibility tree (checkbox toggle + Execute click), never by coordinates.",
+  "The exec-chain witness is the strace execve log of the real oracle process tree; the candidate's chain is modeled by the plan tool against the same libalpm state.",
+  "The chwd/findmnt wrappers are the narrowest verifiable simulation boundary for the hardware probes (the real binaries would answer with VM-dependent values).",
+  "The polkit test rule in the base image authorizes the oracle's action without a password (TEST-ONLY, never shipped).",
+  "A real xterm is installed so the terminal-helper chain actually reaches the pacman execve; pacman never completes a transaction (killed at the confirmation prompt).",
+]
+
+normalizers = [
+  { name = "strace-execve", version = "1.0.0", source_hash = "vm/in-vm/extract-transaction.py", input_domain = "oracle-trace.log execve lines", transformation = "extract probe/exec/terminal argv chains in order", justification = "the raw trace is preserved; the chains are the comparable observables", falsifier = "a chain element that differs between oracle and candidate" },
+  { name = "machine-residual", version = "1.0.0", source_hash = "vm/in-vm/residual.sh", input_domain = "machine state before each run", transformation = "hash the installed package list + db hashes", justification = "fixture-integrity check", falsifier = "any drift between the two runs" },
+]

@@ -1,0 +1,7 @@
+{
+ "fixture": "update-available-execute",
+ "raw_image_hash": "sha256:78a320e544a90f0159071c7a38dc310bc503b836f7922ee6cde593756bc153ef",
+ "baked_at": "2026-08-22T00:37:04Z",
+ "fixture_digest": "sha256:ff00bc8c7532cca17065cf245de45cd805e8a781942718d593cc7414fcbb6840",
+ "spec_sha256": "sha256:1028b2fdd6acb10c159b091a4b2156bb78af8d153bc02eceb760cf27900ae0fd"
+}

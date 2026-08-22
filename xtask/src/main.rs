@@ -13,6 +13,7 @@
 //! - `vm bake <fixture>`    — bake a court fixture image
 //! - `evidence verify`      — verify all evidence.json hashes
 
+use cachyos_kernel_manager_frf::Residual;
 use std::path::Path;
 use std::process::{Command, ExitCode};
 
@@ -508,6 +509,13 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         share.join("inspect/cachyos-kernel-manager-inspect"),
     )
     .expect("copy inspect");
+    // Phase 5: the plan tool (transaction courts)
+    let plan_src = repo_root().join("target/debug/cachyos-kernel-manager-plan");
+    if !plan_src.exists() {
+        eprintln!("build the plan tool first: cargo build -p cachyos-kernel-manager-alpm --features libalpm --bin cachyos-kernel-manager-plan");
+        return ExitCode::FAILURE;
+    }
+    std::fs::copy(&plan_src, share.join("inspect/cachyos-kernel-manager-plan")).expect("copy plan");
     // iterate without rebaking: fresh in-VM scripts via the 9p share
     let scripts_dst = share.join("scripts");
     let _ = std::fs::remove_dir_all(&scripts_dst);
@@ -516,6 +524,32 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         let entry = entry.expect("entry");
         std::fs::copy(entry.path(), scripts_dst.join(entry.file_name()))
             .expect("copy in-vm script");
+    }
+
+    // Phase 5: transaction courts drive a real GUI transaction on the oracle
+    // side; the scripts differ from the observe-only courts. The
+    // terminal-matrix court runs the helper script against emulator stubs
+    // on both sides.
+    let is_transaction = case.comparator.transaction.is_some();
+    let is_terminal_matrix = case.comparator.terminal_matrix.is_some();
+    let tx_select: Vec<String> = case
+        .comparator
+        .transaction
+        .as_ref()
+        .map(|t| t.select.clone())
+        .unwrap_or_default();
+
+    // the packaged terminal-helper (candidate side of the matrix court)
+    let packaged_helper =
+        repo_root().join("packaging/usr/lib/cachyos-kernel-manager/terminal-helper");
+    if is_terminal_matrix {
+        if !packaged_helper.exists() {
+            eprintln!("terminal-matrix court requires packaging/usr/lib/cachyos-kernel-manager/terminal-helper");
+            return ExitCode::FAILURE;
+        }
+        std::fs::create_dir_all(share.join("packaging")).expect("share/packaging");
+        std::fs::copy(&packaged_helper, share.join("packaging/terminal-helper"))
+            .expect("copy packaged terminal-helper");
     }
 
     let run_side = |side: &str, out_dir: &std::path::Path| -> Result<(), String> {
@@ -545,29 +579,54 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         let _ = run("bash", &[ctl, "cleanup"]);
         run("bash", &[ctl, "start", overlay.to_str().expect("path")])?;
         let res = (|| -> Result<(), String> {
+            if is_terminal_matrix {
+                match side {
+                    "oracle" => run(
+                        "bash",
+                        &[
+                            ctl,
+                            "exec",
+                            "bash /mnt/host/scripts/terminal-matrix-run.sh /usr/lib/cachyos-kernel-manager/terminal-helper /mnt/host/out",
+                        ],
+                    )?,
+                    "candidate" => run(
+                        "bash",
+                        &[
+                            ctl,
+                            "exec",
+                            "bash /mnt/host/scripts/terminal-matrix-run.sh /mnt/host/packaging/terminal-helper /mnt/host/out",
+                        ],
+                    )?,
+                    _ => unreachable!(),
+                }
+                return Ok(());
+            }
             match side {
                 "oracle" => {
-                    // exec the SHARE copy of the observer (the image copy is
-                    // the fallback for standalone use; the share carries the
-                    // current revision without rebaking)
-                    run(
-                        "bash",
-                        &[
-                            ctl,
-                            "exec",
-                            "bash /mnt/host/scripts/oracle-observe.sh /mnt/host/out",
-                        ],
-                    )?;
+                    let script = if is_transaction {
+                        "oracle-transact.sh"
+                    } else {
+                        "oracle-observe.sh"
+                    };
+                    let mut cmd = format!("bash /mnt/host/scripts/{script} /mnt/host/out");
+                    for raw in &tx_select {
+                        cmd.push(' ');
+                        cmd.push_str(raw);
+                    }
+                    run("bash", &[ctl, "exec", &cmd])?;
                 }
                 "candidate" => {
-                    run(
-                        "bash",
-                        &[
-                            ctl,
-                            "exec",
-                            "bash /mnt/host/scripts/candidate-observe.sh /mnt/host/out",
-                        ],
-                    )?;
+                    let script = if is_transaction {
+                        "candidate-plan.sh"
+                    } else {
+                        "candidate-observe.sh"
+                    };
+                    let mut cmd = format!("bash /mnt/host/scripts/{script} /mnt/host/out");
+                    for raw in &tx_select {
+                        cmd.push(' ');
+                        cmd.push_str(raw);
+                    }
+                    run("bash", &[ctl, "exec", &cmd])?;
                 }
                 _ => unreachable!(),
             }
@@ -600,17 +659,40 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     );
 
     // compare
-    let residuals = match cachyos_kernel_manager_casefile::vm_court::compare_vm_observations(
-        &case.dir,
-        case_id,
-        &case.comparator.companion_model,
-    ) {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("comparison error: {e}");
-            return ExitCode::FAILURE;
+    let mut residuals: Vec<Residual> = Vec::new();
+    if !is_terminal_matrix {
+        residuals = match cachyos_kernel_manager_casefile::vm_court::compare_vm_observations(
+            &case.dir,
+            case_id,
+            &case.comparator.companion_model,
+        ) {
+            Ok(r) => r,
+            Err(e) => {
+                eprintln!("comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        };
+    }
+    if is_terminal_matrix {
+        match cachyos_kernel_manager_casefile::vm_court::compare_terminal_matrix(&case.dir, case_id)
+        {
+            Ok(mut tx) => residuals.append(&mut tx),
+            Err(e) => {
+                eprintln!("terminal-matrix comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
         }
-    };
+    }
+    if is_transaction {
+        match cachyos_kernel_manager_casefile::vm_court::compare_vm_transactions(&case.dir, case_id)
+        {
+            Ok(mut tx) => residuals.append(&mut tx),
+            Err(e) => {
+                eprintln!("transaction comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
 
     // write residual.json + evidence.json
     let residual_json = serde_json::to_string_pretty(&residuals).expect("serialize");

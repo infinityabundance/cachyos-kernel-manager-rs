@@ -316,6 +316,81 @@
    "surface": "pacman_conf.numeric_auto_sections",
    "court": "pacman-config/malformed",
    "status": "passing"
+  },
+  {
+   "surface": "nvidia.companion_dkms_profile",
+   "court": "nvidia-companion/dkms-profile",
+   "status": "passing"
+  },
+  {
+   "surface": "nvidia.companion_open_profile",
+   "court": "nvidia-companion/open-profile",
+   "status": "passing"
+  },
+  {
+   "surface": "nvidia.dkms_installed_suppresses_companion",
+   "court": "nvidia-companion/dkms-installed",
+   "status": "passing"
+  },
+  {
+   "surface": "nvidia.module_family_reuse",
+   "court": "nvidia-companion/modules-installed",
+   "status": "passing"
+  },
+  {
+   "surface": "zfs.root_companion",
+   "court": "zfs-companion/root-on-zfs",
+   "status": "passing"
+  },
+  {
+   "surface": "removal.companion_expansion",
+   "court": "kernel-removal/plan",
+   "status": "passing"
+  },
+  {
+   "surface": "transaction.update_available_quirk",
+   "court": "kernel-removal/update-available-execute",
+   "status": "passing"
+  },
+  {
+   "surface": "terminal_launcher.exit_codes",
+   "court": "terminal-helper/emulator-matrix",
+   "status": "passing"
+  },
+  {
+   "surface": "terminal_launcher.tmp_file_lifecycle",
+   "court": "terminal-helper/emulator-matrix",
+   "status": "passing"
+  },
+  {
+   "surface": "identity.polkit_action",
+   "court": "privilege/polkit-identity",
+   "status": "passing"
+  },
+  {
+   "surface": "privilege.helper_scripts_byte_identity",
+   "court": "privilege/helper-scripts",
+   "status": "passing"
+  },
+  {
+   "surface": "exec.probe_chain",
+   "court": "nvidia-companion/dkms-profile",
+   "status": "passing"
+  },
+  {
+   "surface": "exec.pacman_argv",
+   "court": "nvidia-companion/dkms-profile",
+   "status": "passing"
+  },
+  {
+   "surface": "exec.terminal_helper_argv",
+   "court": "nvidia-companion/dkms-profile",
+   "status": "passing"
+  },
+  {
+   "surface": "privilege.rootshell_chain",
+   "court": "nvidia-companion/dkms-profile",
+   "status": "passing"
   }
  ]
 }

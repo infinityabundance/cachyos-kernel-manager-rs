@@ -90,9 +90,9 @@ CachyOS is rolling; reproducibility is snapshot-based:
 - the machine residual is compared between the oracle and candidate runs:
   any drift is a fixture-integrity residual, not a parity pass.
 
-## Fixture matrix — Phase 2 baseline + Phase 4 ALPM/config
+## Fixture matrix — Phase 2 baseline + Phase 4 ALPM/config + Phase 5 transactions
 
-All 18 fixtures are baked and their courts PASS (oracle == candidate, 0
+All 26 fixtures are baked and their courts PASS (oracle == candidate, 0
 residuals, verified evidence):
 
 Phase 2 kernel-discovery baseline:
@@ -123,14 +123,27 @@ Phase 4 (ALPM layer + pacman-config):
 | malformed | [a=b key, unclosed [broken, stray text, numeric auto-section "0" | PASS |
 | missing-conf | no /etc/pacman.conf: zero registrations, empty-discovery dialog | PASS |
 
+Phase 5 (execution/privilege — transaction courts drive the REAL GUI under
+strace; chwd/findmnt wrappers are the narrowest verifiable simulation
+boundary for the hardware probes):
+
+| fixture | coverage | status |
+|---|---|---|
+| nvidia-dkms-profile | chwd=nvidia-dkms, no dkms/modules -> `-S --needed` with linux-cachyos-court2-nvidia | PASS |
+| nvidia-open-profile | chwd=nvidia-open-dkms -> nvidia-open companion | PASS |
+| nvidia-dkms-installed | chwd=nvidia-dkms BUT nvidia-dkms installed -> NO companion | PASS |
+| nvidia-modules-installed | no chwd profile, module installed -> pacman -Qqs reuse branch | PASS |
+| zfs-root | findmnt wrapper -> zfs -> zfs companion FIRST in the list | PASS |
+| removal-plan | installed kernel+headers+zfs+nvidia -> `-Rsn` list in order | PASS |
+| update-available-execute | installed 1.0-1, sync 2.0-1 -> BOTH `-S --needed` and `-Rsn` (upgrade quirk) | PASS |
+| terminal-matrix | emulator stubs -> exit-code surface per scenario | PASS |
+
 Drift/slew: `minimal` (3x) and `upgrade-available` (2x) re-run on identical
 overlays — deterministic PASS, no drift.
 
-deferred to later phases (documented, marked): ZFS root (needs a fixture
-`findmnt` wrapper — narrowest verifiable simulation boundary), NVIDIA
-profiles (chwd wrapper), sched_ext absent (kernel feature), low disk,
-offline, non-English locale, Wayland/X11, AUR on/off (requires a second
-oracle build with `ENABLE_AUR_KERNELS`).
+deferred to later phases (documented, marked): sched_ext absent (kernel
+feature), low disk, offline, non-English locale, Wayland/X11, AUR on/off
+(requires a second oracle build with `ENABLE_AUR_KERNELS`).
 
 ## Commands
 

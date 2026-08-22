@@ -1,0 +1,7 @@
+{
+ "fixture": "nvidia-open-profile",
+ "raw_image_hash": "sha256:c57aea7e7ff8202a518be6dc0a17e975f4b1b464337458b93e2e70d19b638080",
+ "baked_at": "2026-08-22T00:24:45Z",
+ "fixture_digest": "sha256:b95e43494b5dc0d8137f97c8dfbc6153cce46d02b71e7665fe5bf17e0695ee68",
+ "spec_sha256": "sha256:019ab9b72abdb7e7428dea0c5e3b56d3ea75aa31e84bbdc5eac9fa6818394446"
+}

@@ -1,0 +1,7 @@
+{
+ "fixture": "nvidia-modules-installed",
+ "raw_image_hash": "sha256:2fd34070bd1d423d3d9db06329c076bc81348aa9eabd9cee667831df609857fb",
+ "baked_at": "2026-08-22T00:29:09Z",
+ "fixture_digest": "sha256:cec2dee92817e3370f0bd95621f0bda08405d05b68cae4b99fbba34b79250450",
+ "spec_sha256": "sha256:5995b031eec6614ad94e8f5ea275d848a388ed131574b5dadd30296000970bd5"
+}

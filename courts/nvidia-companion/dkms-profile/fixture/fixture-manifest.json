@@ -1,0 +1,7 @@
+{
+ "fixture": "nvidia-dkms-profile",
+ "raw_image_hash": "sha256:15940be341fb018054c66bc9b3d2fc023106d08513545868d20f6dd196667290",
+ "baked_at": "2026-08-22T00:22:00Z",
+ "fixture_digest": "sha256:cee8ea815dbf151fd3eb1679c22ff020dffa39b5aceb7ac05bc7f8f9d7b8c6ab",
+ "spec_sha256": "sha256:d8aa66871e8ba2d2e2e287e5059355cefa37b3183ff44b82d374654117c57498"
+}

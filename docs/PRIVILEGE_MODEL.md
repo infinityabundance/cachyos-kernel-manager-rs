@@ -14,6 +14,26 @@ user action → terminal-helper -s "pkexec /usr/lib/cachyos-kernel-manager/roots
             → /bin/bash <tmpfile>                            [user-constructed command]
 ```
 
+**Phase 5 differential witness** (transaction courts): the full chain is
+captured from the real oracle GUI under strace on every transaction court,
+e.g. `nvidia-companion/dkms-profile/oracle/oracle-trace.log`:
+
+```
+terminal-helper -s "pkexec /usr/lib/cachyos-kernel-manager/rootshell.sh" \
+                "pacman -S --needed ...; read -p 'Press enter to exit'"
+  → mktemp
+  → xterm -e pkexec /usr/lib/cachyos-kernel-manager/rootshell.sh /tmp/tmp.XXXXXX
+  → pkexec /usr/lib/cachyos-kernel-manager/rootshell.sh /tmp/tmp.XXXXXX
+  → /bin/bash /tmp/tmp.XXXXXX
+  → /usr/sbin/pacman -S --needed <install list>
+```
+
+The oracle's `utils::exec` probes run through glibc's `popen`, which on the
+CachyOS toolchain (glibc ≥ 2.44) execs `sh -c -- <command>` (the `--` is a
+glibc hardening addition; older glibc omits it — an environment-dependent
+argv surface). The candidate's `exec_shell` reproduces the platform argv
+exactly; the probe chain is compared witness-by-witness.
+
 `rootshell.sh` is literally `exec /bin/bash "$@"`. This is an **arbitrary
 root shell**: any caller who can trigger the polkit action can run any
 command as root. The only protections are polkit's own authentication and the

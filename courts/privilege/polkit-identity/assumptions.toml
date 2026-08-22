@@ -1,0 +1,6 @@
+assumptions = [
+  "Polkit identity is a packaging-level contract; no VM is required for byte comparison.",
+  "The court compares the frozen upstream file against the candidate packaging copy.",
+]
+
+normalizers = []

@@ -10,4 +10,5 @@ publish = false
 
 [dependencies]
 cachyos-kernel-manager-core = { workspace = true }
+cachyos-kernel-manager-exec = { workspace = true }
 serde = { workspace = true }

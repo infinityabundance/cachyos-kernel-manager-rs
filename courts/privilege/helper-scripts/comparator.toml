@@ -1,0 +1,6 @@
+version = "1.0.0"
+
+ignore = []
+byte_exact = ["terminal-helper", "rootshell.sh"]
+json_semantic = []
+volatile_prefixes = []

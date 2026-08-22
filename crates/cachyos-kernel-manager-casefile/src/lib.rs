@@ -73,6 +73,27 @@ pub struct Comparator {
     /// residuals.
     #[serde(default)]
     pub companion_model: BTreeMap<String, CompanionExpectation>,
+    /// Phase 5 transaction courts: when present, the runner drives a real
+    /// GUI transaction on the oracle side (AT-SPI checkbox toggle + Execute)
+    /// under strace and runs the candidate plan tool, comparing the
+    /// witnessed exec chains (probes, pacman argv, terminal-helper argv).
+    #[serde(default)]
+    pub transaction: Option<TransactionSpec>,
+    /// Phase 5 terminal-matrix court: when present, the runner executes the
+    /// terminal-helper script (oracle: the frozen upstream script; candidate:
+    /// the packaged copy) against the emulator-stub fixture scenarios and
+    /// compares exit codes + outputs.
+    #[serde(default)]
+    pub terminal_matrix: Option<serde_json::Value>,
+}
+
+/// The `[transaction]` comparator section.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct TransactionSpec {
+    /// The tree rows (raw `<repo>/<kernel>`) the AT-SPI driver toggles
+    /// (checkbox flipped from its default state).
+    #[serde(default)]
+    pub select: Vec<String>,
 }
 
 /// A loaded case directory.

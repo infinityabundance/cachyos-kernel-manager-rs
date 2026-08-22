@@ -1,0 +1,6 @@
+version = "1.0.0"
+
+ignore = []
+byte_exact = ["org.cachyos.KernelManager.pkexec.policy"]
+json_semantic = []
+volatile_prefixes = []

@@ -1,0 +1,10 @@
+version = "1.2.0"
+fixture = "nvidia-dkms-profile"
+
+ignore = ["oracle.stdout", "oracle.stderr", "candidate.stderr"]
+byte_exact = []
+json_semantic = ["oracle-state.json", "candidate-state.json", "residual.json", "candidate-residual.json"]
+volatile_prefixes = ["/tmp/", "/proc/", "/run/user/", "/var/log/", "/dev/", "/sys/", "/sys/fs/", "/sys/kernel/"]
+
+[transaction]
+select = ["fixtures/linux-cachyos-court2"]

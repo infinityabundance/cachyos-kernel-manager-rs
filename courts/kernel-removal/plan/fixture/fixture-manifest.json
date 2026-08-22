@@ -1,0 +1,7 @@
+{
+ "fixture": "removal-plan",
+ "raw_image_hash": "sha256:21bc1212ea97b529eeea5f4e54eeff54f21ca7c2be2c66f024d87c47343ca48a",
+ "baked_at": "2026-08-22T00:34:12Z",
+ "fixture_digest": "sha256:7c4cb56937b53d324f064943b737534282a802067b46df437fc5bf99d7e515cd",
+ "spec_sha256": "sha256:85f0833996985c4af2106f6d6e5932c717a00b8f0481dfbbb2a0df42165fc1de"
+}

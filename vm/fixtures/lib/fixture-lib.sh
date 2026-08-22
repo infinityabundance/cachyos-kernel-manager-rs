@@ -87,3 +87,78 @@ install_pkg_file() {
     local file="$1"
     pacman -U --noconfirm "$file" >/dev/null
 }
+
+# ---------------------------------------------------------------------------
+# Phase 5 transaction-court fixtures: controlled probe wrappers + terminal.
+# ---------------------------------------------------------------------------
+
+# install_chwd_wrapper <profile...> — a /usr/local/bin/chwd that shadows the
+# real chwd for the oracle's exact probe invocation and prints the REAL chwd
+# output format (observed on a CachyOS host): a box table whose Name lines
+# have the profile name in whitespace-field 4 — `awk '{print $4}'` picks it
+# up (kernel.cpp:45). All other invocations delegate to the real chwd.
+install_chwd_wrapper() {
+    mkdir -p /usr/local/bin
+    local script="/usr/local/bin/chwd"
+    {
+        printf '%s\n' '#!/usr/bin/bash'
+        printf '%s\n' 'if [ "$1" = "--list-installed" ] && [ "$2" = "-d" ]; then'
+        printf '%s\n' '    cat <<TABLE'
+        printf '%s\n' '╭───────────┬───────────────────────────────────────────────╮'
+        for p in "$@"; do
+            printf '%s\n' "│ Name      ┆ ${p}"
+            printf '%s\n' '│ Desc      ┆ court fixture profile'
+            printf '%s\n' '├╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤'
+        done
+        printf '%s\n' '╰───────────┴───────────────────────────────────────────────╯'
+        printf '%s\n' 'TABLE'
+        printf '%s\n' '    exit 0'
+        printf '%s\n' 'fi'
+        printf '%s\n' 'exec /usr/bin/chwd "$@"'
+    } > "$script"
+    chmod +x "$script"
+}
+
+# install_findmnt_wrapper <fstype> — a /usr/local/bin/findmnt that answers
+# the oracle's exact probe (`findmnt -ln -o FSTYPE /`, kernel.cpp:41) with a
+# controlled fstype and delegates everything else to the real findmnt.
+install_findmnt_wrapper() {
+    local fstype="$1"
+    mkdir -p /usr/local/bin
+    local script="/usr/local/bin/findmnt"
+    {
+        printf '%s\n' '#!/usr/bin/bash'
+        printf '%s\n' 'if [ "$1" = "-ln" ] && [ "$2" = "-o" ] && [ "$3" = "FSTYPE" ] && [ "$4" = "/" ]; then'
+        printf '%s\n' "    echo \"${fstype}\""
+        printf '%s\n' '    exit 0'
+        printf '%s\n' 'fi'
+        printf '%s\n' 'exec /usr/bin/findmnt "$@"'
+    } > "$script"
+    chmod +x "$script"
+}
+
+# install_xterm — the transaction courts need a REAL terminal emulator so
+# the oracle's terminal-helper chain (xterm -e bash <file>) actually reaches
+# the pacman execve (the strace witness). xterm is the lightest in the
+# helper's term_order.
+install_xterm() {
+    pacman -S --noconfirm --needed xterm >/dev/null
+}
+
+# install_terminal_stubs — stub emulator binaries used by the terminal-matrix
+# court. Each stub records its argv to a log and exits with a configurable
+# status. The stubs live under /usr/local/bin/stubs; the in-VM runner builds
+# the PATH per scenario (the terminal-helper picks the first term_order entry
+# that `command -v` finds).
+install_terminal_stubs() {
+    mkdir -p /usr/local/bin/stubs
+    for t in alacritty kitty ptyxis konsole kgx gnome-terminal xfce4-terminal lxterminal xterm st foot rio ghostty; do
+        cat > "/usr/local/bin/stubs/$t" <<EOF
+#!/usr/bin/bash
+STATUS=\${TERMINAL_STUB_STATUS:-0}
+echo "stub $t \$*" >> /tmp/terminal-stub.log
+exit "\$STATUS"
+EOF
+        chmod +x "/usr/local/bin/stubs/$t"
+    done
+}

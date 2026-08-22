@@ -4,8 +4,11 @@
 #![forbid(unsafe_code)]
 
 use crate::normalize::{
-    candidate_observation, oracle_observation, residual_digest, NormalizerError, Observation,
-    A11Y_NORMALIZER_VERSION, CANDIDATE_NORMALIZER_VERSION, RESIDUAL_NORMALIZER_VERSION,
+    candidate_observation, candidate_transaction_observation, oracle_observation,
+    oracle_transaction_observation, residual_digest, terminal_matrix_observation, NormalizerError,
+    Observation, TransactionObservation, A11Y_NORMALIZER_VERSION, CANDIDATE_NORMALIZER_VERSION,
+    RESIDUAL_NORMALIZER_VERSION, TERMINAL_MATRIX_NORMALIZER_VERSION,
+    TRANSACTION_NORMALIZER_VERSION,
 };
 use crate::CaseError;
 use cachyos_kernel_manager_frf::Residual;
@@ -15,7 +18,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 /// Comparator version (bump on comparison-semantics changes).
-pub const COMPARATOR_VERSION: &str = "1.1.0";
+pub const COMPARATOR_VERSION: &str = "1.2.0";
 
 /// Source-anchored companion expectation from `comparator.toml`
 /// (`[companion_model]`, keyed by kernel NAME). The oracle does not expose
@@ -155,6 +158,118 @@ fn mismatch(court: &str, row: usize, field: &str, oracle: &str, candidate: &str)
     }
 }
 
+/// Compare two transaction observations chain-by-chain, order-sensitive.
+pub fn compare_transaction_observations(
+    court: &str,
+    oracle: &TransactionObservation,
+    candidate: &TransactionObservation,
+) -> Vec<Residual> {
+    let mut residuals = Vec::new();
+    for (field, o, c) in [
+        ("probes", &oracle.probes, &candidate.probes),
+        ("execs", &oracle.execs, &candidate.execs),
+    ] {
+        if o != c {
+            residuals.push(Residual {
+                id: format!("{court}-transaction-{field}"),
+                court: court.into(),
+                layer: "transaction-chain".into(),
+                oracle_fingerprint: format!("{o:?}"),
+                candidate_fingerprint: format!("{c:?}"),
+                classification: "deterministic_mismatch".into(),
+                root_cause: None,
+                resolution: None,
+                commit: None,
+                regression_witness: None,
+            });
+        }
+    }
+    if oracle.terminal != candidate.terminal {
+        residuals.push(Residual {
+            id: format!("{court}-transaction-terminal"),
+            court: court.into(),
+            layer: "transaction-chain".into(),
+            oracle_fingerprint: format!("{:?}", oracle.terminal),
+            candidate_fingerprint: format!("{:?}", candidate.terminal),
+            classification: "deterministic_mismatch".into(),
+            root_cause: None,
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+    residuals
+}
+
+/// Run the transaction-chain comparison for a court case directory:
+/// `oracle/oracle-transaction.json` vs `candidate/candidate-transaction.json`.
+pub fn compare_vm_transactions(
+    case_dir: &Path,
+    court_id: &str,
+) -> Result<Vec<Residual>, CaseError> {
+    let oracle_path = case_dir.join("oracle").join("oracle-transaction.json");
+    let candidate_path = case_dir
+        .join("candidate")
+        .join("candidate-transaction.json");
+    if !oracle_path.exists() || !candidate_path.exists() {
+        return Err(CaseError::Other(format!(
+            "transaction court requires oracle/oracle-transaction.json and \
+             candidate/candidate-transaction.json (missing: {} / {})",
+            oracle_path.exists(),
+            candidate_path.exists()
+        )));
+    }
+    let o = read_json(&oracle_path)?;
+    let c = read_json(&candidate_path)?;
+    let o_obs = oracle_transaction_observation(&o)
+        .map_err(|e: NormalizerError| CaseError::Other(format!("oracle tx normalize: {e}")))?;
+    let c_obs = candidate_transaction_observation(&c)
+        .map_err(|e: NormalizerError| CaseError::Other(format!("candidate tx normalize: {e}")))?;
+    Ok(compare_transaction_observations(court_id, &o_obs, &c_obs))
+}
+
+/// Compare the terminal-matrix observations (schema
+/// `cachyos-km-terminal-matrix-v1`): every scenario's exit code, stdout
+/// (temp paths normalized), stderr, and tmp-file-leftover count must match.
+pub fn compare_terminal_matrix(
+    case_dir: &Path,
+    court_id: &str,
+) -> Result<Vec<Residual>, CaseError> {
+    let oracle_path = case_dir.join("oracle").join("terminal-matrix.json");
+    let candidate_path = case_dir.join("candidate").join("terminal-matrix.json");
+    if !oracle_path.exists() || !candidate_path.exists() {
+        return Err(CaseError::Other(format!(
+            "terminal-matrix court requires oracle/terminal-matrix.json and \
+             candidate/terminal-matrix.json (missing: {} / {})",
+            oracle_path.exists(),
+            candidate_path.exists()
+        )));
+    }
+    let o = read_json(&oracle_path)?;
+    let c = read_json(&candidate_path)?;
+    let o_norm = terminal_matrix_observation(&o)
+        .map_err(|e: NormalizerError| CaseError::Other(format!("oracle matrix normalize: {e}")))?;
+    let c_norm = terminal_matrix_observation(&c).map_err(|e: NormalizerError| {
+        CaseError::Other(format!("candidate matrix normalize: {e}"))
+    })?;
+    let mut residuals = Vec::new();
+    if o_norm != c_norm {
+        residuals.push(Residual {
+            id: format!("{court_id}-terminal-matrix"),
+            court: court_id.into(),
+            layer: "terminal-matrix".into(),
+            oracle_fingerprint: serde_json::to_string(&o_norm).unwrap_or_default(),
+            candidate_fingerprint: serde_json::to_string(&c_norm).unwrap_or_default(),
+            classification: "deterministic_mismatch".into(),
+            root_cause: None,
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+    Ok(residuals)
+}
+
 /// Run the full observation comparison for a court case directory:
 /// `oracle/` and `candidate/` subdirectories each contain the observation
 /// outputs (oracle-state.json / candidate-state.json / residual.json).
@@ -220,6 +335,14 @@ pub fn normalizer_versions() -> Vec<(String, String)> {
         (
             "machine-residual".to_string(),
             RESIDUAL_NORMALIZER_VERSION.to_string(),
+        ),
+        (
+            "transaction".to_string(),
+            TRANSACTION_NORMALIZER_VERSION.to_string(),
+        ),
+        (
+            "terminal-matrix".to_string(),
+            TERMINAL_MATRIX_NORMALIZER_VERSION.to_string(),
         ),
     ]
 }
@@ -312,5 +435,48 @@ mod tests {
         let m = BTreeMap::new();
         let residuals = compare_observations("court", &oracle, &candidate, &m);
         assert!(residuals.is_empty());
+    }
+
+    #[test]
+    fn transaction_comparison_is_order_sensitive() {
+        let make = |execs: Vec<Vec<&str>>| TransactionObservation {
+            probes: vec![vec![
+                "sh".into(),
+                "-c".into(),
+                "findmnt -ln -o FSTYPE /".into(),
+            ]],
+            execs: execs
+                .into_iter()
+                .map(|e| e.into_iter().map(|s| s.to_string()).collect())
+                .collect(),
+            terminal: Some(vec!["terminal-helper".into()]),
+        };
+        let o = make(vec![vec!["pacman", "-S", "--needed", "a"]]);
+        let c_same = make(vec![vec!["pacman", "-S", "--needed", "a"]]);
+        assert!(compare_transaction_observations("court", &o, &c_same).is_empty());
+        // different package order -> residual
+        let c_diff = make(vec![vec!["pacman", "-S", "--needed", "b"]]);
+        assert!(!compare_transaction_observations("court", &o, &c_diff).is_empty());
+        // extra command -> residual
+        let c_extra = make(vec![
+            vec!["pacman", "-S", "--needed", "a"],
+            vec!["pacman", "-Rsn", "a"],
+        ]);
+        assert!(!compare_transaction_observations("court", &o, &c_extra).is_empty());
+    }
+
+    #[test]
+    fn transaction_probe_order_mismatch_is_a_residual() {
+        let make = |first: &str| TransactionObservation {
+            probes: vec![
+                vec!["sh".into(), "-c".into(), first.into()],
+                vec!["sh".into(), "-c".into(), "chwd --list-installed -d".into()],
+            ],
+            execs: vec![],
+            terminal: None,
+        };
+        let o = make("findmnt -ln -o FSTYPE /");
+        let c = make("chwd --list-installed -d");
+        assert!(!compare_transaction_observations("court", &o, &c).is_empty());
     }
 }

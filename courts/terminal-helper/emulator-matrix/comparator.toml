@@ -1,0 +1,9 @@
+version = "1.2.0"
+fixture = "terminal-matrix"
+
+ignore = []
+byte_exact = []
+json_semantic = ["terminal-matrix.json", "residual.json"]
+volatile_prefixes = ["/tmp/", "/proc/", "/run/user/", "/var/log/"]
+
+[terminal_matrix]

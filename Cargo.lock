@@ -26,6 +26,8 @@ name = "cachyos-kernel-manager-alpm"
 version = "0.1.0"
 dependencies = [
  "cachyos-kernel-manager-core",
+ "cachyos-kernel-manager-exec",
+ "cachyos-kernel-manager-plan",
  "serde",
  "serde_json",
 ]
@@ -106,6 +108,7 @@ name = "cachyos-kernel-manager-plan"
 version = "0.1.0"
 dependencies = [
  "cachyos-kernel-manager-core",
+ "cachyos-kernel-manager-exec",
  "serde",
 ]
 

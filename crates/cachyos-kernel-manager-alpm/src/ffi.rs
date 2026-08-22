@@ -204,6 +204,32 @@ impl AlpmHandle {
         }
     }
 
+    /// Enumerate the LOCAL database (every installed package). Used by the
+    /// plan tool for the oracle's local-db lookups (`kernel.cpp:102-109`:
+    /// `nvidia-dkms`/`nvidia-open-dkms` presence; `kernel.cpp:143-161`:
+    /// removal companions must be installed).
+    pub fn local_packages(&self) -> Vec<DbPkg> {
+        unsafe {
+            let mut out = Vec::new();
+            let db = alpm_get_localdb(self.raw);
+            if db.is_null() {
+                return out;
+            }
+            let mut list = alpm_db_get_pkgcache(db);
+            while !list.is_null() {
+                let pkg = (*list).data as *mut RawPkg;
+                if let (Some(name), Some(version)) = (
+                    c_to_string(alpm_pkg_get_name(pkg)),
+                    c_to_string(alpm_pkg_get_version(pkg)),
+                ) {
+                    out.push(DbPkg { name, version });
+                }
+                list = (*list).next;
+            }
+            out
+        }
+    }
+
     /// Look up a package in a sync database by name.
     pub fn db_get_pkg(&self, db_name: &str, pkg_name: &str) -> Option<DbPkg> {
         unsafe {

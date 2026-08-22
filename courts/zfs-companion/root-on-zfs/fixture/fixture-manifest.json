@@ -1,0 +1,7 @@
+{
+ "fixture": "zfs-root",
+ "raw_image_hash": "sha256:1a5843d44c0bcc0bca0d4cb6616c112a901b3ae0e43f2ed270568555ac90597d",
+ "baked_at": "2026-08-22T00:31:36Z",
+ "fixture_digest": "sha256:3e7d007d4f5c69d2f2e9dc21e7cd1f88ea13753cfbad572118566e83b0f589fe",
+ "spec_sha256": "sha256:4ab6513b4e122ed5d125b4a5fac1a80e180e8ac708eb3a711a27c6ecd9c71911"
+}

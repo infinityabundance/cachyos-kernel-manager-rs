@@ -1,0 +1,10 @@
+assumptions = [
+  "The emulator stubs are baked into the fixture (vm/fixtures/terminal-matrix).",
+  "The frozen oracle script is oracle/upstream/src/terminal-helper (revision 6b4a373e).",
+  "The candidate script is the packaged copy at packaging/usr/lib/cachyos-kernel-manager/terminal-helper.",
+  "No real terminal emulator is needed: the stubs control the emulator exit status (external authority boundary).",
+]
+
+normalizers = [
+  { name = "tmp-path", version = "1.0.0", source_hash = "crates/cachyos-kernel-manager-casefile/src/normalize.rs", input_domain = "terminal-matrix.json strings", transformation = "replace /tmp/tmp.<random> with /tmp/tmp.X", justification = "mktemp names are intentionally volatile", falsifier = "a non-volatile difference in stdout" },
+]

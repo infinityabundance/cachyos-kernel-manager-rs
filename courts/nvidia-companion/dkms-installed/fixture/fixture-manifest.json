@@ -1,0 +1,7 @@
+{
+ "fixture": "nvidia-dkms-installed",
+ "raw_image_hash": "sha256:25400a7e25348af301f45e3ce0cc2e5c8d51ea38ee186c14db8e3b27c0ac78b8",
+ "baked_at": "2026-08-22T00:26:48Z",
+ "fixture_digest": "sha256:ed949e7c2bc94f1792eb5d81db053bb7663de9701c67016b4ccd7ee83eb86426",
+ "spec_sha256": "sha256:d870ab32ff263a35898885b0c961ed8dd922f26710510bb6359d37f7f0722707"
+}

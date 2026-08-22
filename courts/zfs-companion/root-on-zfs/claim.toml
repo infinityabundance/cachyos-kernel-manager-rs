@@ -1,0 +1,34 @@
+claim = "Given the 'zfs-root' fixture, the oracle's real GUI transaction (toggle 'fixtures/linux-cachyos-court2' + Execute) produces exactly the exec chain the candidate plan tool models: the same probe commands in the same order and the same pacman argv(s): 'pacman' '-S' '--needed' 'linux-cachyos-court2-zfs' 'linux-cachyos-court2' 'linux-cachyos-court2-headers' (plus the same terminal-helper invocation)."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 GUI. Static-init probes (kernel.cpp:41-52): findmnt -ln -o FSTYPE /, chwd --list-installed -d pipeline (evaluated TWICE). Install phase per selected kernel (kernel.cpp:89-135): pacman -Qqs '^linux-cachyos.*-nvidia$', then '^linux-cachyos.*-nvidia-open$', then the companion decision matrix (zfs-root first, then chwd/modules/dkms nvidia logic), then kernel + headers. Removal phase (kernel.cpp:137-163): kernel then installed companions. commit_transaction (kernel.cpp:288-304): pacman -S --needed <install> then pacman -Rsn <remove>, each through runCmdTerminal (utils.cpp:122-135: '; read -p ...' suffix + -s pkexec rootshell.sh). Candidate: the plan tool over the same libalpm state + the same modeled chains."
+
+assumptions = [
+  "The fixture controls the hardware probes (chwd/findmnt wrappers) and the package state; both sides see byte-identical inputs.",
+  "The AT-SPI driver toggles each target row's checkbox from its default state (checked when installed+immutable, unchecked otherwise), exactly what 'select' means.",
+]
+
+observables = [
+  "Ordered probe exec chains (findmnt, chwd pipelines, pacman -Qqs)",
+  "Ordered transaction pacman argv (pacman -S --needed ... / pacman -Rsn ...)",
+  "The terminal-helper invocation argv",
+  "Kernel rows of the SAME run (discovery parity still holds)",
+  "Machine residual identity between the two runs (fixture-integrity)",
+]
+
+witness = "cargo xtask court run zfs-companion/root-on-zfs --vm against fixture 'zfs-root'."
+
+independence = "The oracle is the real upstream binary driven through its real GUI in a disposable VM; the candidate is a separate Rust implementation modeling the same state. Neither generates the other's output; the exec chains are witnessed from the operating system (strace), not from the application."
+
+falsifier = "Any difference in probe order, probe argv, transaction pacman argv (order-sensitive), terminal-helper argv, kernel rows, or machine residual drift."
+
+[[evidence]]
+artifact = "oracle/oracle-transaction.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/candidate-transaction.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/oracle-trace.log"
+sha256 = "pending"

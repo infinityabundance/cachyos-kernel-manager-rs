@@ -54,6 +54,10 @@ pub const A11Y_NORMALIZER_VERSION: &str = "1.1.0";
 pub const CANDIDATE_NORMALIZER_VERSION: &str = "1.0.0";
 /// The machine-residual normalizer version.
 pub const RESIDUAL_NORMALIZER_VERSION: &str = "1.0.0";
+/// The transaction-chain normalizer version (Phase 5).
+pub const TRANSACTION_NORMALIZER_VERSION: &str = "1.0.0";
+/// The terminal-matrix normalizer version (Phase 5).
+pub const TERMINAL_MATRIX_NORMALIZER_VERSION: &str = "1.0.0";
 
 // AT-SPI role ids (at-spi2-core / the vendored pyatspi2 role.py) and the
 // equivalent role names. The oracle dump stores the NUMERIC id in `role`
@@ -485,6 +489,159 @@ fn opt_str(v: Option<&Value>) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+// ---------------------------------------------------------------------------
+// Phase 5: transaction-chain observations (directive §13-§16, §33)
+// ---------------------------------------------------------------------------
+
+/// One witnessed exec event (argv only). Program-path resolution is
+/// fixture-controlled (wrappers shadow real binaries), so the argv basename
+/// is the stable identity; the raw resolved path stays in the raw evidence.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecEvent {
+    pub argv: Vec<String>,
+}
+
+/// The normalized transaction observation: every exec chain the oracle
+/// produced during a real GUI transaction vs the chain the candidate
+/// models, in execution order.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct TransactionObservation {
+    /// Probe exec chains in execution order (findmnt/chwd/pacman -Qqs).
+    pub probes: Vec<Vec<String>>,
+    /// Transaction pacman exec chains in execution order.
+    pub execs: Vec<Vec<String>>,
+    /// The terminal-helper invocation argv, if any.
+    pub terminal: Option<Vec<String>>,
+}
+
+fn argv_of(event: &Value) -> Vec<String> {
+    event
+        .get("argv")
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|s| s.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Oracle side (`oracle-transaction.json`, schema
+/// `cachyos-km-oracle-transaction-v1`): probe/exec/terminal chains extracted
+/// from the strace witness of a real GUI transaction.
+pub fn oracle_transaction_observation(
+    state: &Value,
+) -> Result<TransactionObservation, NormalizerError> {
+    let probes = state
+        .get("probes")
+        .and_then(|v| v.as_array())
+        .map(|a| a.iter().map(argv_of).collect::<Vec<_>>())
+        .unwrap_or_default();
+    let execs = state
+        .get("execs")
+        .and_then(|v| v.as_array())
+        .map(|a| a.iter().map(argv_of).collect::<Vec<_>>())
+        .unwrap_or_default();
+    let terminal = state.get("terminal").map(argv_of);
+    Ok(TransactionObservation {
+        probes,
+        execs,
+        terminal,
+    })
+}
+
+/// Candidate side (`candidate-transaction.json`, schema
+/// `cachyos-km-candidate-plan-v1`): the plan tool's modeled chains. The
+/// `commands` field is a list of argv arrays; `terminal` is a nullable argv
+/// array; `probes` mirrors the oracle schema.
+pub fn candidate_transaction_observation(
+    state: &Value,
+) -> Result<TransactionObservation, NormalizerError> {
+    let probes = state
+        .get("probes")
+        .and_then(|v| v.as_array())
+        .map(|a| a.iter().map(argv_of).collect::<Vec<_>>())
+        .unwrap_or_default();
+    let execs = state
+        .get("commands")
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|v| v.as_array())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|s| s.as_str().map(str::to_string))
+                        .collect()
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let terminal = state.get("terminal").and_then(|v| v.as_array()).map(|a| {
+        a.iter()
+            .filter_map(|s| s.as_str().map(str::to_string))
+            .collect()
+    });
+    Ok(TransactionObservation {
+        probes,
+        execs,
+        terminal,
+    })
+}
+
+/// Recursively replace volatile `/tmp/tmp.*` paths (mktemp artifacts of the
+/// terminal-helper) with a stable token in every string of a JSON value.
+/// Raw evidence is preserved; this is the explicit, versioned normalizer
+/// for the terminal-matrix court (directive §46).
+pub fn normalize_tmp_paths(value: &Value) -> Value {
+    fn mask(s: &str) -> String {
+        let mut out = String::with_capacity(s.len());
+        let mut rest = s;
+        while let Some(idx) = rest.find("/tmp/tmp.") {
+            out.push_str(&rest[..idx]);
+            let after = &rest[idx + "/tmp/tmp.".len()..];
+            let end = after
+                .find(|c: char| !c.is_ascii_alphanumeric())
+                .unwrap_or(after.len());
+            out.push_str("/tmp/tmp.X");
+            rest = &after[end..];
+        }
+        out.push_str(rest);
+        out
+    }
+    fn walk(v: Value) -> Value {
+        match v {
+            Value::String(s) => Value::String(mask(&s)),
+            Value::Array(a) => Value::Array(a.into_iter().map(walk).collect()),
+            Value::Object(o) => Value::Object(o.into_iter().map(|(k, v)| (k, walk(v))).collect()),
+            other => other,
+        }
+    }
+    walk(value.clone())
+}
+
+/// Normalize a terminal-matrix observation (schema
+/// `cachyos-km-terminal-matrix-v1`) into a comparable canonical form.
+pub fn terminal_matrix_observation(state: &Value) -> Result<serde_json::Value, NormalizerError> {
+    let scenarios = state
+        .get("scenarios")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let norm: Vec<Value> = scenarios
+        .into_iter()
+        .map(|s| {
+            serde_json::json!({
+                "scenario": s.get("scenario").and_then(|v| v.as_str()).unwrap_or(""),
+                "exit": s.get("exit").and_then(|v| v.as_i64()).unwrap_or(-1),
+                "stdout": normalize_tmp_paths(s.get("stdout").unwrap_or(&Value::Null)),
+                "stderr": s.get("stderr").unwrap_or(&Value::Null),
+                "tmp_leftover": s.get("tmp_leftover").and_then(|v| v.as_i64()).unwrap_or(-1),
+            })
+        })
+        .collect();
+    Ok(serde_json::Value::Array(norm))
+}
+
 /// Normalize a machine residual (schema `cachyos-km-machine-residual-v1`)
 /// to a comparable digest string: the installed package list, sync db
 /// hashes, and local db package list, sorted and joined.
@@ -795,5 +952,71 @@ mod tests {
             "local_db_packages": ["linux-cachyos 7.1.8-1"]
         });
         assert_ne!(residual_digest(&r1).unwrap(), residual_digest(&r3).unwrap());
+    }
+
+    #[test]
+    fn tmp_path_normalization_masks_mktemp_paths() {
+        let v = serde_json::json!("bash \"/tmp/tmp.abc123\"");
+        assert_eq!(
+            normalize_tmp_paths(&v),
+            serde_json::json!("bash \"/tmp/tmp.X\"")
+        );
+        // nested + non-tmp strings untouched
+        let v = serde_json::json!({
+            "a": ["/tmp/tmp.zz9", "/var/log/x.log"],
+            "b": "no path",
+        });
+        assert_eq!(
+            normalize_tmp_paths(&v),
+            serde_json::json!({
+                "a": ["/tmp/tmp.X", "/var/log/x.log"],
+                "b": "no path",
+            })
+        );
+    }
+
+    #[test]
+    fn terminal_matrix_observation_normalizes_scenarios() {
+        let v = serde_json::json!({
+            "schema": "cachyos-km-terminal-matrix-v1",
+            "scenarios": [
+                {"scenario": "first-fails", "exit": 2, "stdout": "bash \"/tmp/tmp.abc\"", "stderr": "", "tmp_leftover": 0},
+            ]
+        });
+        let norm = terminal_matrix_observation(&v).unwrap();
+        assert_eq!(
+            norm,
+            serde_json::json!([{"scenario": "first-fails", "exit": 2, "stdout": "bash \"/tmp/tmp.X\"", "stderr": "", "tmp_leftover": 0}])
+        );
+    }
+
+    #[test]
+    fn transaction_observations_parse_both_schemas() {
+        // oracle schema: probes/execs as objects with argv; terminal object
+        let o = serde_json::json!({
+            "schema": "cachyos-km-oracle-transaction-v1",
+            "probes": [{"argv": ["sh", "-c", "findmnt -ln -o FSTYPE /"]}],
+            "execs": [{"argv": ["pacman", "-S", "--needed", "linux-cachyos"]}],
+            "terminal": {"argv": ["terminal-helper", "-s", "pkexec /usr/lib/cachyos-kernel-manager/rootshell.sh", "pacman -S --needed linux-cachyos; read -p 'Press enter to exit'"]},
+        });
+        let oo = oracle_transaction_observation(&o).unwrap();
+        assert_eq!(oo.probes.len(), 1);
+        assert_eq!(
+            oo.execs[0],
+            vec!["pacman", "-S", "--needed", "linux-cachyos"]
+        );
+        assert!(oo.terminal.is_some());
+
+        // candidate schema: commands as argv arrays; terminal nullable array
+        let c = serde_json::json!({
+            "schema": "cachyos-km-candidate-plan-v1",
+            "probes": [{"argv": ["sh", "-c", "findmnt -ln -o FSTYPE /"]}],
+            "commands": [["pacman", "-S", "--needed", "linux-cachyos"]],
+            "terminal": ["terminal-helper", "-s", "pkexec /usr/lib/cachyos-kernel-manager/rootshell.sh", "pacman -S --needed linux-cachyos; read -p 'Press enter to exit'"],
+        });
+        let co = candidate_transaction_observation(&c).unwrap();
+        assert_eq!(co.execs, oo.execs);
+        assert_eq!(co.terminal, oo.terminal);
+        assert_eq!(co.probes, oo.probes);
     }
 }

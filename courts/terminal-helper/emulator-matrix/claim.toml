@@ -1,0 +1,30 @@
+claim = "Given the 'terminal-matrix' fixture (stub emulators), the candidate's packaged terminal-helper script produces byte-identical exit-code surfaces to the frozen oracle script for every scenario: no emulator found -> notify-send + exit 1; first-pick emulator fails -> exit 2 (temp file removed); kgx fails -> exit 0 (the kgx special case); emulator succeeds -> exit 0; -s <shell> override -> launcher change. The candidate ships a byte-identical copy of the oracle script (Bash is the contract, directive §18/§33), so both sides run the same script and MUST observe identical behavior."
+
+model = "terminal-helper (oracle/upstream/src/terminal-helper): $TERMINAL first, distribution mechanisms next, then the fixed term_order (alacritty, kitty, ptyxis, konsole, kgx, gnome-terminal, xfce4-terminal, lxterminal, xterm, st, foot, rio, ghostty). The command is written to a mktemp file and run as $LAUNCHER_CMD \"$file\" (default bash; -s overrides). Exit semantics: no emulator -> notify-send + exit 1; eval failure -> exit 2 for every emulator EXCEPT kgx (the `|| [[ \"$terminal\" != \"kgx\" ]]` precedence makes kgx failures exit 0); success -> exit 0; the temp file is removed on every path."
+
+assumptions = [
+  "The emulator binary is an external authority; the stub controls its exit status deterministically (the narrowest verifiable simulation boundary for the script's decision logic).",
+  "Both sides run the script in the same fixture with the same per-scenario PATHs.",
+  "The session bus exists (dbus-launch) so notify-send behavior is deterministic.",
+]
+
+observables = [
+  "Exit code per scenario",
+  "stdout (the echoed launcher command, temp path normalized)",
+  "stderr",
+  "Temp-file-leftover count (the script must clean up)",
+]
+
+witness = "cargo xtask court run terminal-helper/emulator-matrix --vm against fixture 'terminal-matrix'."
+
+independence = "The oracle side runs the FROZEN upstream script; the candidate side runs the candidate's PACKAGED copy from packaging/usr/lib/cachyos-kernel-manager/terminal-helper. A drift in the packaged copy (e.g. an accidental edit) changes the candidate observations and fails the court."
+
+falsifier = "Any scenario where the candidate's exit code, stdout (after temp-path normalization), stderr, or tmp-leftover differs from the oracle's."
+
+[[evidence]]
+artifact = "oracle/terminal-matrix.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/terminal-matrix.json"
+sha256 = "pending"

@@ -1,0 +1,6 @@
+assumptions = [
+  "The scripts are Bash contracts (directive §18); the candidate preserves them byte-identically.",
+  "The terminal-helper/emulator-matrix VM court exercises the script's behavior; this court proves the packaged copies did not drift.",
+]
+
+normalizers = []

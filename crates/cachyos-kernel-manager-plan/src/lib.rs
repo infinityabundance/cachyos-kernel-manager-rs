@@ -16,6 +16,7 @@
 
 use cachyos_kernel_manager_core::selection::{KernelRow, SelectionState};
 use cachyos_kernel_manager_core::DiscoveredKernel;
+use cachyos_kernel_manager_exec::CommandPlan;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -125,20 +126,27 @@ impl TransactionPlan {
         let dkms_modules_not_installed = !nvidia_dkms_installed && !nvidia_open_dkms_installed;
 
         // "if we have any of the modules already installed, then just use
-        // whatever is installed. skipping chwd detection"
+        // whatever is installed. skipping chwd detection" — the reason
+        // record distinguishes the branch that produced the decision
+        // (chwd profile vs already-installed module family).
         let mut should_install_nvidia = hardware.chwd_nvidia && kernel.companions.nvidia.is_some();
         let mut should_install_nvidia_open =
             hardware.chwd_nvidia_open && kernel.companions.nvidia_open.is_some();
+        let mut from_module_family = false;
 
         if hardware.nvidia_open_modules_installed && kernel.companions.nvidia_open.is_some() {
             should_install_nvidia_open = true;
             should_install_nvidia = false;
+            from_module_family = true;
         } else if hardware.nvidia_modules_installed && kernel.companions.nvidia.is_some() {
             should_install_nvidia_open = false;
             should_install_nvidia = true;
+            from_module_family = true;
         }
 
-        let reason = if should_install_nvidia_open {
+        let reason = if from_module_family {
+            Reason::ExistingModuleFamily
+        } else if should_install_nvidia_open {
             Reason::NvidiaOpenCompanion
         } else {
             Reason::NvidiaCompanion
@@ -246,6 +254,33 @@ pub fn expand_aur_install(plan: &mut TransactionPlan, aur_kernel_name: &str) {
         package: aur_kernel_name.to_string(),
         reason: Reason::AurDependency,
     });
+}
+
+/// `commit_transaction` (`kernel.cpp:288-304`): turn a set of plans into
+/// the exact pacman command sequence.
+///
+/// Oracle order:
+/// 1. AUR installs (feature-gated; not yet reachable in the candidate),
+/// 2. `pacman -S --needed <install list>` if any,
+/// 3. `pacman -Rsn <remove list>` if any.
+///
+/// The install and remove lists are aggregated across ALL selected kernels
+/// (`join_vec(list, " ")`), so multiple selections produce ONE install
+/// command and ONE removal command.
+pub fn commit_commands(plan: &TransactionPlan) -> Vec<CommandPlan> {
+    let mut commands = Vec::new();
+    if !plan.install.is_empty() {
+        let packages: Vec<String> = plan.install.iter().map(|a| a.package.clone()).collect();
+        commands.push(CommandPlan::InstallRepoPackages {
+            packages,
+            needed: true,
+        });
+    }
+    if !plan.remove.is_empty() {
+        let packages: Vec<String> = plan.remove.iter().map(|a| a.package.clone()).collect();
+        commands.push(CommandPlan::RemovePackages { packages });
+    }
+    commands
 }
 
 #[cfg(test)]
@@ -516,5 +551,92 @@ mod tests {
                 "linux-cachyos-headers"
             ]
         );
+    }
+
+    #[test]
+    fn module_family_reason_is_recorded() {
+        // the decision came from the pacman -Qqs branch (modules already
+        // installed), NOT from a chwd profile: reason must say so
+        let kernels = discover_kernels(&[db(
+            "cachyos",
+            &[
+                "linux-cachyos",
+                "linux-cachyos-headers",
+                "linux-cachyos-nvidia",
+            ],
+        )]);
+        let mut sel = SelectionState::default();
+        sel.rows = to_rows(&kernels, &Default::default());
+        sel.rows[0].checked = true;
+        let hw = HardwareProfile {
+            nvidia_modules_installed: true,
+            ..Default::default()
+        };
+        let plan = TransactionPlan::from_selection(&sel, &hw, &kernels_by_raw(&kernels));
+        let nvidia = plan
+            .install
+            .iter()
+            .find(|a| a.package == "linux-cachyos-nvidia")
+            .expect("nvidia companion planned");
+        assert_eq!(nvidia.reason, Reason::ExistingModuleFamily);
+    }
+
+    #[test]
+    fn commit_commands_aggregate_install_then_remove() {
+        use cachyos_kernel_manager_exec::{pacman_install_argv, pacman_remove_argv, CommandPlan};
+        // install kernel + headers, remove kernel (upgrade quirk)
+        let plan = TransactionPlan {
+            install: vec![
+                PackageAction {
+                    package: "linux-cachyos".into(),
+                    reason: Reason::SelectedKernel,
+                },
+                PackageAction {
+                    package: "linux-cachyos-headers".into(),
+                    reason: Reason::RequiredHeaders,
+                },
+            ],
+            remove: vec![PackageAction {
+                package: "linux-cachyos".into(),
+                reason: Reason::SelectedKernel,
+            }],
+            warnings: vec![],
+        };
+        let commands = commit_commands(&plan);
+        assert_eq!(commands.len(), 2);
+        match &commands[0] {
+            CommandPlan::InstallRepoPackages { packages, needed } => {
+                assert!(needed);
+                assert_eq!(
+                    packages,
+                    &vec![
+                        "linux-cachyos".to_string(),
+                        "linux-cachyos-headers".to_string()
+                    ]
+                );
+                assert_eq!(
+                    pacman_install_argv(packages, *needed),
+                    vec![
+                        "pacman",
+                        "-S",
+                        "--needed",
+                        "linux-cachyos",
+                        "linux-cachyos-headers"
+                    ]
+                );
+            }
+            other => panic!("expected install command, got {other:?}"),
+        }
+        match &commands[1] {
+            CommandPlan::RemovePackages { packages } => {
+                assert_eq!(
+                    pacman_remove_argv(packages),
+                    vec!["pacman", "-Rsn", "linux-cachyos"]
+                );
+            }
+            other => panic!("expected remove command, got {other:?}"),
+        }
+        // empty plan -> no commands
+        assert!(commit_commands(&TransactionPlan::default()).is_empty());
     }
 }

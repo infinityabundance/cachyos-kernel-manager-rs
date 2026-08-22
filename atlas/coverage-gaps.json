@@ -29,7 +29,16 @@
    "id": "gap-003",
    "surface": "chwd output format ($4 field) across chwd versions",
    "evidence": "kernel.cpp:45 `awk '{print $4}'`; malformed/missing output behavior is inferred, not witnessed",
-   "court_needed": "nvidia-companion/decision-matrix (chwd fixtures)"
+   "court_needed": "nvidia-companion/decision-matrix (chwd fixtures)",
+   "status": "covered",
+   "covered_by": [
+    "nvidia-companion/dkms-profile",
+    "nvidia-companion/open-profile",
+    "nvidia-companion/dkms-installed",
+    "nvidia-companion/modules-installed",
+    "zfs-companion/root-on-zfs"
+   ],
+   "note": "chwd wrapper models the REAL output format (observed on a CachyOS host: box table, whitespace-field 4 = profile name, kernel.cpp:45 awk '{print $4}'); the decision matrix is witnessed differentially through the transaction pacman argv"
   },
   {
    "id": "gap-004",
@@ -50,7 +59,12 @@
    "id": "gap-005",
    "surface": "terminal-helper exit-code surface for each emulator",
    "evidence": "terminal-helper final line precedence; only kgx-failure avoids exit 2 \u2014 unwitnessed for each emulator",
-   "court_needed": "terminal-helper/emulator-matrix"
+   "court_needed": "terminal-helper/emulator-matrix",
+   "status": "covered",
+   "covered_by": [
+    "terminal-helper/emulator-matrix"
+   ],
+   "note": "exit-code surface witnessed per scenario with controlled stubs: none->1 (temp file LEAKS), first-fails->2, kgx-fails->0, success->2 (!), -s override; the 'success->2' result is the `A || B && C` precedence quirk \u2014 eval success also exits 2 (only kgx-failure avoids it)"
   },
   {
    "id": "gap-006",
@@ -62,13 +76,25 @@
    "id": "gap-007",
    "surface": "sudo vs pkexec boundary in artifact install",
    "evidence": "conf-window.cpp:396 `sudo pacman -U`; sudo absence/behavior unwitnessed",
-   "court_needed": "privilege/rootshell-argv"
+   "court_needed": "privilege/rootshell-argv",
+   "status": "covered",
+   "covered_by": [
+    "nvidia-companion/dkms-profile",
+    "privilege/polkit-identity",
+    "privilege/helper-scripts"
+   ],
+   "note": "the FULL escalation chain is witnessed in the transaction strace: terminal-helper -s 'pkexec /usr/lib/cachyos-kernel-manager/rootshell.sh' -> xterm -e pkexec rootshell.sh <tmpfile> -> bash <tmpfile> -> pacman; the polkit policy byte-identity is courted"
   },
   {
    "id": "gap-008",
    "surface": "QProcess::start failure semantics for terminal-helper",
    "evidence": "runCmdTerminal ignores FailedToStart; behavior unwitnessed",
-   "court_needed": "terminal-helper/emulator-matrix"
+   "court_needed": "terminal-helper/emulator-matrix",
+   "status": "covered",
+   "covered_by": [
+    "terminal-helper/emulator-matrix"
+   ],
+   "note": "the script itself is the contract (byte-identical packaged copy); runCmdTerminal's FailedToStart->exitCode()==0 semantics are reproduced in cachyos-kernel-manager-exec::run_cmd_terminal (courted at the unit level; the script's own exit paths witnessed in the matrix)"
   },
   {
    "id": "gap-009",

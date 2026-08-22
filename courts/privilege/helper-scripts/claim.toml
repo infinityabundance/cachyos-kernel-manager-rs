@@ -1,0 +1,35 @@
+claim = "The candidate package ships terminal-helper and rootshell.sh byte-identical to the frozen oracle's scripts at the same install paths (/usr/lib/cachyos-kernel-manager/). These Bash scripts are the contract for terminal launching and the pkexec escalation chain (directive §5, §18, §33): the candidate invokes them with the exact oracle argv but never reimplements their Bash semantics in Rust."
+
+model = "Install layout (CMakeLists.txt:157-165): terminal-helper and rootshell.sh installed as PROGRAMS into $(LIBDIR)/cachyos-kernel-manager/. runCmdTerminal (utils.cpp:122-135) spawns terminal-helper with [-s pkexec /usr/lib/cachyos-kernel-manager/rootshell.sh] <cmd>; rootshell.sh is exec /bin/bash \"$@\" and is the polkit-annotated executable. Byte-identity preserves behavior across ALL versions of these scripts, not just the courted scenarios."
+
+assumptions = [
+  "The frozen oracle scripts (oracle/upstream/src/) are the reference.",
+  "Bash semantics are preserved by shipping the script, not by reimplementation.",
+]
+
+observables = [
+  "Byte-for-byte identity of both scripts",
+  "Install path identity (recorded in the packaging layout)",
+]
+
+witness = "cargo xtask court run privilege/helper-scripts"
+
+independence = "The oracle files come from the frozen upstream tree; the candidate files from the candidate's packaging tree. Neither is generated from the other at court time."
+
+falsifier = "Any byte difference in either script, or a change of install path."
+
+[[evidence]]
+artifact = "oracle/terminal-helper"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/rootshell.sh"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/terminal-helper"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/rootshell.sh"
+sha256 = "pending"

@@ -18,10 +18,17 @@ libalpm = []
 
 [dependencies]
 cachyos-kernel-manager-core = { workspace = true }
+cachyos-kernel-manager-exec = { workspace = true }
+cachyos-kernel-manager-plan = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 [[bin]]
 name = "cachyos-kernel-manager-inspect"
 path = "src/bin/inspect.rs"
+required-features = ["libalpm"]
+
+[[bin]]
+name = "cachyos-kernel-manager-plan"
+path = "src/bin/plan.rs"
 required-features = ["libalpm"]

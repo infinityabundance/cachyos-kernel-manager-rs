@@ -1,0 +1,7 @@
+{
+ "fixture": "terminal-matrix",
+ "raw_image_hash": "sha256:886bb2584b60d76a9967dbc6d80c25ae188098548f30123428d988372f8ac425",
+ "baked_at": "2026-08-22T00:39:35Z",
+ "fixture_digest": "sha256:ba3bebcd05fc9a1044fbba651745ca999cf463efad4ae3c40f4f780aa8d9d76e",
+ "spec_sha256": "sha256:7ef9e5b4941b732dcc449cab331b4e79d86ee18f4d10c4f0eebf77a23aeb94e2"
+}
