@@ -1,0 +1,17 @@
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'makepkg-runtime' fixture.",
+  "The fixture grants the test user passwordless sudo and provides km-runtime-dep in the fixtures repo + the two PKGBUILD projects.",
+  "makepkg -s installs missing deps from the sync repos only; an AUR-only dep cannot be resolved by -s.",
+  "The execve extraction drops PIDs/env/return values; the remaining argv chains are deterministic for identical inputs. Witness-env adaptations applied identically on both sides: `yes |` answers pacman's confirmation prompts (no tty in the VM); makepkg's `touch -h -d @<ts>` epoch timestamps are normalized to @TS.",
+  "The strace captures the -s dep install (sudo pacman -S --asdeps) and the -i artifact install (sudo pacman -U); the -scf vs -sicf difference is exactly the -i step.",
+  "The comparison: machine residual (packages.txt) first, then the observations byte-for-byte.",
+]
+
+[[normalizers]]
+name = "execve-chain-extraction"
+version = "1.0.0"
+source_hash = "vm/in-vm/oracle-makepkg.sh + vm/in-vm/candidate-makepkg.sh"
+input_domain = "strace -f -e trace=execve raw traces"
+transformation = "grep -oE 'execve(\"[^\"]+\", \\[[^]]*\\]' per scenario; PIDs, env pointers and return values dropped; the argv chains are the observable"
+justification = "The execve argv is the behavioral contract (which programs with which arguments); PIDs/env are presentation noise."
+falsifier = "A program or argument that appears/disappears between the two sides' chains is a real residual (the raw trace remains in evidence)."

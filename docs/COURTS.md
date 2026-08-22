@@ -281,6 +281,21 @@ candidate's `alpm_db_get_pkgcache`-based discovery on the same libalpm.
 The order is a libalpm-internal property, NOT an ALPM contract — the court
 pins the equivalence on the frozen oracle's libalpm.
 
+`build-env/makepkg-runtime` — PASS (differential VM court on fixture
+`makepkg-runtime`, gap-006 covered). The RUNTIME dependency-resolution
+semantics of the build commands with REAL makepkg 7.1.0, strace-witnessed:
+`-scf` (`conf-window.cpp:734`) resolves the repo dep via `sudo pacman -S
+--asdeps km-runtime-dep` + `touch .done-status` WITHOUT installing;
+`-sicf` (`aur_kernel.cpp:53`) adds the `sudo pacman -U <artifact>` install
+step (the exact -scf vs -sicf difference); an AUR-only dep
+(`km-aur-only-dep`, resolvable nowhere) fails the -s resolution
+identically. The candidate's model-rendered commands
+(`cachyos-kernel-manager-buildcmd`: `BuildFlowPlan::render` +
+`makepkg_aur_argv`) equal the frozen literals (`commands.txt` identical).
+Witness adaptations (identical on both sides, documented in the claim):
+`yes |` answers pacman's prompts (no tty); makepkg's epoch file timestamps
+normalized. `cargo xtask court run build-env/makepkg-runtime --vm`.
+
 ## Case format
 
 ```

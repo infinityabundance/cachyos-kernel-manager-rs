@@ -10,6 +10,7 @@ publish = false
 
 [dependencies]
 cachyos-kernel-manager-core = { workspace = true }
+cachyos-kernel-manager-exec = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
@@ -32,3 +33,7 @@ path = "src/bin/artifact-glob.rs"
 [[bin]]
 name = "cachyos-kernel-manager-mutate"
 path = "src/bin/mutate.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-buildcmd"
+path = "src/bin/buildcmd.rs"

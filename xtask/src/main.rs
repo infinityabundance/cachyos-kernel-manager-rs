@@ -635,6 +635,18 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         share.join("inspect/cachyos-kernel-manager-mutate"),
     )
     .expect("copy mutate");
+    // Phase 9 gap-006: the build-command model renderer (makepkg-runtime
+    // court)
+    let buildcmd_src = repo_root().join("target/debug/cachyos-kernel-manager-buildcmd");
+    if !buildcmd_src.exists() {
+        eprintln!("build the buildcmd tool first: cargo build -p cachyos-kernel-manager-build --bin cachyos-kernel-manager-buildcmd");
+        return ExitCode::FAILURE;
+    }
+    std::fs::copy(
+        &buildcmd_src,
+        share.join("inspect/cachyos-kernel-manager-buildcmd"),
+    )
+    .expect("copy buildcmd");
     // Phase 7: the scx client + interface tools (scx/loader-interface --vm)
     let scx_state_src = repo_root().join("target/debug/cachyos-kernel-manager-scx-state");
     let scx_iface_src = repo_root().join("target/debug/cachyos-kernel-manager-scx-introspect");
@@ -671,6 +683,7 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     let is_configure = case.comparator.configure;
     let is_mutation = case.comparator.mutate.is_some();
     let is_scx = case.comparator.scx;
+    let is_makepkg = case.comparator.makepkg;
     let tx_select: Vec<String> = case
         .comparator
         .transaction
@@ -745,6 +758,8 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                 "oracle" => {
                     let script = if is_scx {
                         "scx-loader-observe.sh"
+                    } else if is_makepkg {
+                        "oracle-makepkg.sh"
                     } else if is_mutation {
                         "oracle-mutate.sh"
                     } else if is_configure {
@@ -771,6 +786,8 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                 "candidate" => {
                     let script = if is_scx {
                         "scx-loader-candidate.sh"
+                    } else if is_makepkg {
+                        "candidate-makepkg.sh"
                     } else if is_mutation {
                         "candidate-mutate.sh"
                     } else if is_configure {
@@ -831,6 +848,14 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             Ok(mut r) => residuals.append(&mut r),
             Err(e) => {
                 eprintln!("scx comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else if is_makepkg {
+        match cachyos_kernel_manager_casefile::vm_court::compare_makepkg(&case.dir, case_id) {
+            Ok(mut r) => residuals.append(&mut r),
+            Err(e) => {
+                eprintln!("makepkg comparison error: {e}");
                 return ExitCode::FAILURE;
             }
         }

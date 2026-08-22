@@ -80,9 +80,10 @@
    "status": "covered",
    "covered_by": [
     "build-env/lifecycle",
-    "aur/enablement-matrix"
+    "aur/enablement-matrix",
+    "build-env/makepkg-runtime"
    ],
-   "note": "the -scf (repo) vs -sicf (AUR) command construction is courted byte-for-byte by build-env/lifecycle (build_command + aur_build_command) and aur/enablement-matrix (build-aur argv); the runtime dependency-resolution difference of -s vs -i is a makepkg/AUR semantic documented in the atlas, not re-executed in the VM"
+   "note": "the -scf (repo) vs -sicf (AUR) command construction is courted byte-for-byte by build-env/lifecycle (build_command + aur_build_command) and aur/enablement-matrix (build-aur argv); the RUNTIME dependency-resolution difference of -s vs -i is now WITNESSED by build-env/makepkg-runtime --vm with real makepkg: -scf resolves the repo dep via 'sudo pacman -S --asdeps km-runtime-dep' + touch .done-status without installing; -sicf adds the 'sudo pacman -U <artifact>' install step; an AUR-only dep fails the -s resolution identically"
   },
   {
    "id": "gap-007",

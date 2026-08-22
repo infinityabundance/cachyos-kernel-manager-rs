@@ -1,0 +1,33 @@
+# CLAIM — build-env/makepkg-runtime
+claim = "The candidate's MODEL-RENDERED build commands (cachyos-kernel-manager-buildcmd: BuildFlowPlan::render's build_command = 'makepkg -scf --cleanbuild --skipchecksums && touch .done-status' for the repo path, conf-window.cpp:734; makepkg_aur_argv = 'makepkg -sicf --cleanbuild --skipchecksums' for the AUR path, aur_kernel.cpp:53) are executed on the 'makepkg-runtime' fixture and produce BYTE-IDENTICAL runtime exec chains to the frozen source's literal command strings (gap-006: the RUNTIME dependency-resolution semantics of -s vs -i, witnessed): (1) -scf resolves the repo dep km-runtime-dep via 'sudo pacman -S --asdeps km-runtime-dep' (makepkg -s, --syncdeps) and does NOT install the built package; (2) -sicf resolves the same dep AND installs the built package via 'sudo pacman -U <artifact>' (makepkg -i); (3) a dep resolvable NOWHERE (km-aur-only-dep — the AUR-only case makepkg -s cannot install) fails the -s resolution with the same outcome for both commands; (4) the repo path's trailing '&& touch .done-status' (the finished_proc success contract) runs after the build. The execve chains are captured under strace (normalized: argv only, PIDs/env dropped) and compared byte-for-byte; the machine residual (pacman -Q) is compared first as the fixture-integrity check. The command STRINGS are courted by build-env/lifecycle + aur/enablement-matrix; THIS court witnesses their runtime behavior."
+
+model = "Oracle: the frozen source's literal command strings executed under strace on the fixture (vm/in-vm/oracle-makepkg.sh; commands.txt = the literals). Candidate: the exec crate's modeled commands executed under strace (vm/in-vm/candidate-makepkg.sh; commands.txt = cachyos-kernel-manager-buildcmd's render). Both consume the same fixture (the km-runtime-dep repo package + the two PKGBUILD projects)."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'makepkg-runtime' fixture (identical machine state).",
+  "The fixture grants the test user passwordless sudo (makepkg -s and -i internally invoke sudo pacman) and provides km-runtime-dep in the fixtures repo (the -s resolution target) + the two PKGBUILD projects (build-proj: depends=('km-runtime-dep'); aur-proj: depends=('km-aur-only-dep') — resolvable nowhere).",
+  "makepkg's -s (--syncdeps) installs missing deps from the SYNC REPOS only — an AUR-only dep cannot be resolved by -s (the oracle's AUR flow builds first, then installs the artifact; the runtime -s semantics are makepkg's own).",
+  "The execve extraction (grep -oE 'execve(\"...\", [...') drops PIDs, env pointers, and return values; the remaining argv chains are deterministic for identical inputs. Two WITNESS-ENV adaptations are applied identically on BOTH sides: (a) the command runs under `yes |` — pacman's confirmation prompts (Proceed? [Y/n]) are answered Y, replacing the oracle's interactive terminal (without a tty the prompts fail); (b) makepkg's epoch file timestamps (`touch -h -d @<ts>`) are normalized to @TS (they differ between the two boots' wall clocks).",
+  "The strace of the child pacman runs captures the -s dep install ('sudo pacman -S --asdeps km-runtime-dep') and the -i artifact install ('sudo pacman -U ...'); the -scf vs -sicf DIFFERENCE is exactly the -i step.",
+  "The comparison: the machine residual (packages.txt) first, then the observation files byte-for-byte.",
+]
+
+observables = [
+  "commands.txt (the oracle's literals / the candidate's model render — must be identical)",
+  "scf-execs.txt, sicf-execs.txt, aurfail-execs.txt (the normalized execve chains)",
+  "makepkg-version.txt, packages.txt",
+]
+
+witness = "cargo xtask court run build-env/makepkg-runtime --vm (bake: cargo xtask vm bake makepkg-runtime)."
+
+independence = "The oracle side executes the literal strings from the frozen source files; the candidate side executes the strings rendered by its OWN exec models. Neither generates the other's commands; the strace captures are raw OS observations of both executions."
+
+falsifier = "Any difference in commands.txt, any execve chain difference in any scenario, or any machine-residual difference between the two boots."
+
+[[evidence]]
+artifact = "oracle/scf-execs.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/scf-execs.txt"
+sha256 = "pending"

@@ -1,0 +1,7 @@
+{
+ "fixture": "makepkg-runtime",
+ "raw_image_hash": "sha256:76d58b293dd969ce1f21fab52b163a1c9430f061f328b8c7510694d1659cd7f8",
+ "baked_at": "2026-08-22T12:27:44Z",
+ "fixture_digest": "sha256:38ba5b8aa80e5291e58158550ee0c5b56980d5aaf17dc316e1cdbf402324ed69",
+ "spec_sha256": "sha256:bdbad207626c3375788b4dc13a4fb5507581c826fe0df3c38c93ee2b993f3a00"
+}

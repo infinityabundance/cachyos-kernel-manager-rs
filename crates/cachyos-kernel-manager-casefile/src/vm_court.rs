@@ -17,6 +17,14 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 use std::path::Path;
 
+/// sha256 hex of a byte slice.
+fn sha256_bytes(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hex::encode(hasher.finalize())
+}
+
 /// Comparator version (bump on comparison-semantics changes).
 pub const COMPARATOR_VERSION: &str = "1.2.0";
 
@@ -40,6 +48,75 @@ pub struct CompanionExpectation {
 fn read_json(path: &Path) -> Result<Value, CaseError> {
     let content = std::fs::read_to_string(path)?;
     Ok(serde_json::from_str(&content)?)
+}
+
+/// Phase 9 gap-006 court (build-env/makepkg-runtime): compare the two VM
+/// boots' makepkg runtime witnesses byte-for-byte.
+///
+/// - `commands.txt` (the oracle's frozen literals vs the candidate's model
+///   render — must be IDENTICAL);
+/// - `<scenario>-execs.txt` (the normalized execve chains: scf, sicf,
+///   aurfail);
+/// - `makepkg-version.txt`;
+/// - the machine residual: the `packages.txt` digest on both sides (the
+///   fixture-integrity check — both boots must end in the same package
+///   state).
+///
+/// The `<scenario>-raw.trace` files are the immutable raw evidence (never
+/// compared byte-exact — they contain PIDs; the normalized extraction is
+/// the compared observable).
+pub fn compare_makepkg(case_dir: &Path, court_id: &str) -> Result<Vec<Residual>, CaseError> {
+    let oracle_dir = case_dir.join("oracle");
+    let candidate_dir = case_dir.join("candidate");
+    let mut residuals = Vec::new();
+
+    // 1. machine residual: the packages.txt digest (fixture-integrity)
+    let o_pkgs = std::fs::read(oracle_dir.join("packages.txt"))?;
+    let c_pkgs = std::fs::read(candidate_dir.join("packages.txt"))?;
+    let o_digest = sha256_bytes(&o_pkgs);
+    let c_digest = sha256_bytes(&c_pkgs);
+    if o_digest != c_digest {
+        residuals.push(Residual {
+            id: format!("{court_id}-machine-residual-drift"),
+            court: court_id.into(),
+            layer: "machine-residual".into(),
+            oracle_fingerprint: o_digest,
+            candidate_fingerprint: c_digest,
+            classification: "fixture_drift".into(),
+            root_cause: None,
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+
+    // 2. the compared observables (byte-exact)
+    for name in [
+        "commands.txt",
+        "scf-execs.txt",
+        "sicf-execs.txt",
+        "aurfail-execs.txt",
+        "makepkg-version.txt",
+    ] {
+        let o = std::fs::read(oracle_dir.join(name))?;
+        let c = std::fs::read(candidate_dir.join(name))?;
+        if o != c {
+            residuals.push(Residual {
+                id: format!("{court_id}-{name}"),
+                court: court_id.into(),
+                layer: "exec-chain".into(),
+                oracle_fingerprint: sha256_bytes(&o),
+                candidate_fingerprint: sha256_bytes(&c),
+                classification: "deterministic_mismatch".into(),
+                root_cause: None,
+                resolution: None,
+                commit: None,
+                regression_witness: None,
+            });
+        }
+    }
+
+    Ok(residuals)
 }
 
 /// Compare two observations field-by-field; returns residuals.

@@ -253,6 +253,11 @@
    "status": "passing"
   },
   {
+   "surface": "build.makepkg_runtime",
+   "court": "build-env/makepkg-runtime",
+   "status": "passing"
+  },
+  {
    "surface": "kernel.rows_flat_layout",
    "court": "kernel-discovery/minimal",
    "status": "passing"

@@ -106,6 +106,12 @@ pub struct Comparator {
     /// real loader's interface + the property readback values.
     #[serde(default)]
     pub scx: bool,
+    /// Phase 9 gap-006 court (build-env/makepkg-runtime --vm): when true,
+    /// the runner executes the oracle's literal build commands (oracle
+    /// side) and the candidate's MODEL-rendered build commands (candidate
+    /// side) under strace, comparing the extracted execve chains.
+    #[serde(default)]
+    pub makepkg: bool,
 }
 
 /// The `[mutate]` comparator section: the Configure-window actions the

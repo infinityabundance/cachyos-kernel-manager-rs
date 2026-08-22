@@ -317,6 +317,7 @@ name = "cachyos-kernel-manager-build"
 version = "0.1.0"
 dependencies = [
  "cachyos-kernel-manager-core",
+ "cachyos-kernel-manager-exec",
  "serde",
  "serde_json",
 ]
