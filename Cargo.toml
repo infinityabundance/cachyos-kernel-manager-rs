@@ -71,6 +71,17 @@ members = [
     # sched-ext surface (pre-extraction scx-manager at f3eeaf6 + scx_loader
     # 1.0.9) for the scx/* courts (Phase 7).
     "tools/scx-oracle-ref",
+    # Court evidence infrastructure, never shipped. Re-declares the oracle's
+    # user-visible strings for the ui/dialog-strings court (Phase 8).
+    "tools/strings-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # main-window semantics (km-window.cpp) for the ui/main-window-semantics
+    # court (Phase 8).
+    "tools/mainwindow-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # Configure-window semantics (conf-window.cpp) for the
+    # ui/configure-window-semantics court (Phase 8).
+    "tools/confwindow-oracle-ref",
 ]
 default-members = [".", "xtask"]
 

@@ -1,0 +1,33 @@
+# CLAIM — ui/configure-window-semantics
+claim = "The candidate's Configure-window model (cachyos-kernel-manager-confwindow witness rendering crates/cachyos-kernel-manager-ui/src/configure_window.rs, cachyos-km-configure-window-v1) reproduces the frozen oracle's Configure-window semantics (conf-window.cpp @ 6b4a373e) BYTE-FOR-BYTE over the shared corpus: the ctor defaults (conf-window.cpp:475-546: the variant combo labels, hardly + cachy_config checked, the combo lists, the initial LTO selection thin), the variant-switch handler (conf-window.cpp:553-602: thin-dist availability — not lts/hardened; the lto default thin for cachyos/rc else none; the preempt extension Voluntary/None for lts/hardened; the preempt default lazy for server else full; the hz default 300 for server else 1000; cachy_config unchecked for server; builtin_zfs disabled for rt with force-uncheck; the trailing reset_patches_data_tab), reset_patches_data_tab (conf-window.cpp:458-473: the source-array probe filtered to .patch) + the patch-list operations (conf-window.cpp:615-686: the file:// prefix for local picks, the remote URL append, remove, move-up index>0, move-down not-last), the _use_lto_suffix=n workaround condition (conf-window.cpp:446: lto != none && custom name != $pkgbase), and on_save's UI-state feed (conf-window.cpp:743-755). The variant-switch TRANSITIONS are courted by option-transitions/variant-switch; this court pins the WINDOW assembly around them."
+
+model = "Oracle: tools/confwindow-oracle-ref, an independent re-declaration of conf-window.cpp semantics. Candidate: the ui crate's configure_window.rs (with the core VariantSwitchState), rendered by the cachyos-kernel-manager-confwindow bin. Both consume the shared corpus (cachyos-km-configure-window-corpus-v1)."
+
+assumptions = [
+  "The frozen oracle sources (oracle/upstream/src @ 6b4a373e) are the single authority; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "The corpus is the fixed input interface (cachyos-km-configure-window-corpus-v1): the initial variant, an ordered variant-switch list (each with the source-array probe result), an ordered patch-operation list, and the optional custom name.",
+  "Every variant switch ends in reset_patches_data_tab (conf-window.cpp:602): the switch step's source_array is the probe result and the patch list becomes its .patch-filtered projection.",
+  "The variant-switch TRANSITIONS themselves (lto/preempt/hz item+selection transitions, cachy_config, zfs) are the core VariantSwitchState's, courted by option-transitions/variant-switch; this court pins how the WINDOW consumes them (labels, patches, custom name, save feed).",
+  "The model JSON is rendered identically by both sides (serde_json pretty, fixed field order).",
+]
+
+observables = [
+  "variant id + label, hardly_checked, cachy_config_checked, lto_items/lto_selected, preempt_items/preempt_selected, hz_selected, zfs_enabled/zfs_checked",
+  "the patch list after every operation",
+  "custom_name, use_lto_suffix",
+  "the save UI-state feed (variant/hardly/cachy_config/lto/preempt/hz_ticks/custom_name)",
+]
+
+witness = "tools/run-confwindow-corpus.sh (runs every corpus file through both CLIs), then cargo xtask court run ui/configure-window-semantics."
+
+independence = "tools/confwindow-oracle-ref re-declares the oracle semantics independently from the frozen source; the candidate's configure_window.rs was written as its own reconstruction against the same authority. Neither reads the other's output; the shared corpus is the only input both consume."
+
+falsifier = "Any byte difference in any model field (state, patch list, labels, save feed) over any corpus file."
+
+[[evidence]]
+artifact = "oracle/<corpus-name>.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/<corpus-name>.json"
+sha256 = "pending"

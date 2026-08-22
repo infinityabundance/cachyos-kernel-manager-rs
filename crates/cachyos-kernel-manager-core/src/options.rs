@@ -420,7 +420,7 @@ impl KernelVariant {
 /// away. This model reproduces that statefulness so the option-transitions
 /// court can compare the full control state after arbitrary switch
 /// sequences.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VariantSwitchState {
     /// The lto combo items (values), in combo order.
     pub lto_items: Vec<LtoMode>,

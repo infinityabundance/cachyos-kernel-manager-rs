@@ -1,0 +1,10 @@
+{
+  "variant": "cachyos",
+  "switches": [
+    { "variant": "cachyos", "source_array": [] }
+  ],
+  "patch_ops": [
+    { "op": "add-local", "files": ["/tmp/one.patch"] }
+  ],
+  "custom_name": "my-kernel"
+}

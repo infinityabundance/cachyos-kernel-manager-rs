@@ -195,12 +195,12 @@
   {
    "surface": "ui.main_window",
    "court": "ui/main-window-semantics",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "ui.configure_window",
    "court": "ui/configure-window-semantics",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "config.toml_schema",
@@ -215,12 +215,12 @@
   {
    "surface": "user_visible_dialogs",
    "court": "ui/dialog-strings",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "stdout_stderr",
    "court": "ui/dialog-strings",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "alpm.init",

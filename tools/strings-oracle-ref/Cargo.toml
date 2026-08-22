@@ -1,0 +1,14 @@
+[package]
+name = "strings-oracle-ref"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Reference re-declaration of the oracle's user-visible strings (km-window.ui, conf-window.ui, km-window.cpp, conf-window.cpp, kernel.cpp, utils.cpp, config-options.cpp, schedext-window-internal.cpp @ 6b4a373e/f3eeaf6) for the ui/dialog-strings court. NOT part of the candidate; evidence infrastructure."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "strings-oracle-ref"
+path = "src/main.rs"

@@ -14,6 +14,27 @@ cachyos-kernel-manager-plan = { workspace = true }
 cachyos-kernel-manager-build = { workspace = true }
 cachyos-kernel-manager-config = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Phase 8: the Iced rendering layer (feature-gated; the semantic models and
+# the strings/main-window/configure-window courts do not need it).
+iced = { version = "0.13", default-features = false, features = ["wgpu", "tokio", "image", "svg"], optional = true }
+
+[features]
+default = []
+rendering = ["dep:iced"]
+
+[[bin]]
+name = "cachyos-kernel-manager-strings"
+path = "src/bin/strings.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-mainwindow"
+path = "src/bin/main-window.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-confwindow"
+path = "src/bin/configure-window.rs"
 
 [dev-dependencies]
 serde_json = { workspace = true }

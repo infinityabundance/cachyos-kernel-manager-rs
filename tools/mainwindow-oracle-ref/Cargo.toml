@@ -1,0 +1,14 @@
+[package]
+name = "mainwindow-oracle-ref"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Reference implementation of the oracle's main-window semantics (km-window.cpp:89-106 init_kernels_tree_widget, 285-293 check_uncheck_item, 304-325 build_change_list, 185-188 schedext visibility, 391-412 version sort @ 6b4a373e) for the ui/main-window-semantics court. NOT part of the candidate; evidence infrastructure."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "mainwindow-oracle-ref"
+path = "src/main.rs"

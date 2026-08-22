@@ -1,0 +1,12 @@
+assumptions = [
+  "The frozen oracle sources (oracle/upstream/src @ 6b4a373e) are the single authority for the Configure-window semantics; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "The corpus is the fixed input interface (cachyos-km-configure-window-corpus-v1): the initial variant, an ordered variant-switch list (each with the source-array probe result), an ordered patch-operation list, and the optional custom name.",
+  "Every variant switch ends in reset_patches_data_tab (conf-window.cpp:602): the switch step's source_array is the probe result and the patch list becomes its .patch-filtered projection.",
+  "The variant-switch TRANSITIONS are the core VariantSwitchState's (courted by option-transitions/variant-switch); this court pins the WINDOW assembly around them.",
+  "The patch operations mirror the list widget: local picks are prefixed file:// (conf-window.cpp:615-634), the remote URL is appended verbatim (636-651), remove is the current row (658-664), move-up requires index > 0 (667-675), move-down requires not-last (677-685).",
+  "The model JSON is rendered identically by both sides (serde_json pretty, fixed field order).",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-confwindow-corpus.sh", input_domain = "CLI stdout + exit code per corpus file", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the model JSON IS the observable; the exit code pins the parse path", falsifier = "a byte in any model JSON, or the exit code, differing between oracle and candidate" },
+]

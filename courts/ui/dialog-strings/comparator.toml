@@ -1,0 +1,13 @@
+version = "1.0.0"
+
+# Pure non-VM court: both sides render their string declaration once. The
+# corpus is empty by design (the table is a fixed contract).
+fixture = "minimal"
+
+# Everything in oracle/ vs candidate/ is compared byte-for-byte (the
+# casefile's default); the lists below are declared for symmetry with the
+# comparator schema.
+ignore = []
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

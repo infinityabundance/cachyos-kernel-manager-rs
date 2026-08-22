@@ -1,0 +1,12 @@
+{
+  "variant": "cachyos",
+  "switches": [
+    { "variant": "hardened", "source_array": [] },
+    { "variant": "lts", "source_array": [] },
+    { "variant": "server", "source_array": [] },
+    { "variant": "rt", "source_array": [] },
+    { "variant": "cachyos", "source_array": [] }
+  ],
+  "patch_ops": [],
+  "custom_name": null
+}

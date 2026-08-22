@@ -1,0 +1,12 @@
+{
+  "variant": "cachyos",
+  "switches": [],
+  "patch_ops": [
+    { "op": "add-local", "files": ["/tmp/a.patch", "/tmp/b.patch"] },
+    { "op": "add-remote", "url": "https://example.invalid/x.patch" },
+    { "op": "move-up", "index": 2 },
+    { "op": "move-down", "index": 0 },
+    { "op": "remove", "index": 1 }
+  ],
+  "custom_name": null
+}

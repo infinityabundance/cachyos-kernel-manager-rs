@@ -1,0 +1,16 @@
+{
+  "variant": "cachyos",
+  "switches": [
+    {
+      "variant": "cachyos",
+      "source_array": [
+        "https://example.invalid/linux-cachyos.tar.gz",
+        "patches/foo.patch",
+        "https://example.invalid/bar.patch",
+        "config.txt"
+      ]
+    }
+  ],
+  "patch_ops": [],
+  "custom_name": null
+}

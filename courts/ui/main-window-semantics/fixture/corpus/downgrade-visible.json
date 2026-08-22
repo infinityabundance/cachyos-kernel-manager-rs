@@ -1,0 +1,18 @@
+{
+  "kernels": [
+    {
+      "repo": "cachyos",
+      "name": "linux-cachyos",
+      "headers": "linux-cachyos-headers",
+      "version": "6.14.1-3",
+      "companions": { "zfs": null, "nvidia": null, "nvidia_open": null },
+      "raw": "cachyos/linux-cachyos"
+    }
+  ],
+  "installed": {
+    "linux-cachyos": ["cachyos", "6.14.2-1"]
+  },
+  "toggles": [],
+  "state_file_exists": true,
+  "transaction_running": false
+}

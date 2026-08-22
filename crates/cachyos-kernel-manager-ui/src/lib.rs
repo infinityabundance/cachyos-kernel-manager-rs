@@ -10,7 +10,10 @@
 
 #![forbid(unsafe_code)]
 
-use cachyos_kernel_manager_core::KernelCategory;
+pub mod configure_window;
+pub mod main_window;
+pub mod strings;
+
 use serde::{Deserialize, Serialize};
 
 /// Semantic UI messages (directive §7 style). The UI never contains domain
@@ -41,7 +44,9 @@ pub use cachyos_kernel_manager_core::options::KernelVariant;
 pub struct KernelRowView {
     pub raw: String,
     pub version_text: String,
-    pub category: KernelCategory,
+    /// The category column TEXT (`KernelCategory::display()` — the oracle's
+    /// display strings, e.g. "longterm" / "stable").
+    pub category: String,
     pub checked: bool,
     pub immutable: bool,
     pub update_available: bool,

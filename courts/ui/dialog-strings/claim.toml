@@ -1,0 +1,31 @@
+# CLAIM — ui/dialog-strings
+claim = "Every user-visible string of the candidate's Iced UI (cachyos-kernel-manager-strings witness rendering the ui crate's strings module, cachyos-km-strings-v1) is BYTE-IDENTICAL to the frozen oracle's strings (oracle/upstream/src/ @ 6b4a373e: km-window.ui, km-window.cpp, conf-window.ui, conf-window.cpp, kernel.cpp, utils.cpp, config-options.cpp; the sched-ext strings from the pre-extraction scx-manager @ f3eeaf6, oracle/scx-authority/): window titles, the main-window description HTML, tree column headers, button labels, the ten variant labels, every combo-box option (HZ ticks, tickless modes, preempt modes, CPU optimizations, LTO modes, hugepage modes, scx profiles), the progress labels, every dialog title/body (alpm init/release failures, clone failure, no-kernels, save/load config, patch file dialogs, scx dialogs), the stdout lines, and every stderr diagnostic line — INCLUDING the embedded \\n and format placeholders (%1/{}). Each row is quoted from the frozen source with its file:line reference; the two hand-writings (the oracle reference tool vs the candidate module) were written INDEPENDENTLY from the same authority and the court catches any drift between them."
+
+model = "Oracle: the exact string literals of the frozen Qt source (km-window.ui/conf-window.ui/schedext-window.ui property texts; km-window.cpp/conf-window.cpp/kernel.cpp/utils.cpp/config-options.cpp/schedext-window-internal.cpp tr() and qDebug/qInfo arguments), re-declared by tools/strings-oracle-ref. Candidate: crates/cachyos-kernel-manager-ui/src/strings.rs, rendered by the cachyos-kernel-manager-strings bin."
+
+assumptions = [
+  "The string table is a fixed contract (no corpus); both sides render their own declaration from the frozen source, in the same (id, source, text) row order.",
+  "The file:line references are to the frozen revision (6b4a373e; schedext strings at f3eeaf6) — a reference may point at the string's defining line, and both hand-writings cite the SAME reference for the SAME string.",
+  "The JSON descriptor is rendered identically by both sides (serde_json pretty-print, the fixed row order).",
+  "Strings that carry format placeholders (%1, {}, \\n) are quoted verbatim including the placeholders — the court pins the TEMPLATE, not a formatted instance.",
+  "The strings inventory is the seed of the Iced UI's i18n table (Phase 8); a later i18n court (gap-009 zh-CN/zh_CN) will court the translated tables separately.",
+]
+
+observables = [
+  "The full ordered list of (id, source, text) rows",
+  "The exact bytes of every string (whitespace, \\n, placeholders)",
+]
+
+witness = "tools/run-strings-corpus.sh (renders both tables once), then cargo xtask court run ui/dialog-strings."
+
+independence = "tools/strings-oracle-ref re-declares the strings directly from the frozen source files; the candidate's strings.rs was written as its own re-declaration against the same authority. Neither tool reads the other's source or output."
+
+falsifier = "Any byte difference in any string, id, or source reference between the two tables."
+
+[[evidence]]
+artifact = "oracle/strings.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/strings.json"
+sha256 = "pending"

@@ -1,0 +1,8 @@
+{
+  "variant": "cachyos",
+  "switches": [
+    { "variant": "hardened", "source_array": [] }
+  ],
+  "patch_ops": [],
+  "custom_name": null
+}

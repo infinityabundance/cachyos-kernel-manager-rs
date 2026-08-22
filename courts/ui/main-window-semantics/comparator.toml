@@ -1,0 +1,10 @@
+version = "1.0.0"
+
+# Pure non-VM court: the shared corpus drives both CLIs; oracle/ and
+# candidate/ outputs are compared byte-for-byte.
+fixture = "minimal"
+
+ignore = []
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

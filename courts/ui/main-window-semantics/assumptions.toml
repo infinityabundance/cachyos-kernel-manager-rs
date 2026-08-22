@@ -1,0 +1,12 @@
+assumptions = [
+  "The frozen oracle sources (oracle/upstream/src @ 6b4a373e) are the single authority for the main-window semantics; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "The corpus is the fixed input interface (cachyos-km-main-window-corpus-v1): kernels (repo/name/headers/version/companions/raw), installed provenance (name -> (installed_db|null, version)), toggle row indices, the sched-ext state-file existence, and the transaction flag.",
+  "The version comparator is corpus-fixed (numeric) — alpm vercmp itself is courted by the version-state/epoch courts; the corpus versions are chosen so both sides agree numerically.",
+  "The installed-db provenance comes from alpm_pkg_get_installed_db (the alpm-ffi/abi-surface court pins the ABI). A null/unknown installed-db marks the row immutable.",
+  "The tree is flat in the candidate (every row a leaf): the space-toggle guard (leaf && focus) is modeled for parity, and toggles are row indices (a repeated index toggles twice, returning to the default).",
+  "The model JSON is rendered identically by both sides (serde_json pretty, fixed field order).",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-mainwindow-corpus.sh", input_domain = "CLI stdout + exit code per corpus file", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the model JSON IS the observable; the exit code pins the parse path", falsifier = "a byte in any model JSON, or the exit code, differing between oracle and candidate" },
+]

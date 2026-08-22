@@ -1,0 +1,31 @@
+# CLAIM — ui/main-window-semantics
+claim = "The candidate's main-window model (cachyos-kernel-manager-mainwindow witness rendering crates/cachyos-kernel-manager-ui/src/main_window.rs, cachyos-km-main-window-v1) reproduces the frozen oracle's main-window semantics (km-window.cpp + kernel.cpp @ 6b4a373e) BYTE-FOR-BYTE over the shared corpus: the tree rows (init_kernels_tree_widget km-window.cpp:89-106: raw/version-text/category/checked/immutable, the installed-db provenance rule — an installed row whose installed-db names a DIFFERENT repo stays mutable and unchecked), Kernel::version (kernel.cpp:56-79: AUR short-circuit 'unknown-version', installed -> vercmp ∨/∧ markers with the update flag, else the sync version), build_change_list (km-window.cpp:304-325) + the worker enablement (125/174): the OK-button enablement and the change list, the sched-ext button visibility (km-window.cpp:185-188: the state file existence), the version-column sort keys (KernelTreeWidgetItem::operator< km-window.cpp:391-412: the ∨/∧ markers stripped), and the space-key/double-click toggle guard (check_uncheck_item km-window.cpp:285-293: leaf + focus). The exact alpm vercmp is courted by the version-state/epoch courts; this court fixes the comparator and pins the ROW ASSEMBLY."
+
+model = "Oracle: tools/mainwindow-oracle-ref, an independent re-declaration of km-window.cpp/kernel.cpp semantics. Candidate: the ui crate's main_window.rs, rendered by the cachyos-kernel-manager-mainwindow bin. Both consume the shared corpus (cachyos-km-main-window-corpus-v1)."
+
+assumptions = [
+  "The frozen oracle sources (oracle/upstream/src @ 6b4a373e) are the single authority; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "The corpus fixes the version comparator to a numeric one (alpm vercmp itself is courted by the version-state/epoch courts); the corpus versions are chosen so both sides agree numerically.",
+  "The installed-db provenance comes from alpm_pkg_get_installed_db (a CachyOS-patched API returning the db NAME; the alpm-ffi/abi-surface court pins the ABI). A null/unknown installed-db marks the row immutable (km-window.cpp:97-104).",
+  "The tree is flat in the candidate (every row a leaf): the space-toggle guard (leaf && focus) is modeled for parity and the corpus toggles are row indices.",
+  "The model JSON is rendered identically by both sides (serde_json pretty, fixed field order).",
+]
+
+observables = [
+  "per-row: raw, version_text, category, checked, immutable, update_available",
+  "execute_enabled (OK button), change_list, schedext_visible, version_sort_keys, toggle_allowed",
+]
+
+witness = "tools/run-mainwindow-corpus.sh (runs every corpus file through both CLIs), then cargo xtask court run ui/main-window-semantics."
+
+independence = "tools/mainwindow-oracle-ref re-declares the oracle semantics independently from the frozen source; the candidate's main_window.rs was written as its own reconstruction against the same authority. Neither reads the other's output; the shared corpus is the only input both consume."
+
+falsifier = "Any byte difference in any field of any row, or in the derived enablement/list/sort/toggle values, over any corpus file."
+
+[[evidence]]
+artifact = "oracle/<corpus-name>.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/<corpus-name>.json"
+sha256 = "pending"
