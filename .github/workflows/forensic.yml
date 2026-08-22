@@ -48,6 +48,12 @@ jobs:
           cargo build -p cachyos-kernel-manager-scx --features dbus \
             --bin cachyos-kernel-manager-scx-state --bin cachyos-kernel-manager-scx-introspect
 
+      - name: build the full Phase 8 GUI (real libalpm + scx dbus)
+        run: |
+          cargo build --features gui-alpm
+          cargo build -p cachyos-kernel-manager-ui --features rendering,alpm,scx-dbus \
+            --bin cachyos-kernel-manager-gui
+
       - name: run the differential court matrix (--vm)
         run: |
           for c in $(cargo run -q -p xtask -- court list --vm-capable | grep -v "courts VM-capable"); do

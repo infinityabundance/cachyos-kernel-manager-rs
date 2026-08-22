@@ -1,0 +1,13 @@
+assumptions = [
+  "The frozen lang/*.ts files (oracle/upstream/lang @ 6b4a373e) are the single authority for the translation data; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "The qrc alias set (cachyoskm_locale.qrc) is the compiled catalog key set: bg ca cs de es it ja ko pl ru sk sv tr nl zh-CN.",
+  "The load order is initTranslations (main.cpp:62-106); Qt catalogs are skipped.",
+  "QTranslator::translate semantics: first (context, source) match with a non-empty, finished translation; else the source.",
+  "gap-009 (zh_CN vs zh-CN) is pinned by the corpus, not assumed away.",
+  "The candidate's embedded catalogs come from tools/ts2json.py; the court verifies their output equals a direct .ts parse.",
+  "The model JSON is rendered identically by both sides (serde_json pretty, fixed field order).",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-i18n-corpus.sh", input_domain = "CLI stdout + exit code per corpus file", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the resolved-translation JSON IS the observable", falsifier = "a byte in any resolved translation, the resolved alias, or the exit code, differing between oracle and candidate" },
+]

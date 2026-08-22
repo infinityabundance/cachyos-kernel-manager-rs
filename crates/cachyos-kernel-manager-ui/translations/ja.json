@@ -1,0 +1,577 @@
+{
+ "locale": "ja",
+ "qrc_alias": "ja",
+ "source_ts": "cachyos-kernel-manager_ja.ts",
+ "source_sha256": "ea35447859c06bcdcb89ca8b245c7accb933e69c2aba874e301e4cff1e9a82e2",
+ "entries": [
+  {
+   "context": "ConfOptionsPage",
+   "source": "Custom package name",
+   "translation": "カスタムパッケージ名",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:33"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "$pkgbase",
+   "translation": "$pkgbase",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:53"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable CachyOS config",
+   "translation": "CachyOS のカスタム設定を有効化",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:66"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via nconfig",
+   "translation": "ビルド前にカーネル設定を nconfig で変更",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:95"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via xconfig",
+   "translation": "ビルド前にカーネル設定を xconfig で変更",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:124"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use Modprobed-db",
+   "translation": "Modprobed-db を使用",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:153"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use the current kernel's config",
+   "translation": "現在のカーネル設定を使用",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:182"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable KBUILD_CFLAGS -O3",
+   "translation": "KBUILD_CFLAGS -O3 を有効化",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:211"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Set performance governor as default",
+   "translation": "パフォーマンスガバナーをデフォルトに設定",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:240"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable TCP_CONG_BBR3",
+   "translation": "TCP_CONG_BBR3 を有効化",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:269"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Running tick rate",
+   "translation": "ティックレート",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:298"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select tickless",
+   "translation": "tickless 設定",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:327"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select preempt",
+   "translation": "preempt 設定",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:356"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Transparent Hugepages",
+   "translation": "Transparent Hugepage",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:385"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "CPU compiler optimizations",
+   "translation": "CPU コンパイラ最適化設定",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:414"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable LTO",
+   "translation": "LTO を有効化",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:443"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the ZFS module",
+   "translation": "ZFS モジュールをビルド",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:472"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the NVIDIA module",
+   "translation": "NVIDIA モジュールをビルド",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:501"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the open NVIDIA module",
+   "translation": "NVIDIA オープンモジュールをビルド",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:530"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Include vmlinux with debug informations/symbols",
+   "translation": "デバッグ情報・シンボルつきの vmlinux を含める",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:559"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Load",
+   "translation": "読み込み",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:605"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Save",
+   "translation": "保存",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:612"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Cancel",
+   "translation": "キャンセル",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:632"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build kernel",
+   "translation": "カーネルをビルド",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:639"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add remote patch",
+   "translation": "リモートパッチを追加",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:81"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add local patch",
+   "translation": "ローカルパッチを追加",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:88"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS Kernel Manager Configure",
+   "translation": "CachyOS カーネルマネージャー設定",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:17"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Options",
+   "translation": "オプション",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:40"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patches",
+   "translation": "パッチ",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:45"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Do you want to install build packages?",
+   "translation": "ビルドパッケージをインストールしますか？",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:362"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS default scheduler (BORE+Cachy Sauce)",
+   "translation": "CachyOS 標準スケジューラ (BORE+Cachy Sauce)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:470"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BORE - Burst-Oriented Response Enhancer",
+   "translation": "BORE - Burst-Oriented Response Enhancer",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:471"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RC - Release Candidate",
+   "translation": "RC - リリース候補",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:472"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT - Realtime kernel",
+   "translation": "RT - リアルタイムカーネル",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:473"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "LTS - Long-term support kernel",
+   "translation": "LTS - 長期サポートカーネル",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:474"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "EEVDF",
+   "translation": "EEVDF",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:475"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BMQ (BitMap Queue)",
+   "translation": "BMQ (BitMap Queue)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:476"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Select one or more patch files",
+   "translation": "一つ以上のパッチファイルを選択",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:568"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch file (*.patch)",
+   "translation": "パッチファイル (*.patch)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:570"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Enter URL patch",
+   "translation": "URL パッチを入力",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:590"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch URL:",
+   "translation": "パッチ URL:",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:591"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Save file as",
+   "translation": "名前を付けて保存",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:710"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file (*.toml)",
+   "translation": "構成ファイル (*.toml)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:712",
+    "../src/conf-window.cpp:729"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to save config options to file: %1",
+   "translation": "ファイルへの構成設定の保存に失敗しました: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:719"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Load from",
+   "translation": "読み込むファイルを選択",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:727"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to load config options from file: %1",
+   "translation": "ファイルからの構成設定の読み込みに失敗しました: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:737"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file(%1) is outdated",
+   "translation": "構成ファイル(%1) が古くなっています",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:769"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "CachyOS Kernel Manager",
+   "translation": "CachyOS カーネルマネージャー",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:17"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install/uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work if you are already running a pacman instance.</p>\n</body>\n</html>",
+   "translation": "<html>\n<body>\n<p>ここではインストール済みおよび利用可能な Linux カーネルの情報を確認できます。</p>\n<p>左端のチェックボックスでカーネルパッケージのインストールと削除ができます。</p>\n<p>pacman をすでに実行中の場合、このアプリは動作しません。</p>\n</body>\n</html>",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:27"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Choose",
+   "translation": "選択",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:66"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "PkgName",
+   "translation": "パッケージ名",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:71"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Version",
+   "translation": "バージョン",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:76"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Category",
+   "translation": "カテゴリ",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:81"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "sched-ext scheduler config",
+   "translation": "sched-ext スケジューラ設定",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:118"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Configure",
+   "translation": "設定",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:125"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Cancel",
+   "translation": "キャンセル",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:132"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Execute",
+   "translation": "実行",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:139"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to initialize alpm handle (%1)",
+   "translation": "alpm ハンドルを初期化できませんでした (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:144"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to release alpm handle (%1)",
+   "translation": "alpm ハンドルを解放できませんでした (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:157"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to clone repository!\nPlease check your internet connection and try again",
+   "translation": "リポジトリのクローンに失敗しました。\nインターネット接続を確認してから再度実行してください",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:202"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "No kernels found!\nPlease run `pacman -Sy` to update DB!\nThis is needed for the app to work properly",
+   "translation": "カーネルが見つかりません。\n`pacman -Sy` を実行してデータベースを更新してください。\nこの作業はアプリが正常に動作するために必要です",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:228"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nWe are preparing configuration window for you\ncloning PKGBUILDs..",
+   "translation": "しばらくお待ちください...\n設定ウィンドウを準備しています\nPKGBUILD をクローン中..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:277",
+    "../src/km-window.cpp:341"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nInitializing kernels..",
+   "translation": "しばらくお待ちください...\nカーネルを初期化中..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:362"
+   ]
+  }
+ ]
+}

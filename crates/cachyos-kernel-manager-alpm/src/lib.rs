@@ -119,6 +119,28 @@ pub fn register_sections(sections: &[String]) -> Vec<String> {
         .collect()
 }
 
+/// ALPM version comparison as a pure function (`alpm_pkg_vercmp` is
+/// STATELESS — no handle state — so the UI can sort by version without
+/// owning an [`Alpm`] source).
+///
+/// With the `libalpm` feature this is the real libalpm comparator; without
+/// it, the deterministic segment-wise fallback (`NullAlpm`'s).
+#[cfg(feature = "libalpm")]
+pub fn vercmp(a: &str, b: &str) -> std::cmp::Ordering {
+    use std::ffi::CString;
+    unsafe {
+        let a = CString::new(a).expect("no interior NUL");
+        let b = CString::new(b).expect("no interior NUL");
+        ffi::alpm_pkg_vercmp(a.as_ptr(), b.as_ptr()).cmp(&0)
+    }
+}
+
+/// Non-libalpm build: the deterministic fallback (same as [`NullAlpm`]).
+#[cfg(not(feature = "libalpm"))]
+pub fn vercmp(a: &str, b: &str) -> std::cmp::Ordering {
+    NullAlpm::default().vercmp(a, b)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

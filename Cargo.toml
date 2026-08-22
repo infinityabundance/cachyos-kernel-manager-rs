@@ -12,11 +12,23 @@ publish = false
 name = "cachyos-kernel-manager"
 path = "src/main.rs"
 
+[features]
+# Phase 8: the Iced GUI. NOT default — a debug build of the whole
+# wgpu/iced stack takes ~30+ minutes, which would stall every `cargo
+# test --workspace` and every CI typo. The GUI is verified in a dedicated
+# CI job (`--features gui`) and built by the packaging layer
+# (`--features gui-alpm` = gui + the real libalpm discovery + the scx
+# D-Bus client).
+default = []
+gui = ["dep:cachyos-kernel-manager-ui", "cachyos-kernel-manager-ui/rendering"]
+gui-alpm = ["gui", "cachyos-kernel-manager-ui/alpm", "cachyos-kernel-manager-ui/scx-dbus"]
+
 [dependencies]
 cachyos-kernel-manager-core = { workspace = true }
 cachyos-kernel-manager-oracle = { workspace = true }
 cachyos-kernel-manager-config = { workspace = true }
 cachyos-kernel-manager-platform = { workspace = true }
+cachyos-kernel-manager-ui = { workspace = true, optional = true }
 
 [workspace]
 resolver = "2"
@@ -82,6 +94,10 @@ members = [
     # Configure-window semantics (conf-window.cpp) for the
     # ui/configure-window-semantics court (Phase 8).
     "tools/confwindow-oracle-ref",
+    # Court evidence infrastructure, never shipped. Parses the frozen
+    # lang/*.ts translation catalogs directly for the ui/i18n-resolution
+    # court (Phase 8).
+    "tools/i18n-oracle-ref",
 ]
 default-members = [".", "xtask"]
 

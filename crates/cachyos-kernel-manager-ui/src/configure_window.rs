@@ -15,8 +15,10 @@
 //!   courted by build-env/lifecycle + the build crate).
 
 use crate::strings;
+use cachyos_kernel_manager_config::KernelManagerConfig;
 use cachyos_kernel_manager_core::options::{
-    KernelVariant, VariantSwitchState, DEFAULT_CUSTOM_NAME, PKGBASE_SENTINEL,
+    CpuOptMode, HugepageMode, HzTick, KernelVariant, TicklessMode, VariantSwitchState,
+    DEFAULT_CUSTOM_NAME, PKGBASE_SENTINEL,
 };
 
 /// The Configure window's model.
@@ -31,6 +33,22 @@ pub struct ConfigureWindowModel {
     pub switch: VariantSwitchState,
     /// The `hardly` checkbox (checked at ctor, `conf-window.cpp:501`).
     pub hardly_checked: bool,
+    /// The remaining option checkboxes (unchecked at ctor — Qt's default;
+    /// `conf-window.cpp:497-499` only checks cachy_config + hardly).
+    pub per_gov_checked: bool,
+    pub tcp_bbr3_checked: bool,
+    pub nconfig_checked: bool,
+    pub xconfig_checked: bool,
+    pub localmodcfg_checked: bool,
+    pub use_current_checked: bool,
+    pub builtin_nvidia_open_checked: bool,
+    pub build_debug_checked: bool,
+    /// The tickless combo (default index 0 = Full).
+    pub tickless: TicklessMode,
+    /// The hugepage combo (default index 0 = Always).
+    pub hugepage: HugepageMode,
+    /// The cpu-opt combo (default index 0 = Disabled).
+    pub cpu_opt: CpuOptMode,
     /// The patches list (`reset_patches_data_tab` + the list operations).
     pub patches: Vec<String>,
     /// The custom-name field (`conf-options-page.ui:53` default).
@@ -45,6 +63,17 @@ impl Default for ConfigureWindowModel {
             variant_label: variant_label(KernelVariant::Cachyos),
             switch: VariantSwitchState::default(),
             hardly_checked: true,
+            per_gov_checked: false,
+            tcp_bbr3_checked: false,
+            nconfig_checked: false,
+            xconfig_checked: false,
+            localmodcfg_checked: false,
+            use_current_checked: false,
+            builtin_nvidia_open_checked: false,
+            build_debug_checked: false,
+            tickless: TicklessMode::Full,
+            hugepage: HugepageMode::Always,
+            cpu_opt: CpuOptMode::Manual,
             patches: Vec::new(),
             custom_name: DEFAULT_CUSTOM_NAME.to_string(),
         }
@@ -144,6 +173,98 @@ impl ConfigureWindowModel {
     pub fn use_lto_suffix(&self) -> bool {
         self.switch.lto_selected != cachyos_kernel_manager_core::options::LtoMode::None
             && self.custom_name != PKGBASE_SENTINEL
+    }
+
+    /// The full config `on_save` writes (`conf-window.cpp:737-756`): the
+    /// 18-field `KernelManagerConfig` from the current widget state.
+    pub fn to_config(&self) -> KernelManagerConfig {
+        KernelManagerConfig {
+            hardly_check: self.hardly_checked,
+            per_gov_check: self.per_gov_checked,
+            tcp_bbr3_check: self.tcp_bbr3_checked,
+            cachy_config_check: self.switch.cachy_config_checked,
+            nconfig_check: self.nconfig_checked,
+            xconfig_check: self.xconfig_checked,
+            localmodcfg_check: self.localmodcfg_checked,
+            use_current_check: self.use_current_checked,
+            builtin_zfs_check: self.switch.zfs_checked,
+            builtin_nvidia_open_check: self.builtin_nvidia_open_checked,
+            build_debug_check: self.build_debug_checked,
+            hz_ticks_combo: self.switch.hz_selected.value().to_string(),
+            tickrate_combo: self.tickless.value().to_string(),
+            preempt_combo: self.switch.preempt_selected.value().to_string(),
+            hugepage_combo: self.hugepage.value().to_string(),
+            lto_combo: self.switch.lto_selected.value().to_string(),
+            cpu_opt_combo: self.cpu_opt.value().to_string(),
+            custom_name_edit: self.custom_name.clone(),
+        }
+    }
+
+    /// `on_load` (`conf-window.cpp:767-810`): apply a loaded config to the
+    /// widgets. Returns true when any combo value was unknown (the
+    /// `Config file(%1) is outdated` critical dialog — the checkboxes and
+    /// custom name still apply).
+    pub fn load_config(&mut self, config: &KernelManagerConfig) -> bool {
+        self.hardly_checked = config.hardly_check;
+        self.per_gov_checked = config.per_gov_check;
+        self.tcp_bbr3_checked = config.tcp_bbr3_check;
+        self.nconfig_checked = config.nconfig_check;
+        self.xconfig_checked = config.xconfig_check;
+        self.localmodcfg_checked = config.localmodcfg_check;
+        self.use_current_checked = config.use_current_check;
+        self.builtin_nvidia_open_checked = config.builtin_nvidia_open_check;
+        self.build_debug_checked = config.build_debug_check;
+        self.custom_name = config.custom_name_edit.clone();
+        let mut outdated = false;
+        match TicklessMode::ALL
+            .iter()
+            .find(|t| t.value() == config.tickrate_combo)
+        {
+            Some(t) => self.tickless = *t,
+            None => outdated = true,
+        }
+        match HugepageMode::ALL
+            .iter()
+            .find(|h| h.value() == config.hugepage_combo)
+        {
+            Some(h) => self.hugepage = *h,
+            None => outdated = true,
+        }
+        match CpuOptMode::ALL
+            .iter()
+            .find(|c| c.value() == config.cpu_opt_combo)
+        {
+            Some(c) => self.cpu_opt = *c,
+            None => outdated = true,
+        }
+        match self
+            .switch
+            .lto_items
+            .iter()
+            .find(|l| l.value() == config.lto_combo)
+        {
+            Some(l) => self.switch.lto_selected = *l,
+            None => outdated = true,
+        }
+        match self
+            .switch
+            .preempt_items
+            .iter()
+            .find(|p| p.value() == config.preempt_combo)
+        {
+            Some(p) => self.switch.preempt_selected = *p,
+            None => outdated = true,
+        }
+        match HzTick::ALL
+            .iter()
+            .find(|h| h.value() == config.hz_ticks_combo)
+        {
+            Some(h) => self.switch.hz_selected = *h,
+            None => outdated = true,
+        }
+        self.switch.cachy_config_checked = config.cachy_config_check;
+        self.switch.zfs_checked = config.builtin_zfs_check;
+        outdated
     }
 }
 
@@ -272,5 +393,44 @@ mod tests {
         let mut none = m.clone();
         none.switch.lto_selected = LtoMode::None;
         assert!(!none.use_lto_suffix());
+    }
+
+    #[test]
+    fn to_config_writes_the_full_18_field_config() {
+        let m = ConfigureWindowModel::default();
+        let c = m.to_config();
+        assert!(c.hardly_check);
+        assert!(c.cachy_config_check);
+        assert_eq!(c.lto_combo, "thin");
+        assert_eq!(c.preempt_combo, "full");
+        assert_eq!(c.hz_ticks_combo, "1000");
+        assert_eq!(c.tickrate_combo, "full");
+        assert_eq!(c.hugepage_combo, "always");
+        assert_eq!(c.cpu_opt_combo, "manual");
+        assert_eq!(c.custom_name_edit, DEFAULT_CUSTOM_NAME);
+        assert!(!c.nconfig_check);
+        assert!(!c.per_gov_check);
+        assert!(!c.builtin_nvidia_open_check);
+        assert!(!c.build_debug_check);
+    }
+
+    #[test]
+    fn load_config_applies_widgets_and_flags_outdated() {
+        let mut m = ConfigureWindowModel::default();
+        let mut c = m.to_config();
+        c.hardly_check = false;
+        c.per_gov_check = true;
+        c.lto_combo = "full".to_string();
+        c.custom_name_edit = "my-kernel".to_string();
+        let outdated = m.load_config(&c);
+        assert!(!outdated);
+        assert!(!m.hardly_checked);
+        assert!(m.per_gov_checked);
+        assert_eq!(m.switch.lto_selected, LtoMode::Full);
+        assert_eq!(m.custom_name, "my-kernel");
+
+        // an unknown combo value -> the outdated dialog flag
+        c.lto_combo = "bogus-lto".to_string();
+        assert!(m.load_config(&c));
     }
 }

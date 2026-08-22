@@ -1,0 +1,734 @@
+{
+ "locale": "ca",
+ "qrc_alias": "ca",
+ "source_ts": "cachyos-kernel-manager_ca.ts",
+ "source_sha256": "1046c97da43ebbf99aa87466d09a45c9deac4eed9aeea261e9e786436b606025",
+ "entries": [
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable CachyOS config",
+   "translation": "Habilita les modificacions del CachyOS",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:66"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via nconfig",
+   "translation": "Ajusteu les opcions del nucli abans d'una compilació mitjançant nconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:95"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via menuconfig",
+   "translation": "Ajusteu les opcions del nucli abans d'una compilació mitjançant menuconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:124"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via xconfig",
+   "translation": "Ajusteu les opcions del nucli abans d'una compilació mitjançant xconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:153"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via gconfig",
+   "translation": "Ajusteu les opcions del nucli abans d'una compilació mitjançant gconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:182"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Disable NUMA",
+   "translation": "Inhabilita NUMA",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:211"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use Modprobed-db",
+   "translation": "Usa Modprobed-db",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:240"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable KBUILD_CFLAGS -O3",
+   "translation": "Habilita KBUILD_CFLAGS -O3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:269"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Set performance governor as default",
+   "translation": "Estableix el governador de rendiment com a predeterminat",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:298"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable TCP_CONG_BBR3",
+   "translation": "Habilita TCP_CONG_BBR3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:327"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Running tick rate",
+   "translation": "Taxa d'execució",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:356"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select tickless",
+   "translation": "Selecciona tickless",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:385"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select preempt",
+   "translation": "Selecciona preempt",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:414"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the open NVIDIA module",
+   "translation": "Construeix el mòdul obert d'NVIDIA",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:646"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Load",
+   "translation": "Carrega",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:721"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Save",
+   "translation": "Desa",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:728"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build kernel",
+   "translation": "Construeix el nucli",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:755"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable multigenerational LRU",
+   "translation": "Habilita LRU multigeneracional",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable per-VMA locking",
+   "translation": "Habilita el blocatge per VMA",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable DAMON",
+   "translation": "Habilita DAMON",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:472"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "CPU compiler optimizations",
+   "translation": "Optimitzacions del compilador de la CPU",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:501"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Apply automatic CPU Optimization",
+   "translation": "Aplica l'optimització automàtica de la CPU",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:530"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable LTO",
+   "translation": "Habilita LTO",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:559"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the ZFS module",
+   "translation": "Construeix el mòdul ZFS",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:588"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Include vmlinux with debug informations/symbols",
+   "translation": "Inclou vmlinux amb informació/símbols de depuració",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:675"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Transparent Hugepages",
+   "translation": "Pàgines enormes transparents",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:443"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Cancel",
+   "translation": "Cancel·la",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:748"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Execute",
+   "translation": "Executa",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Custom package name",
+   "translation": "Nom del paquet personalitzat",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:33"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "$pkgbase-custom",
+   "translation": "$pkgbase-custom",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:53"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add remote patch",
+   "translation": "Afegeix un pedaç remot",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:81"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add local patch",
+   "translation": "Afegeix un pedaç local",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:88"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS Kernel Manager Configure",
+   "translation": "Gestor de nuclis del CachyOS",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:17"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Options",
+   "translation": "Opcions",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:40"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patches",
+   "translation": "Pedaços",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:45"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Bore - Burst-Oriented Response Enhancer",
+   "translation": "Bore - Potenciador de resposta orientat a ràfegues",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RC - Release Candidate",
+   "translation": "RC - Candidat de publicació",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:484"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "EEVDF",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:487"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BMQ (BitMap Queue)",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:488"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Select one or more patch files",
+   "translation": "Seleccioneu un o més fitxers de pedaç",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:563"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch file (*.patch)",
+   "translation": "Fitxer de pedaç (*.patch)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:565"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Enter URL patch",
+   "translation": "Introduïu l'URL del pedaç",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:585"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch URL:",
+   "translation": "URL del pedaç:",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:586"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Save file as",
+   "translation": "Desa el fitxer com a",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:709"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file (*.toml)",
+   "translation": "Fitxer de config. (*.toml)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:711",
+    "../src/conf-window.cpp:728"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to save config options to file: %1",
+   "translation": "Ha fallat desar les opcions de configuració al fitxer %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:718"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Load from",
+   "translation": "Carrega des de",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:726"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to load config options from file: %1",
+   "translation": "Ha fallat carregar les opcions de configuració des del fitxer %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:736"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file(%1) is outdated",
+   "translation": "El fitxer de configuració (%1) està obsolet.",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:772"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT - Realtime kernel",
+   "translation": "RT - Nucli en temps real",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:485"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Do you want to install build packages?",
+   "translation": "Voleu instal·lar els paquets de compilació?",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:370"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS default Scheduler (tuned EEVDF)",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:482"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BORE - Burst-Oriented Response Enhancer",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:483"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT-Bore",
+   "translation": "RT-Bore",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:486"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Sched-Ext - BPF extensible scheduler class",
+   "translation": "Sched-Ext - Classe de planificador extensible BPF",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS - BORE + SCHED-EXT",
+   "translation": "CachyOS - BORE + SCHED-EXT",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "MainWindow",
+   "source": "CachyOS Kernel Manager",
+   "translation": "Gestor de nuclis del CachyOS",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:17"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install and/or uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work, if you are already running a pacman instance.</p>\n</body>\n</html>",
+   "translation": "<html>\n<body>\n<p>Aquí veureu informació sobre els nuclis de Linux instal·lats i disponibles actualment.</p>\n<p>Podeu instal·lar o desinstal·lar paquets de nucli usant les caselles de selecció de la columna de l'esquerra.</p>\n<p>Aquesta aplicació no funcionarà si ja s'executa una instància de pacman.</p>\n</body>\n</html>",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "MainWindow",
+   "source": "Choose",
+   "translation": "Trieu",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:64"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "PkgName",
+   "translation": "Nom del paquet",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:69"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Version",
+   "translation": "Versió",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:74"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Category",
+   "translation": "Categoria",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:79"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "sched-ext scheduler config",
+   "translation": "Configuració del planificador sched-ext",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:116"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Configure",
+   "translation": "Configura",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:123"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Cancel",
+   "translation": "Cancel·la",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:130"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Execute",
+   "translation": "Executa",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:137"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "No kernels found!\nPlease run `pacman -Sy` to update DB!\nThis is needed for the app to work properly",
+   "translation": "No s'ha trobat cap nucli!\nSi us plau, executeu 'pacman -Sy' per actualitzar la base de dades!\nAixò és necessari perquè l'aplicació funcioni correctament.",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:227"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to clone repository!\nPlease check your internet connection and try again",
+   "translation": "Ha fallat clonar el repositori!\nSi us plau, comproveu la connexió a Internet i torneu-ho a provar.",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:201"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nWe are preparing configuration window for you\ncloning PKGBUILDs..",
+   "translation": "Espereu, si us plau...\nEs posa a punt la finestra de configuració.\nClonació de PKGBUILDs..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:276",
+    "../src/km-window.cpp:340"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to initialize alpm handle (%1)",
+   "translation": "Ha fallat iniciar l'identificador d'alpm (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:143"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to release alpm handle (%1)",
+   "translation": "Ha fallat alliberar l'identificador d'alpm (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:156"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nInitializing kernels..",
+   "translation": "Espereu, si us plau...\nS'inicien els nuclis...",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:361"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install/uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work if you are already running a pacman instance.</p>\n</body>\n</html>",
+   "translation": "<html>\n<body>\n<p>Aquí veureu informació sobre els nuclis de Linux instal·lats i disponibles actualment.</p>\n<p>Podeu instal·lar o desinstal·lar paquets de nucli usant les caselles de selecció de la columna de l'esquerra.</p>\n<p>Aquesta aplicació no funcionarà si ja s'executa una instància de pacman.</p>\n</body>\n</html>",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:28"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "CachyOS Configure sched-ext",
+   "translation": "Configuració de sched-ext del CachyOS",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:17"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "<html><head/><body><p align=\"center\">Configure sched-ext scheduler:</p></body></html>",
+   "translation": "<html><head/><body><p align=\"center\">Configura el planificador sched-ext:</p></body></html>",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:40"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Select sched-ext scheduler:",
+   "translation": "Seleccioneu el planificador sched-ext:",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:82"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Select scheduler profile:",
+   "translation": "Seleccioneu el perfil del planificador:",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:92"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "unknown",
+   "translation": "desconegut",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:115"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Running sched-ext scheduler:",
+   "translation": "Execució del planificador sched-ext:",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:75"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Set sched-ext extra scheduler flags:",
+   "translation": "Estableix senyals de planificador addicionals de sched-ext:",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:122"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Disable",
+   "translation": "Inhabilita",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:176"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Apply",
+   "translation": "Aplica",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:183"
+   ]
+  }
+ ]
+}

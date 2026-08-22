@@ -1,0 +1,9 @@
+{
+  "system_locale": "zh-CN",
+  "lookups": [
+    { "context": "MainWindow", "source": "Execute" },
+    { "context": "ConfOptionsPage", "source": "Enable CachyOS config" },
+    { "context": "ConfOptionsPage", "source": "Tweak kernel options prior to a build via nconfig" },
+    { "context": "SchedExtWindow", "source": "Running sched-ext scheduler:" }
+  ]
+}

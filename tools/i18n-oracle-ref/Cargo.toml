@@ -1,0 +1,15 @@
+[package]
+name = "i18n-oracle-ref"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Reference re-declaration of the oracle's translation catalogs (the frozen lang/*.ts files @ 6b4a373e, parsed DIRECTLY as XML) for the ui/i18n-resolution court. NOT part of the candidate; evidence infrastructure."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+roxmltree = "0.20"
+
+[[bin]]
+name = "i18n-oracle-ref"
+path = "src/main.rs"

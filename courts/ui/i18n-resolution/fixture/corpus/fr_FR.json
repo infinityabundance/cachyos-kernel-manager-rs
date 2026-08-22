@@ -1,0 +1,7 @@
+{
+  "system_locale": "fr_FR",
+  "lookups": [
+    { "context": "MainWindow", "source": "Execute" },
+    { "context": "SchedExtWindow", "source": "Apply" }
+  ]
+}

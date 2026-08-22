@@ -186,7 +186,9 @@ pub enum AppEvent {
     TransactionFailed { message: String },
     ConfigureRequested,
     ConfigurePrepared,
+    BuildRequested,
     BuildFinished { success: bool },
+    InstallArtifactsRequested,
     ArtifactsInstalled,
     ScxToggleRequested,
     CloseRequested,
@@ -363,6 +365,18 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
             next.configuration = ConfigurationState::Editing;
             effects.push(Effect::HideProgress);
         }
+        AppEvent::BuildRequested => {
+            next.build = BuildState::Running;
+            // the Configure window's on_execute (`conf-window.cpp:696-735`):
+            // makepkg runs in the variant's PKGBUILD dir under the cache
+            // root; the UI layer (platform crate) joins the full path.
+            let variant_dir = next.build_options.variant.dir_name().to_string();
+            effects.push(Effect::RunBuild { variant_dir });
+        }
+        AppEvent::InstallArtifactsRequested => {
+            next.build = BuildState::Installing;
+            effects.push(Effect::InstallArtifacts);
+        }
         AppEvent::BuildFinished { success } => {
             next.build = if success {
                 BuildState::Completed
@@ -524,6 +538,31 @@ mod tests {
         let (s3, _) = transition(&s, AppEvent::BuildFinished { success: false });
         assert_eq!(s3.build, BuildState::Failed);
         assert_eq!(s3.phase(), AppPhase::BuildFailed);
+    }
+
+    #[test]
+    fn build_and_install_artifacts_flow() {
+        let mut s = ready_state();
+        s.configuration = ConfigurationState::Editing;
+        // Build kernel: on_execute (conf-window.cpp:696-735) — the variant's
+        // dir name feeds the RunBuild effect.
+        let (s2, fx) = transition(&s, AppEvent::BuildRequested);
+        assert_eq!(s2.build, BuildState::Running);
+        assert_eq!(s2.phase(), AppPhase::BuildRunning);
+        assert!(fx.iter().any(
+            |e| matches!(e, Effect::RunBuild { variant_dir } if variant_dir == "linux-cachyos")
+        ));
+
+        // finished_proc found .done-status -> Completed; the install question
+        // -> InstallArtifactsRequested -> Installing.
+        let (s3, _) = transition(&s2, AppEvent::BuildFinished { success: true });
+        assert_eq!(s3.build, BuildState::Completed);
+        let (s4, fx4) = transition(&s3, AppEvent::InstallArtifactsRequested);
+        assert_eq!(s4.build, BuildState::Installing);
+        assert_eq!(s4.phase(), AppPhase::ArtifactInstallation);
+        assert!(fx4.contains(&Effect::InstallArtifacts));
+        let (s5, _) = transition(&s4, AppEvent::ArtifactsInstalled);
+        assert_eq!(s5.build, BuildState::Idle);
     }
 
     #[test]

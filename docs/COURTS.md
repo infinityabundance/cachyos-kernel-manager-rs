@@ -206,6 +206,41 @@ Before running courts, `vm-ctl.sh cleanup` removes stale qemu processes
 (they survive process-tree kills because they run in their own systemd
 scopes); the court runner calls it automatically before each side.
 
+## Phase 8 status (Iced UI) — IN PROGRESS
+
+Phase 8 builds the semantic + rendered UI over the pinned-down substrate.
+The 4 new Phase 8 courts (all PASS with verified evidence):
+
+- `ui/dialog-strings` — PASS (non-VM). Every user-visible string the Iced
+  UI renders (window titles, tree columns, buttons, variant labels, combo
+  options, progress labels, dialogs, stdout/stderr lines) is byte-identical
+  to the frozen source's literals (with file:line refs). Witness:
+  `tools/run-strings-corpus.sh` → `cargo xtask court run
+  ui/dialog-strings`.
+- `ui/main-window-semantics` — PASS (non-VM). The tree rows
+  (`init_kernels_tree_widget` + `Kernel::version`: the ∨/∧ markers, the
+  installed-db provenance rule), the OK-button enablement + change list
+  (`build_change_list`), the sched-ext button visibility, the version
+  sort keys, and the space-toggle guard, over the shared corpus. Witness:
+  `tools/run-mainwindow-corpus.sh`.
+- `ui/configure-window-semantics` — PASS (non-VM). The ctor defaults, the
+  variant-switch handler, `reset_patches_data_tab` + the patch-list ops,
+  the `_use_lto_suffix=n` rule, and the save/load feeds, over the shared
+  corpus. Witness: `tools/run-confwindow-corpus.sh`.
+- `ui/i18n-resolution` — PASS (non-VM). The `initTranslations` load order
+  against the qrc alias set + `QTranslator::translate` semantics; the
+  oracle side parses the frozen `lang/*.ts` XML directly, the candidate
+  uses its embedded ts2json catalogs (CI-verified). gap-009 is PINNED:
+  `zh_CN` resolves to NO catalog (the compiled alias is `zh-CN`).
+  Witness: `tools/run-i18n-corpus.sh`.
+
+The rendering layer itself (the iced `Application`) is verified by the
+`cargo test -p cachyos-kernel-manager-ui --features rendering` suite (the
+message → event → transition pipeline, the dialog/install flows, the i18n
+catalogs) and the `gui`/`gui-alpm` CI jobs. The remaining Phase 8 work is
+courted in `atlas/status.json`: the differential VM court matrix for the
+running GUI and the close-during-transaction worker race (gap-010).
+
 ## Case format
 
 ```

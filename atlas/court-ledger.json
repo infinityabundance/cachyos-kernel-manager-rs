@@ -198,6 +198,11 @@
    "status": "passing"
   },
   {
+   "surface": "ui.i18n_resolution",
+   "court": "ui/i18n-resolution",
+   "status": "passing"
+  },
+  {
    "surface": "ui.configure_window",
    "court": "ui/configure-window-semantics",
    "status": "passing"

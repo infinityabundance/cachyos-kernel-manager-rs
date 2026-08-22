@@ -1,0 +1,604 @@
+{
+ "locale": "sv",
+ "qrc_alias": "sv",
+ "source_ts": "cachyos-kernel-manager_sv.ts",
+ "source_sha256": "ba1e8a336b9652c1d73ff7188e31cfdf022ec852cb9cd0539503462558ee210d",
+ "entries": [
+  {
+   "context": "ConfOptionsPage",
+   "source": "Custom package name",
+   "translation": "Anpassat namn på paketet",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:33"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "$pkgbase-custom",
+   "translation": "$pkgbase-custom",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:53"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable CachyOS config",
+   "translation": "Aktivera CachyOS-konfiguration",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:66"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via nconfig",
+   "translation": "Justera kärnalternativen före en build via nconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:95"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via menuconfig",
+   "translation": "Justera kärnalternativen före en build via menuconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:124"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via xconfig",
+   "translation": "Justera kärnalternativen före en build via xconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:153"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via gconfig",
+   "translation": "Justera kärnalternativen före en build via gconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:182"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Disable NUMA",
+   "translation": "Inaktivera NUMA",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:211"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use Modprobed-db",
+   "translation": "Använd Modprobed-db",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:240"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable KBUILD_CFLAGS -O3",
+   "translation": "Aktivera KBUILD_CFLAGS -O3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:269"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Set performance governor as default",
+   "translation": "Ställ in Performance Governor som standard",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:298"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable TCP_CONG_BBR3",
+   "translation": "Aktivera TCP_CONG_BBR3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:327"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Running tick rate",
+   "translation": "Körande tickfrekvens",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:356"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select tickless",
+   "translation": "Välj tickless",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:385"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select preempt",
+   "translation": "Välj preempt",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:414"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Transparent Hugepages",
+   "translation": "Transparenta Hugepages",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:443"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable DAMON",
+   "translation": "Aktivera DAMON",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:472"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "CPU compiler optimizations",
+   "translation": "Optimering av CPU-kompilatorer",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:501"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Apply automatic CPU Optimization",
+   "translation": "Tillämpa automatisk CPU-optimering",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:530"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable LTO",
+   "translation": "Aktivera LTO",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:559"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the ZFS module",
+   "translation": "Bygg ZFS-modulen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:588"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the open NVIDIA module",
+   "translation": "Bygg den öppna NVIDIA-modulen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:646"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Include vmlinux with debug informations/symbols",
+   "translation": "Inkludera vmlinux med felsökningsinformation/symboler",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:675"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Load",
+   "translation": "Läs in",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:721"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Save",
+   "translation": "Spara",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:728"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Cancel",
+   "translation": "Avbryt",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:748"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build kernel",
+   "translation": "Bygg kärnan",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:755"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add remote patch",
+   "translation": "Lägg till fjärrpatch",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:81"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add local patch",
+   "translation": "Lägg till lokal patch",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:88"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS Kernel Manager Configure",
+   "translation": "Hanterare för CachyOS kärnkonfiguration",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:17"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Options",
+   "translation": "Alternativ",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:40"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patches",
+   "translation": "Patchar",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:45"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Do you want to install build packages?",
+   "translation": "Vill du installera byggpaket?",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:370"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS default Scheduler (tuned EEVDF)",
+   "translation": "CachyOS standardschemaläggare (BORE+Cachy Sauce)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:482"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BORE - Burst-Oriented Response Enhancer",
+   "translation": "BORE - Burst-orienterad responsförstärkare",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:483"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RC - Release Candidate",
+   "translation": "RC - Release Candidate",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:484"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT - Realtime kernel",
+   "translation": "RT - Realtidskärna",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:485"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT-Bore",
+   "translation": "RT-Bore",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:486"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "EEVDF",
+   "translation": "EEVDF",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:487"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BMQ (BitMap Queue)",
+   "translation": "BMQ (BitMap-kö)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:488"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Select one or more patch files",
+   "translation": "Välj en eller flera patchfiler",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:564"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch file (*.patch)",
+   "translation": "Patch-fil (*.patch)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:566"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Enter URL patch",
+   "translation": "Ange URL till patch",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:586"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch URL:",
+   "translation": "Patchens URL:",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:587"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Save file as",
+   "translation": "Spara fil som",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:710"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file (*.toml)",
+   "translation": "Konfigureringsfil (*.toml)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:712",
+    "../src/conf-window.cpp:729"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to save config options to file: %1",
+   "translation": "Misslyckades med att spara konfigurationsalternativ i fil: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:719"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Load from",
+   "translation": "Läs in från",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:727"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to load config options from file: %1",
+   "translation": "Misslyckades med att läsa in konfigurationsalternativ från filen: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:737"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file(%1) is outdated",
+   "translation": "Konfigfilen(%1) är utdaterad",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:773"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "CachyOS Kernel Manager",
+   "translation": "CachyOS kärnkonfiguration",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:17"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install/uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work if you are already running a pacman instance.</p>\n</body>\n</html>",
+   "translation": "<html>\n<body>\n<p>Här ser du information om installerade och tillgängliga Linux-kärnor.</p>\n<p>Du kan installera/avinstallera kärnpaket med hjälp av kryssrutorna i kolumnen längst till vänster.</p>\n<p>Den här appen fungerar inte om du redan kör en pacman-instans.</p>\n</body>\n</html>",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:28"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Choose",
+   "translation": "Välj",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:64"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "PkgName",
+   "translation": "PkgName",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:69"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Version",
+   "translation": "Version",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:74"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Category",
+   "translation": "Kategori",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:79"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "sched-ext scheduler config",
+   "translation": "sched-ext konfiguration för schemaläggare",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:116"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Configure",
+   "translation": "Konfigurera",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:123"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Cancel",
+   "translation": "Avbryt",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:130"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Execute",
+   "translation": "Utför",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:137"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to initialize alpm handle (%1)",
+   "translation": "Det gick inte att initiera alpm-handtaget (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:143"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to release alpm handle (%1)",
+   "translation": "Misslyckades med att frigöra alpm-handtaget (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:156"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to clone repository!\nPlease check your internet connection and try again",
+   "translation": "Misslyckades med att klona förrådet!\nKontrollera din internetanslutning och försök igen",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:201"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "No kernels found!\nPlease run `pacman -Sy` to update DB!\nThis is needed for the app to work properly",
+   "translation": "Inga kärnor hittades!\nKör `pacman -Sy` för att uppdatera DB!\nDetta är nödvändigt för att appen ska fungera korrekt",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:227"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nWe are preparing configuration window for you\ncloning PKGBUILDs..",
+   "translation": "Vänta...\nVi förbereder konfigurationsfönstret för dig\nklonar PKGBUILDs..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:276",
+    "../src/km-window.cpp:340"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nInitializing kernels..",
+   "translation": "Vänta...\nInitiering av kärnor..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:361"
+   ]
+  }
+ ]
+}

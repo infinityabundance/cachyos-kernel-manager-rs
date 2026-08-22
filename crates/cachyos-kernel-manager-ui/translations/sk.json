@@ -1,0 +1,707 @@
+{
+ "locale": "sk",
+ "qrc_alias": "sk",
+ "source_ts": "cachyos-kernel-manager_sk.ts",
+ "source_sha256": "6480b23f378e332a1d8d5747fd17762efed773b48b5778036d2c7e741ca90ea4",
+ "entries": [
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable CachyOS config",
+   "translation": "Povoliť konfiguráciu CachyOS",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:66"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via nconfig",
+   "translation": "Upraviť možnosti jadra pred zostavením cez nconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:95"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via xconfig",
+   "translation": "Upraviť možnosti jadra pred zostavením cez xconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:153"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use Modprobed-db",
+   "translation": "Použiť Modprobed-db",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:240"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable KBUILD_CFLAGS -O3",
+   "translation": "Povoliť KBUILD_CFLAGS -O3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:269"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Set performance governor as default",
+   "translation": "Nastaviť správcu výkonu ako predvoleného",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:298"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable TCP_CONG_BBR3",
+   "translation": "Povoliť TCP_CONG_BBR3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:327"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Running tick rate",
+   "translation": "Vybrať \"tick rate\"",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:356"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select tickless",
+   "translation": "Vybrať \"tickless\"",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:385"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select preempt",
+   "translation": "Vybrať \"preempt\"",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:414"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the open NVIDIA module",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-options-page.ui:646"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Load",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-options-page.ui:721"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Save",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-options-page.ui:728"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build kernel",
+   "translation": "Vytvor jadro",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:755"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable multigenerational LRU",
+   "translation": "Povoliť multigeneračný LRU",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable per-VMA locking",
+   "translation": "Povoliť zamykanie per-VMA",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable DAMON",
+   "translation": "Povoliť DAMON",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:472"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "CPU compiler optimizations",
+   "translation": "Vybrať optimalizácie CPU",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:501"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Apply automatic CPU Optimization",
+   "translation": "Použiť automatické optimalizácie CPU",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:530"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable LTO",
+   "translation": "Povoliť LTO",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:559"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the ZFS module",
+   "translation": "Vytvoriť modul ZFS",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:588"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Include vmlinux with debug informations/symbols",
+   "translation": "Zahrnúť vmlinux s debug informáciami/symbolmi",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:675"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Transparent Hugepages",
+   "translation": "Nastaviť Transparent Hugepages",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:443"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Cancel",
+   "translation": "Zrušiť",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:748"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Execute",
+   "translation": "Spustiť",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Custom package name",
+   "translation": "Vlastný názov balíka",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:33"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "$pkgbase-custom",
+   "translation": "$pkgbase-custom",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:53"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add remote patch",
+   "translation": "Pridať vzdialený patch",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:81"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add local patch",
+   "translation": "Pridať lokálny patch",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:88"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS Kernel Manager Configure",
+   "translation": "Konfigurácia správcu jadier CachyOS",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:17"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Options",
+   "translation": "Možnosti",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:40"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patches",
+   "translation": "Patche",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:45"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Bore - Burst-Oriented Response Enhancer",
+   "translation": "Plánovač BORE - Burst-Oriented Response Enhancer",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RC - Release Candidate",
+   "translation": "RC - Release Candidate",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:484"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "EEVDF",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:487"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BMQ (BitMap Queue)",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:488"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Select one or more patch files",
+   "translation": "Vybrať jeden alebo viac patch súborov",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:563"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch file (*.patch)",
+   "translation": "Súbor patch (*.patch)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:565"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Enter URL patch",
+   "translation": "Zadajte URL patch",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:585"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch URL:",
+   "translation": "Patch URL:",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:586"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Save file as",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:709"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file (*.toml)",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:711",
+    "../src/conf-window.cpp:728"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to save config options to file: %1",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:718"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Load from",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:726"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to load config options from file: %1",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:736"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file(%1) is outdated",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:772"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT - Realtime kernel",
+   "translation": "RT - Realtime jadro",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:485"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Do you want to install build packages?",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:370"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS default Scheduler (tuned EEVDF)",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:482"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BORE - Burst-Oriented Response Enhancer",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:483"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT-Bore",
+   "translation": "RT-Bore",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:486"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Sched-Ext - BPF extensible scheduler class",
+   "translation": "Sched-Ext - BPF rozšíriteľná trieda plánovača",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS - BORE + SCHED-EXT",
+   "translation": "CachyOS - BORE + SCHED-EXT",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "MainWindow",
+   "source": "CachyOS Kernel Manager",
+   "translation": "Správca jadier CachyOS",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:17"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install and/or uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work, if you are already running a pacman instance.</p>\n</body>\n</html>",
+   "translation": "<html>\n<body>\n<p>Tu nájdete informácie o aktuálne nainštalovaných a dostupných Linuxových jadrách.</p>\n<p>Môžete inštalovať a/alebo odinštalovať balíky jadra pomocou zaškrtávacích políčok v ľavom stĺpci.</p>\n<p>Táto aplikácia nebude fungovať, ak už beží inštancia pacmana.</p>\n</body>\n</html>",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "MainWindow",
+   "source": "Choose",
+   "translation": "Vybrať",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:64"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "PkgName",
+   "translation": "Názov balíčka",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:69"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Version",
+   "translation": "Verzia",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:74"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Category",
+   "translation": "Kategória",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:79"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "sched-ext scheduler config",
+   "translation": "konfigurácia sched-ext plánovača",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:116"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Configure",
+   "translation": "Konfigurovať",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:123"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Cancel",
+   "translation": "Zrušiť",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:130"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Execute",
+   "translation": "Spustiť",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:137"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "No kernels found!\nPlease run `pacman -Sy` to update DB!\nThis is needed for the app to work properly",
+   "translation": "Žiadne jadrá neboli nájdené!\nProsím, spustite `pacman -Sy` na aktualizáciu DB!\nTo je potrebné na správne fungovanie aplikácie",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:227"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to clone repository!\nPlease check your internet connection and try again",
+   "translation": "Nepodarilo sa klonovať repozitár!\nSkontrolujte svoje internetové pripojenie a skúste to znova",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:201"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nWe are preparing configuration window for you\ncloning PKGBUILDs..",
+   "translation": "Prosím, čakajte...\nPripravujeme konfiguračné okno pre vás\nklonovanie PKGBUILDs..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:276",
+    "../src/km-window.cpp:340"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to initialize alpm handle (%1)",
+   "translation": "Nepodarilo sa inicializovať alpm handle (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:143"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to release alpm handle (%1)",
+   "translation": "Nepodarilo sa uvoľniť alpm handle (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:156"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nInitializing kernels..",
+   "translation": "Prosím, čakajte...\nInicializácia jadier..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:361"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install/uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work if you are already running a pacman instance.</p>\n</body>\n</html>",
+   "translation": "<html>\n<body>\n<p>Tu nájdete informácie o aktuálne nainštalovaných a dostupných Linuxových jadrách.</p>\n<p>Môžete inštalovať a/alebo odinštalovať balíky jadra pomocou zaškrtávacích políčok v ľavom stĺpci.</p>\n<p>Táto aplikácia nebude fungovať, ak už beží inštancia pacmana.</p>\n</body>\n</html>",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:28"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "CachyOS Configure sched-ext",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/schedext-window.ui:17"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "<html><head/><body><p align=\"center\">Configure sched-ext scheduler:</p></body></html>",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/schedext-window.ui:40"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Select sched-ext scheduler:",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/schedext-window.ui:82"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Select scheduler profile:",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/schedext-window.ui:92"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "unknown",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/schedext-window.ui:115"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Running sched-ext scheduler:",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/schedext-window.ui:75"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Set sched-ext extra scheduler flags:",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/schedext-window.ui:122"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Disable",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/schedext-window.ui:176"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Apply",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/schedext-window.ui:183"
+   ]
+  }
+ ]
+}

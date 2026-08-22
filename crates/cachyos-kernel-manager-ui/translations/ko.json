@@ -1,0 +1,679 @@
+{
+ "locale": "ko",
+ "qrc_alias": "ko",
+ "source_ts": "cachyos-kernel-manager_ko.ts",
+ "source_sha256": "e5a3bf8d9ac24a79cac47e86097eef2f6fdb9c2f9458cb61beadbb4fb1435bd6",
+ "entries": [
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable CachyOS config",
+   "translation": "CachyOS-구성 활성화",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:66"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via nconfig",
+   "translation": "nconfig를 통해 빌드 전에 커널 옵션 트윅",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:95"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via xconfig",
+   "translation": "xconfig를 통해 빌드 전에 커널 옵션 트윅",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:153"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use Modprobed-db",
+   "translation": "Modprobed-db 사용",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:240"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable KBUILD_CFLAGS -O3",
+   "translation": "KBUILD_CFLAGS -O3 활성화",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:269"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Set performance governor as default",
+   "translation": "성능 조절기를 기본값으로 지정",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:298"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable TCP_CONG_BBR3",
+   "translation": "TCP_CONG_BBR3 활성화",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:327"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Running tick rate",
+   "translation": "실행 틱 레이트",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:356"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select tickless",
+   "translation": "틱리스 선택하기",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:385"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select preempt",
+   "translation": "선점(preempt) 선택하기",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:414"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the open NVIDIA module",
+   "translation": "오픈 NVIDIA 모듈 빌드",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:646"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Load",
+   "translation": "불러오기",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:721"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Save",
+   "translation": "저장하기",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:728"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build kernel",
+   "translation": "커널 빌드",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:755"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable multigenerational LRU",
+   "translation": "다세대 LRU 활성화",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable per-VMA locking",
+   "translation": "VMA별 잠금 활성화",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable DAMON",
+   "translation": "DAMON 활성화",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:472"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "CPU compiler optimizations",
+   "translation": "CPU 컴파일러 최적화",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:501"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Apply automatic CPU Optimization",
+   "translation": "자동 CPU 최적화 적용",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:530"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable LTO",
+   "translation": "LTO 활성화",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:559"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the ZFS module",
+   "translation": "ZFS 모듈 빌드",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:588"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Include vmlinux with debug informations/symbols",
+   "translation": "디버그 정보/기호를 vmlinux에 포함",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:675"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Transparent Hugepages",
+   "translation": "투명 거대 페이지",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:443"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Cancel",
+   "translation": "취소하기",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:748"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Execute",
+   "translation": "실행하기",
+   "unfinished": true,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Custom package name",
+   "translation": "사용자 지정 패키지 이름",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:33"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "$pkgbase-custom",
+   "translation": "$pkgbase-custom",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:53"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add remote patch",
+   "translation": "원격 패치 추가",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:81"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add local patch",
+   "translation": "로컬 패치 추가",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:88"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS Kernel Manager Configure",
+   "translation": "CachyOS 커널 관리자 구성하기",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:17"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Options",
+   "translation": "옵션",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:40"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patches",
+   "translation": "패치",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:45"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RC - Release Candidate",
+   "translation": "RC - 릴리스 후보",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:484"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "EEVDF",
+   "translation": "EEVDF",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:487"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BMQ (BitMap Queue)",
+   "translation": "BMQ (BitMap Queue)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:488"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Select one or more patch files",
+   "translation": "패치 파일 하나 이상 선택",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:563"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch file (*.patch)",
+   "translation": "패치 파일 (*.patch)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:565"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Enter URL patch",
+   "translation": "URL 패치 입력",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:585"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch URL:",
+   "translation": "패치 URL:",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:586"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Save file as",
+   "translation": "파일 저장 위치",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:709"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file (*.toml)",
+   "translation": "구성 파일 (*.toml)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:711",
+    "../src/conf-window.cpp:728"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to save config options to file: %1",
+   "translation": "구성 옵션을 파일에 저장하지 못함: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:718"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Load from",
+   "translation": "불러오기 위치",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:726"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to load config options from file: %1",
+   "translation": "파일에서 구성 옵션을 불러오지 못함: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:736"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file(%1) is outdated",
+   "translation": "구성 파일(%1)이 오래되었습니다",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:772"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT - Realtime kernel",
+   "translation": "RT - 실시간 커널",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:485"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Do you want to install build packages?",
+   "translation": "빌드 패키지를 설치하시겠습니까?",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:370"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS default Scheduler (tuned EEVDF)",
+   "translation": "CachyOS 기본 스케줄러 (BORE+Cachy Sauce)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:482"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BORE - Burst-Oriented Response Enhancer",
+   "translation": "BORE - Burst-Oriented Response Enhancer",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:483"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT-Bore",
+   "translation": "RT-BORE",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:486"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "CachyOS Kernel Manager",
+   "translation": "CachyOS 커널 관리자",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:17"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install/uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work if you are already running a pacman instance.</p>\n</body>\n</html>",
+   "translation": "<html>\n<body>\n<p>여기에서 현재 설치되어 있고 사용 가능한 Linux 커널에 대한 정보를 확인할 수 있습니다.</p>\n<p>맨 왼쪽 열의 확인란을 사용하여 커널 패키지를 설치/제거할 수 있습니다.</p>\n<p>이미 pacman 인스턴스를 실행 중인 경우 이 앱은 작동하지 않습니다.</p>\n</body>\n</html>",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:28"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Choose",
+   "translation": "선택하기",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:64"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "PkgName",
+   "translation": "패키지이름",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:69"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Version",
+   "translation": "버전",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:74"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Category",
+   "translation": "범주",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:79"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "sched-ext scheduler config",
+   "translation": "sched-ext 스케줄러 구성",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:116"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Configure",
+   "translation": "구성하기",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:123"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Cancel",
+   "translation": "취소하기",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:130"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Execute",
+   "translation": "실행하기",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:137"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "No kernels found!\nPlease run `pacman -Sy` to update DB!\nThis is needed for the app to work properly",
+   "translation": "커널을 찾을 수 없습니다!\nDB를 업데이트하려면 `pacman -Sy`를 실행하세요!\n앱이 제대로 작동하려면 이 작업이 필요합니다",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:227"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to clone repository!\nPlease check your internet connection and try again",
+   "translation": "저장소를 복제하지 못했습니다!\n인터넷 연결을 확인하고 다시 시도해 주세요",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:201"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nWe are preparing configuration window for you\ncloning PKGBUILDs..",
+   "translation": "잠시만 기다려 주세요...\nPKGBUILD 복제를 위한 구성 창을 준비 중입니다..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:276",
+    "../src/km-window.cpp:340"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to initialize alpm handle (%1)",
+   "translation": "alpm 핸들(%1)을 초기화하지 못했습니다",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:143"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to release alpm handle (%1)",
+   "translation": "alpm 핸들(%1)을 해제하지 못했습니다",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:156"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nInitializing kernels..",
+   "translation": "잠시만 기다려 주세요...\n커널을 초기화하는 중입니다.",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:361"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "CachyOS Configure sched-ext",
+   "translation": "CachyOS sched-ext 구성하기",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:17"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "<html><head/><body><p align=\"center\">Configure sched-ext scheduler:</p></body></html>",
+   "translation": "<html><head/><body><p align=\"center\">sched-ext 스케줄러 구성:</p></body></html>",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:40"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Select sched-ext scheduler:",
+   "translation": "sched-ext 스케줄러 선택:",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:82"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Select scheduler profile:",
+   "translation": "스케줄러 프로필 선택:",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:92"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "unknown",
+   "translation": "알 수 없음",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:115"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Running sched-ext scheduler:",
+   "translation": "sched-ext 스케줄러 실행:",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:75"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Set sched-ext extra scheduler flags:",
+   "translation": "sched-ext 추가 스케줄러 플래그 지정:",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:122"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Disable",
+   "translation": "비활성화",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:176"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Apply",
+   "translation": "적용하기",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:183"
+   ]
+  }
+ ]
+}

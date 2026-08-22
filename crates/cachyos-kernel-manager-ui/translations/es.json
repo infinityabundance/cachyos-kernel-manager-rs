@@ -1,0 +1,568 @@
+{
+ "locale": "es",
+ "qrc_alias": "es",
+ "source_ts": "cachyos-kernel-manager_es.ts",
+ "source_sha256": "b4cfb61c551c58f1241a224a33893d356f6fede060f7677ad90e1a9ecfa43c06",
+ "entries": [
+  {
+   "context": "ConfOptionsPage",
+   "source": "Custom package name",
+   "translation": "Nombre de paquete personalizado",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:33"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "$pkgbase-custom",
+   "translation": "$pkgbase-custom",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:53"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable CachyOS config",
+   "translation": "Habilitar configuración de CachyOS",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:66"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via nconfig",
+   "translation": "Ajustar opciones del kernel antes de compilar mediante nconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:95"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via xconfig",
+   "translation": "Ajustar opciones del kernel antes de compilar mediante xconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:124"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use Modprobed-db",
+   "translation": "Usar Modprobed-db",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:153"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use the current kernel's config",
+   "translation": "Usar la configuración del kernel actual",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:182"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable KBUILD_CFLAGS -O3",
+   "translation": "Habilitar KBUILD_CFLAGS -O3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:211"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Set performance governor as default",
+   "translation": "Establecer perfil de rendimiento (governor) por defecto",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:240"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable TCP_CONG_BBR3",
+   "translation": "Habilitar TCP_CONG_BBR3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:269"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Running tick rate",
+   "translation": "Frecuencia de reloj (tick rate)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:298"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select tickless",
+   "translation": "Seleccionar tickless",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:327"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select preempt",
+   "translation": "Seleccionar preopción (preempt)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:356"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Transparent Hugepages",
+   "translation": "Páginas gigantes transparentes (THP)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:385"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "CPU compiler optimizations",
+   "translation": "Optimizaciones de compilador para CPU",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:414"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable LTO",
+   "translation": "Habilitar LTO",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:443"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the ZFS module",
+   "translation": "Compilar el módulo ZFS",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:472"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the open NVIDIA module",
+   "translation": "Compilar el módulo abierto de NVIDIA",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:501"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Include vmlinux with debug informations/symbols",
+   "translation": "Incluir vmlinux con información/símbolos de depuración",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:530"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Load",
+   "translation": "Cargar",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:576"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Save",
+   "translation": "Guardar",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:583"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Cancel",
+   "translation": "Cancelar",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:603"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build kernel",
+   "translation": "Compilar kernel",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:610"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add remote patch",
+   "translation": "Añadir parche remoto",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:81"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add local patch",
+   "translation": "Añadir parche local",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:88"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS Kernel Manager Configure",
+   "translation": "Configuración de CachyOS Kernel Manager",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:17"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Options",
+   "translation": "Opciones",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:40"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patches",
+   "translation": "Parches",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:45"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Do you want to install build packages?",
+   "translation": "¿Desea instalar los paquetes de compilación?",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:362"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS default Scheduler (tuned EEVDF)",
+   "translation": "Planificador por defecto de CachyOS (EEVDF ajustado)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:468"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BORE - Burst-Oriented Response Enhancer",
+   "translation": "BORE - Burst-Oriented Response Enhancer",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:469"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RC - Release Candidate",
+   "translation": "RC - Candidata a lanzamiento",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:470"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT - Realtime kernel",
+   "translation": "RT - Kernel en tiempo real",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:471"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "LTS - Long-term support kernel",
+   "translation": "LTS - Kernel con soporte a largo plazo",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:472"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "EEVDF",
+   "translation": "EEVDF",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:473"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BMQ (BitMap Queue)",
+   "translation": "BMQ (BitMap Queue)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:474"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Select one or more patch files",
+   "translation": "Seleccione uno o más archivos de parche",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:566"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch file (*.patch)",
+   "translation": "Archivo de parche (*.patch)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:568"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Enter URL patch",
+   "translation": "Introduzca la URL del parche",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:588"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch URL:",
+   "translation": "URL del parche:",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:589"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Save file as",
+   "translation": "Guardar archivo como",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:707"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file (*.toml)",
+   "translation": "Archivo de configuración (*.toml)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:709",
+    "../src/conf-window.cpp:726"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to save config options to file: %1",
+   "translation": "Error al guardar las opciones de configuración en el archivo: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:716"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Load from",
+   "translation": "Cargar desde",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:724"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to load config options from file: %1",
+   "translation": "Error al cargar las opciones de configuración desde el archivo: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:734"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file(%1) is outdated",
+   "translation": "El archivo de configuración (%1) está desactualizado",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:765"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "CachyOS Kernel Manager",
+   "translation": "CachyOS Kernel Manager",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:17"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install/uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work if you are already running a pacman instance.</p>\n</body>\n</html>",
+   "translation": "<html>\n<body>\n<p>Aquí verá información sobre los kernels de Linux instalados y disponibles.</p>\n<p>Puede instalar o desinstalar paquetes de kernel usando las casillas de verificación en la columna de la izquierda.</p>\n<p>Esta aplicación no funcionará si ya se está ejecutando una instancia de pacman.</p>\n</body>\n</html>",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:27"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Choose",
+   "translation": "Elegir",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:66"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "PkgName",
+   "translation": "Nombre del paquete",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:71"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Version",
+   "translation": "Versión",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:76"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Category",
+   "translation": "Categoría",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:81"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "sched-ext scheduler config",
+   "translation": "Configuración del planificador sched-ext",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:118"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Configure",
+   "translation": "Configurar",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:125"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Cancel",
+   "translation": "Cancelar",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:132"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Execute",
+   "translation": "Ejecutar",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:139"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to initialize alpm handle (%1)",
+   "translation": "Error al inicializar el manejador de alpm (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:144"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to release alpm handle (%1)",
+   "translation": "Error al liberar el manejador de alpm (%1)",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:157"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to clone repository!\nPlease check your internet connection and try again",
+   "translation": "¡Error al clonar el repositorio!\nPor favor, verifique su conexión a internet e inténtelo de nuevo",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:203"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "No kernels found!\nPlease run `pacman -Sy` to update DB!\nThis is needed for the app to work properly",
+   "translation": "¡No se encontraron kernels!\n¡Por favor, ejecute `pacman -Sy` para actualizar la base de datos!\nEsto es necesario para que la aplicación funcione correctamente",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:229"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nWe are preparing configuration window for you\ncloning PKGBUILDs..",
+   "translation": "Por favor, espere...\nEstamos preparando la ventana de configuración\nclonando PKGBUILDs...",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:278",
+    "../src/km-window.cpp:342"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nInitializing kernels..",
+   "translation": "Por favor, espere...\nInicializando kernels...",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:363"
+   ]
+  }
+ ]
+}

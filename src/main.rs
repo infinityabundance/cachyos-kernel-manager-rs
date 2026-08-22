@@ -1,10 +1,10 @@
 //! cachyos-kernel-manager — application entry point.
 //!
-//! Phase status: this binary currently performs the foundation diagnostics
-//! (oracle freeze verification + identity report). The Iced GUI replaces the
-//! interactive surface in Phase 8 (docs/ARCHITECTURE.md); the single-instance
-//! lock and org/app identity semantics from `oracle/upstream/src/main.cpp`
-//! are reconstructed in the platform crate.
+//! Phase 8: the shipped binary launches the Iced GUI (feature `gui`). The
+//! foundation diagnostics (oracle freeze verification + identity report)
+//! remain available behind `--diagnose`; the single-instance lock and
+//! org/app identity semantics from `oracle/upstream/src/main.cpp` are
+//! reconstructed in the platform crate.
 
 use cachyos_kernel_manager_config::KernelManagerConfig;
 use cachyos_kernel_manager_core::options::BuildOptions;
@@ -19,7 +19,31 @@ fn main() {
         println!("cachyos-kernel-manager {VERSION}");
         return;
     }
+    if args.iter().any(|a| a == "--diagnose") {
+        diagnose();
+        return;
+    }
 
+    // Phase 8: the GUI (the oracle's main window + Configure + sched-ext).
+    #[cfg(feature = "gui")]
+    {
+        let result =
+            cachyos_kernel_manager_ui::app::run(cachyos_kernel_manager_ui::app::Flags::from_env());
+        if let Err(e) = result {
+            eprintln!("cachyos-kernel-manager: GUI error: {e}");
+            std::process::exit(1);
+        }
+    }
+    #[cfg(not(feature = "gui"))]
+    {
+        // built without the GUI (e.g. `cargo build --no-default-features`):
+        // keep the diagnostics as the only surface
+        diagnose();
+    }
+}
+
+/// The foundation diagnostic (oracle freeze verification + identity report).
+fn diagnose() {
     // Locate the repository root relative to the executable for diagnostics
     // (during development we run from the workspace; the packaged binary in
     // Phase 10 embeds the lock instead).
@@ -69,5 +93,5 @@ fn main() {
             .map(|s| s.lines().next().unwrap_or("").to_string())
             .unwrap_or_default()
     );
-    println!("foundation OK — GUI lands in Phase 8; see docs/ARCHITECTURE.md");
+    println!("foundation OK — the GUI ships in Phase 8 (feature `gui`)");
 }

@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 authors.workspace = true
-description = "Iced application (Phase 8). Defines semantic messages/state now; rendering lands in Phase 8."
+description = "Iced application (Phase 8). Semantic messages/state + the rendering layer."
 publish = false
 
 [dependencies]
@@ -13,16 +13,31 @@ cachyos-kernel-manager-core = { workspace = true }
 cachyos-kernel-manager-plan = { workspace = true }
 cachyos-kernel-manager-build = { workspace = true }
 cachyos-kernel-manager-config = { workspace = true }
+cachyos-kernel-manager-exec = { workspace = true }
+cachyos-kernel-manager-alpm = { workspace = true }
+cachyos-kernel-manager-scx = { workspace = true }
+cachyos-kernel-manager-platform = { workspace = true }
+cachyos-kernel-manager-i18n = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 # Phase 8: the Iced rendering layer (feature-gated; the semantic models and
 # the strings/main-window/configure-window courts do not need it).
 iced = { version = "0.13", default-features = false, features = ["wgpu", "tokio", "image", "svg"], optional = true }
+tokio = { version = "1", features = ["sync", "rt-multi-thread", "macros"], optional = true }
+# the real libalpm backend (the alpm crate's FFI is behind ITS libalpm
+# feature; CI cannot build it — the GUI falls back to the empty catalog).
+# The scx-dbus feature enables the real org.scx.Loader client.
+zbus = { version = "=5.5.0", default-features = false, features = ["tokio"], optional = true }
 
 [features]
 default = []
-rendering = ["dep:iced"]
+rendering = ["dep:iced", "dep:tokio"]
+# the real libalpm discovery (packaging enables this; CI/dev without system
+# libalpm uses the empty-catalog fallback).
+alpm = ["cachyos-kernel-manager-alpm/libalpm"]
+# the real org.scx.Loader D-Bus client (the scx crate's dbus feature).
+scx-dbus = ["cachyos-kernel-manager-scx/dbus", "dep:zbus"]
 
 [[bin]]
 name = "cachyos-kernel-manager-strings"
@@ -35,6 +50,16 @@ path = "src/bin/main-window.rs"
 [[bin]]
 name = "cachyos-kernel-manager-confwindow"
 path = "src/bin/configure-window.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-i18n"
+path = "src/bin/i18n.rs"
+required-features = ["rendering"]
+
+[[bin]]
+name = "cachyos-kernel-manager-gui"
+path = "src/bin/gui.rs"
+required-features = ["rendering"]
 
 [dev-dependencies]
 serde_json = { workspace = true }

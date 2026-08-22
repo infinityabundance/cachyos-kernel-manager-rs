@@ -1,0 +1,33 @@
+# CLAIM — ui/i18n-resolution
+claim = "The candidate's i18n layer (cachyos-kernel-manager-i18n witness rendering crates/cachyos-kernel-manager-ui/src/i18n.rs: the embedded ts2json catalogs + the initTranslations resolution, cachyos-km-i18n-v1) resolves the frozen oracle's translation semantics BYTE-FOR-BYTE over the shared corpus: the desired locale -> the load order (qt_<base>, qt_<lang_territory>, app <base>, app <lang_territory> — the Qt catalogs skipped, main.cpp:62-106) -> the first app catalog key that is a compiled qrc alias (cachyoskm_locale.qrc: the BARE code, e.g. de, zh-CN); and each (context, source) lookup translates via QTranslator semantics (the first matching <message> with a non-empty, finished <translation>, else the source text). The translation DATA is the frozen lang/*.ts files (revision 6b4a373e, hash-verified by oracle/UPSTREAM.lock): the oracle side parses the .ts DIRECTLY as XML; the candidate side uses its embedded JSON catalogs (generated from the same .ts by tools/ts2json.py, checked in and CI-verified by tools/ts2json.py --check) — the court pins BOTH the resolution semantics AND the conversion pipeline's fidelity. gap-009: a zh_CN system locale produces load-order keys zh and zh_CN — NEITHER is a compiled alias (the compiled alias is zh-CN) — so no catalog resolves and every string falls back to English; the corpus pins that behavior."
+
+model = "Oracle: tools/i18n-oracle-ref, an independent re-declaration parsing the frozen lang/*.ts XML directly (roxmltree) + the qrc alias set. Candidate: the ui crate's i18n module (embedded ts2json JSON + resolve/tr), rendered by the cachyos-kernel-manager-i18n bin. Both consume the shared corpus (cachyos-km-i18n-corpus-v1)."
+
+assumptions = [
+  "The frozen lang/*.ts files (oracle/upstream/lang @ 6b4a373e) are the single authority for the translation data; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "The qrc alias set (cachyoskm_locale.qrc) is the compiled catalog key set: bg ca cs de es it ja ko pl ru sk sv tr nl zh-CN. French is NOT compiled — a fr_FR locale resolves to NO catalog (English).",
+  "The load order is initTranslations (main.cpp:62-106): qt_<base>, qt_<lang_territory>, app <base>, app <lang_territory>; the Qt-provided catalogs are skipped (no Qt runtime in the candidate).",
+  "QTranslator::translate semantics: the first (context, source) match with a non-empty, non-unfinished translation wins; otherwise the source text is returned.",
+  "gap-009: the qrc alias for Chinese is zh-CN; a zh_CN system locale never matches (keys zh/zh_CN) — pinned by the zh_CN corpus file. Whether the real Qt oracle loads zh-CN through another path stays open.",
+  "The candidate's embedded catalogs are generated from the .ts by tools/ts2json.py (CI-verified --check); the court verifies the OUTPUT equivalence (the direct .ts parse vs the generated JSON).",
+  "The model JSON is rendered identically by both sides (serde_json pretty, fixed field order).",
+]
+
+observables = [
+  "the resolved qrc alias for the system locale (or null)",
+  "the translated text of every (context, source) lookup",
+]
+
+witness = "tools/run-i18n-corpus.sh (runs every corpus file through both CLIs), then cargo xtask court run ui/i18n-resolution."
+
+independence = "tools/i18n-oracle-ref parses the frozen lang/*.ts XML directly (roxmltree) and re-declares the qrc alias set + the initTranslations/QTranslator semantics from the frozen source; the candidate's i18n module was written as its own reconstruction against the same authority, with its data embedded via tools/ts2json.py. Neither reads the other's output; the shared corpus is the only input both consume."
+
+falsifier = "Any byte difference in any resolved translation, the resolved alias, or the exit code, over any corpus file."
+
+[[evidence]]
+artifact = "oracle/<corpus-name>.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/<corpus-name>.json"
+sha256 = "pending"

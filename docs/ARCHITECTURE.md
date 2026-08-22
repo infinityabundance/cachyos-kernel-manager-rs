@@ -83,6 +83,35 @@ Effects)`. States (from the directive, mapped to oracle evidence):
 Effects are explicit values (spawn process, run command plan, show dialog,
 persist config) so the machine is replayable and testable.
 
+## Phase 8 rendering layer (Iced)
+
+The UI crate (`cachyos-kernel-manager-ui`) is split into a presentation-free
+semantic layer (courted) and the Iced rendering layer:
+
+- **Semantic models** (always compiled): `strings.rs` (the full string
+  inventory with file:line refs), `main_window.rs` (tree rows, enablement,
+  sort keys), `configure_window.rs` (ctor defaults, variant switch, patch
+  ops, save/load feed), `scx_window.rs` (the sched-ext window projection).
+  Courted by `ui/*`.
+- **Rendering layer** (feature `rendering`, i.e. the root `gui` feature):
+  `app.rs` (the iced `Application`: `UiMessage` translates into the courted
+  `AppEvent`s, the `Effect`s run as lazy `tokio::task::spawn_blocking`
+  tasks), `i18n.rs` (embedded ts2json catalogs + the `initTranslations`
+  resolution, courted by `ui/i18n-resolution`).
+
+Window strategy: the oracle's three native windows render as a single-window
+view stack — the Configure window replaces the main view while
+`ConfigurationState::Editing`, the sched-ext window overlays while
+`ScxState::Visible`, and the dialogs (progress/error/confirm) plus the
+path editor (iced has no native file picker) render on top. The *semantics*
+are courted; the choreography is a rendering choice.
+
+Feature flags: the root `gui` feature enables `rendering`; `gui-alpm` adds
+the real libalpm discovery + the scx D-Bus client (the alpm FFI cannot build
+without system libalpm — CI verifies `gui`, the packaging layer builds
+`gui-alpm`). Without `gui` the root binary keeps the foundation diagnostics
+(`--diagnose`).
+
 ## Phase status
 
 | phase | scope | status |
@@ -95,7 +124,7 @@ persist config) so the machine is replayable and testable.
 | 5 | Execution/privilege | **sealed** | execution/privilege SEMANTICS and oracle characterization sealed: plan/exec layers, terminal-helper matrix, polkit identity, differential GUI transaction courts (strace exec-chain witnesses); 10 Phase 5 courts PASS. The PRODUCTION privilege replacement (narrow typed helper) is planned, not implemented (D-001). |
 | 6 | Build subsystem | **sealed** | PKGBUILD mutation models + courts (patch-injection/source-array, custom-name/pkgbase-injection), artifact-glob/package-functions, build-env/env-rendering + lifecycle + failure-lifecycle + cancellation, option-transitions/variant-switch, git-cache/lifecycle, config-roundtrip/canonicalization, aur/enablement-matrix (discovery gating + commit ordering; the meson-vs-CMake flag difference documented); all Phase 6 courts PASS, 112 workspace tests |
 | 7 | SCX | **sealed** | typed org.scx.Loader client (zbus 5.5.0/zvariant 5.4.0 = the frozen authority's exact versions) + 8 scx courts PASS: button-visibility, current-scheduler, mode-flags, window-init, profile, apply, disable, loader-interface (non-VM source-derived from the recovered pre-extraction scx-manager f3eeaf6 + pinned scx_loader 1.0.9, AND the VM real-loader witness: the candidate's interface is a faithful subset of the shipped loader's, readback values match) |
-| 8 | Iced UI | pending | complete semantic UI over the pinned-down substrate: keyboard, dialogs, progress, i18n, accessibility |
+| 8 | Iced UI | in progress | complete semantic UI over the pinned-down substrate: the orthogonal app-state refactor, the semantic models (main-window, configure-window, strings inventory, sched-ext window), the Iced rendering layer (tree + Configure tabs + sched-ext window + progress/error/confirm dialogs + the path dialogs), i18n resolution (ui/i18n-resolution court: initTranslations load order + the qrc alias set + QTranslator semantics, gap-009 pinned), keyboard (space toggles the focused row), and accessibility (focus traversal, descriptive labels). Remaining: the full differential VM court matrix for the running GUI and the close-during-transaction worker race (gap-010). |
 | 9 | Full differential court matrix | pending | failure paths, historical regressions, repeated executions, drift/slew |
 | 10 | Packaging and migration | pending | Arch package, drop-in files, package replacement, upgrade/revert courts |
 | 11 | Boot/system courts | pending | real kernel mutations, reboot, residual comparison |

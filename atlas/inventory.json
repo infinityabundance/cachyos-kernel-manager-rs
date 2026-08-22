@@ -322,6 +322,13 @@
       "notes": "Courted by scx/loader-interface --vm (the readback comparison)."
     },
     {
+      "id": "ui.i18n_resolution",
+      "authority": "src/main.cpp:62-106 initTranslations + cachyoskm_locale.qrc + lang/*.ts",
+      "value": "desired locale = QLocale::system().name(); load order qt_<base>, qt_<lang_territory>, app <base>, app <lang_territory>; app catalog keys are the qrc aliases (bare codes: bg ca cs de es it ja ko pl ru sk sv tr nl zh-CN); QTranslator::translate returns the first non-empty finished translation else the source",
+      "classification": "REQUIRED_PARITY",
+      "notes": "gap-009: zh_CN never matches the zh-CN alias (English fallback) — pinned by ui/i18n-resolution. Ukrainian .ts is NOT compiled (quirk). Courted by ui/i18n-resolution."
+    },
+    {
       "id": "ui.main_window",
       "authority": "src/km-window.ui, src/km-window.cpp",
       "value": "Title 'CachyOS Kernel Manager'; tree columns Check/PkgName/Version/Category/Displayed/Immutable (last two hidden); buttons: sched-ext scheduler config, Configure, Cancel, Execute; ok disabled until change; space/double-click toggle current leaf item",

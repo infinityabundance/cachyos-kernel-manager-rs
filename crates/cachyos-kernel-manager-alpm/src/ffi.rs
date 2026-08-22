@@ -101,7 +101,9 @@ extern "C" {
     // it as a string (`kernel.cpp:220-224`). Declaring it as `*mut RawDb`
     // would call alpm_db_get_name on a string pointer (garbage).
     fn alpm_pkg_get_installed_db(pkg: *mut RawPkg) -> *const c_char;
-    fn alpm_pkg_vercmp(a: *const c_char, b: *const c_char) -> c_int;
+    /// `alpm_pkg_vercmp(a, b)` — pure (no handle state); exposed as the
+    /// free [`crate::vercmp`] for the UI's version sort.
+    pub(crate) fn alpm_pkg_vercmp(a: *const c_char, b: *const c_char) -> c_int;
 }
 
 unsafe fn cstr(v: &str) -> CString {

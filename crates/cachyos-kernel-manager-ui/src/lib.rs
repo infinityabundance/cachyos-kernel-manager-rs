@@ -14,6 +14,13 @@ pub mod configure_window;
 pub mod main_window;
 pub mod strings;
 
+#[cfg(feature = "rendering")]
+pub mod app;
+#[cfg(feature = "rendering")]
+pub mod i18n;
+#[cfg(feature = "rendering")]
+pub mod scx_window;
+
 use serde::{Deserialize, Serialize};
 
 /// Semantic UI messages (directive §7 style). The UI never contains domain
@@ -21,19 +28,38 @@ use serde::{Deserialize, Serialize};
 /// that lives in the plan crate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Message {
-    KernelToggled { row: usize },
+    KernelToggled {
+        row: usize,
+    },
     ExecuteRequested,
     ConfigureRequested,
-    ConfigLoaded { config: KernelManagerConfig },
-    PatchAdded { entry: String },
-    PatchRemoved { index: usize },
-    PatchMoved { from: usize, to: usize },
-    SchedulerChanged { scheduler: String, mode: String },
+    ConfigLoaded {
+        config: KernelManagerConfig,
+    },
+    PatchAdded {
+        entry: String,
+    },
+    PatchRemoved {
+        index: usize,
+    },
+    PatchMoved {
+        from: usize,
+        to: usize,
+    },
+    SchedulerChanged {
+        scheduler: String,
+        mode: String,
+    },
     CancelRequested,
     CloseRequested,
     BuildRequested,
     InstallArtifactsRequested,
-    VariantChanged { variant: KernelVariant },
+    VariantChanged {
+        variant: KernelVariant,
+    },
+    /// The sched-ext button (`km-window.cpp:185-188` → `on_schedext_config`
+    /// → show the window).
+    SchedextRequested,
 }
 
 pub use cachyos_kernel_manager_core::options::KernelVariant;

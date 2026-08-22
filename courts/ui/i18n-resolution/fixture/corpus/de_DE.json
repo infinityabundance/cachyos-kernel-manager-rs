@@ -1,0 +1,12 @@
+{
+  "system_locale": "de_DE",
+  "lookups": [
+    { "context": "MainWindow", "source": "Execute" },
+    { "context": "MainWindow", "source": "Failed to initialize alpm handle (%1)" },
+    { "context": "ConfWindow", "source": "Do you want to install build packages?" },
+    { "context": "ConfOptionsPage", "source": "Enable CachyOS config" },
+    { "context": "ConfPatchesPage", "source": "Add remote patch" },
+    { "context": "SchedExtWindow", "source": "Running sched-ext scheduler:" },
+    { "context": "MainWindow", "source": "definitely-not-a-string" }
+  ]
+}

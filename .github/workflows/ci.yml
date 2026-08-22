@@ -37,6 +37,9 @@ jobs:
       - name: atlas/court/release schema validation
         run: python3 tools/validate-atlas.py
 
+      - name: ts2json catalogs derive from the frozen .ts files
+        run: python3 tools/ts2json.py --check
+
       - name: status tables derive from atlas/status.json
         run: python3 tools/update-status-tables.py --check
 
@@ -59,3 +62,22 @@ jobs:
         uses: dtolnay/rust-toolchain@1.85.0
       - name: MSRV check
         run: cargo check --workspace --all-targets
+
+  # Phase 8: the Iced GUI compiles iced+wgpu (~700 crates, 10+ min on a
+  # runner) — verified in its own job so the pure layer stays fast.
+  gui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: GUI check (root binary with the rendering feature)
+        run: cargo check --features gui
+      - name: GUI clippy
+        run: cargo clippy -p cachyos-kernel-manager-ui --features rendering -- -D warnings
+      - name: GUI tests (app state machine + i18n + models)
+        run: cargo test -p cachyos-kernel-manager-ui --features rendering
+      - name: ts2json catalogs derive from the frozen .ts files
+        run: python3 tools/ts2json.py --check

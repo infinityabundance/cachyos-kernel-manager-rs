@@ -1,8 +1,8 @@
 version = "1.0.0"
 
 # Pure non-VM court: both sides render their string declaration once. The
-# corpus is empty by design (the table is a fixed contract).
-fixture = "minimal"
+# corpus is empty by design (the table is a fixed contract). No baked
+# fixture image (the VM-capability marker key is deliberately ABSENT).
 
 # Everything in oracle/ vs candidate/ is compared byte-for-byte (the
 # casefile's default); the lists below are declared for symmetry with the

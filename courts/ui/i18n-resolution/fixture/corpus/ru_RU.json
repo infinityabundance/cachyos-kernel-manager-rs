@@ -1,0 +1,8 @@
+{
+  "system_locale": "ru_RU",
+  "lookups": [
+    { "context": "MainWindow", "source": "Configure" },
+    { "context": "ConfWindow", "source": "Failed to save config options to file: %1" },
+    { "context": "SchedExtWindow", "source": "Select sched-ext scheduler:" }
+  ]
+}

@@ -1,0 +1,522 @@
+{
+ "locale": "nl",
+ "qrc_alias": "nl",
+ "source_ts": "cachyos-kernel-manager_nl.ts",
+ "source_sha256": "684adb6b433bfc4042172dfa2fbc7d85686ce4c6da69388be8bcc0233bd68804",
+ "entries": [
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable CachyOS config",
+   "translation": "CachyOS-configuratie inschakelen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:66"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via nconfig",
+   "translation": "Kernelopties aanpassen vóór de build via nconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:95"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via xconfig",
+   "translation": "Kernelopties aanpassen vóór de build via xconfig",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:153"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use Modprobed-db",
+   "translation": "Gebruik Modprobed-db",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:240"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable KBUILD_CFLAGS -O3",
+   "translation": "KBUILD_CFLAGS -O3 inschakelen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:269"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Set performance governor as default",
+   "translation": "Stel de prestatie-governor in als standaard",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:298"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable TCP_CONG_BBR3",
+   "translation": "TCP_CONG_BBR3 inschakelen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:327"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Running tick rate",
+   "translation": "Lopende tickfrequentie",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:356"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select tickless",
+   "translation": "Tickless selecteren",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:385"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select preempt",
+   "translation": "Preempt selecteren",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:414"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Transparent Hugepages",
+   "translation": "Transparent Hugepages instellen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:443"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable DAMON",
+   "translation": "DAMON inschakelen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:472"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "CPU compiler optimizations",
+   "translation": "CPU-compileroptimalisaties",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:501"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Apply automatic CPU Optimization",
+   "translation": "Automatische CPU-optimalisatie toepassen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:530"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable LTO",
+   "translation": "LTO inschakelen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:559"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the ZFS module",
+   "translation": "ZFS-module bouwen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:588"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the open NVIDIA module",
+   "translation": "Open NVIDIA-module bouwen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:646"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Include vmlinux with debug informations/symbols",
+   "translation": "vmlinux opnemen met debug-informatie/symbolen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:675"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Load",
+   "translation": "Laden",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:721"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Save",
+   "translation": "Opslaan",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:728"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Cancel",
+   "translation": "Annuleren",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:748"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build kernel",
+   "translation": "Kernel bouwen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:755"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Custom package name",
+   "translation": "Aangepaste pakketnaam",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:33"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "$pkgbase-custom",
+   "translation": "$pkgbase-custom",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:53"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add remote patch",
+   "translation": "Externe patch toevoegen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:81"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add local patch",
+   "translation": "Lokale patch toevoegen",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:88"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS Kernel Manager Configure",
+   "translation": "CachyOS Kernel Manager configureren",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:17"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Options",
+   "translation": "Opties",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:40"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patches",
+   "translation": "Patches",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:45"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Do you want to install build packages?",
+   "translation": "Wilt u de gebouwde pakketten installeren?",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:370"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS default Scheduler (tuned EEVDF)",
+   "translation": "CachyOS-standaardplanner (BORE+Cachy Sauce)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:482"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BORE - Burst-Oriented Response Enhancer",
+   "translation": "BORE - Burst-Oriented Response Enhancer",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:483"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RC - Release Candidate",
+   "translation": "RC - Release Candidate",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:484"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT - Realtime kernel",
+   "translation": "RT - Realtime kernel",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:485"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT-Bore",
+   "translation": "RT-Bore",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:486"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "EEVDF",
+   "translation": "EEVDF",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:487"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BMQ (BitMap Queue)",
+   "translation": "BMQ (BitMap Queue)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:488"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Select one or more patch files",
+   "translation": "Selecteer een of meer patch-bestanden",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:563"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch file (*.patch)",
+   "translation": "Patch-bestand (*.patch)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:565"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Enter URL patch",
+   "translation": "Patch-URL invoeren",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:585"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch URL:",
+   "translation": "Patch-URL:",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:586"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Save file as",
+   "translation": "Opslaan als",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:709"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file (*.toml)",
+   "translation": "Configuratiebestand (*.toml)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:711",
+    "../src/conf-window.cpp:728"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to save config options to file: %1",
+   "translation": "Opslaan van configuratieopties naar bestand mislukt: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:718"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Load from",
+   "translation": "Laden van",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:726"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to load config options from file: %1",
+   "translation": "Kon configuratieopties niet laden uit bestand: %1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:736"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file(%1) is outdated",
+   "translation": "Configuratiebestand (%1) is verouderd",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:772"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "CachyOS Kernel Manager",
+   "translation": "CachyOS Kernel Manager",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:17"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Choose",
+   "translation": "Selecteren",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:64"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "PkgName",
+   "translation": "Pakketnaam",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:69"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Version",
+   "translation": "Versie",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:74"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Category",
+   "translation": "Categorie",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:79"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "sched-ext scheduler config",
+   "translation": "sched-ext plannerconfiguratie",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:116"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Configure",
+   "translation": "Configureren",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:123"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Cancel",
+   "translation": "Annuleren",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:130"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Execute",
+   "translation": "Uitvoeren",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:137"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "No kernels found!\nPlease run `pacman -Sy` to update DB!\nThis is needed for the app to work properly",
+   "translation": "Geen kernels gevonden!\nVoer `pacman -Sy` uit om de database bij te werken!\nDit is nodig om de applicatie correct te laten werken",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:227"
+   ]
+  }
+ ]
+}

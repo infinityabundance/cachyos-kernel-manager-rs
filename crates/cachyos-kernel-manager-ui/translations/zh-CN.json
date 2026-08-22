@@ -1,0 +1,665 @@
+{
+ "locale": "zh-CN",
+ "qrc_alias": "zh-CN",
+ "source_ts": "cachyos-kernel-manager_zh-CN.ts",
+ "source_sha256": "61e79b1023349ac7066196ad3d68d092f01dd9d256f6ef215bf1f641b409dd54",
+ "entries": [
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable CachyOS config",
+   "translation": "启用 CachyOS 优化的内核配置",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:66"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via nconfig",
+   "translation": "通过 nconfig 来微调内核设置",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:95"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Tweak kernel options prior to a build via xconfig",
+   "translation": "通过 xconfig 来微调内核设置",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:153"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Use Modprobed-db",
+   "translation": "使用 Modprobed-db",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:240"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable KBUILD_CFLAGS -O3",
+   "translation": "启用 KBUILD_CFLAGS -O3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:269"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Set performance governor as default",
+   "translation": "将性能调节器设为默认",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:298"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable TCP_CONG_BBR3",
+   "translation": "启用 TCP_CONG_BBR3",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:327"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Running tick rate",
+   "translation": "运行时时钟滴答频率",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:356"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select tickless",
+   "translation": "选择无滴答模式",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:385"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Select preempt",
+   "translation": "选择抢占模型",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:414"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the open NVIDIA module",
+   "translation": "构建 NVIDIA 开源 GPU 内核模块",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:646"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Load",
+   "translation": "加载",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:721"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Save",
+   "translation": "保存",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:728"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build kernel",
+   "translation": "构建内核",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:755"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable DAMON",
+   "translation": "启用 DAMON",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:472"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "CPU compiler optimizations",
+   "translation": "CPU 编译器优化",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:501"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Apply automatic CPU Optimization",
+   "translation": "应用自动检测的 CPU 优化",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:530"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Enable LTO",
+   "translation": "启用 LTO",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:559"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Build the ZFS module",
+   "translation": "构建 ZFS 模块",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:588"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Include vmlinux with debug informations/symbols",
+   "translation": "包含 vmlinux 调试信息",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:675"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Transparent Hugepages",
+   "translation": "透明大页",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:443"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Cancel",
+   "translation": "取消",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:748"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Execute",
+   "translation": "执行",
+   "unfinished": false,
+   "locations": []
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "Custom package name",
+   "translation": "自定义内核软件包名称",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-options-page.ui:33"
+   ]
+  },
+  {
+   "context": "ConfOptionsPage",
+   "source": "$pkgbase-custom",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-options-page.ui:53"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add remote patch",
+   "translation": "添加远程补丁",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:81"
+   ]
+  },
+  {
+   "context": "ConfPatchesPage",
+   "source": "Add local patch",
+   "translation": "添加本地补丁",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-patches-page.ui:88"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS Kernel Manager Configure",
+   "translation": "CachyOS 内核管理器面板",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:17"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Options",
+   "translation": "设置",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:40"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patches",
+   "translation": "补丁",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.ui:45"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RC - Release Candidate",
+   "translation": "RC - 发布候选",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:484"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "EEVDF",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:487"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BMQ (BitMap Queue)",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:488"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Select one or more patch files",
+   "translation": "选择一个或多个补丁文件",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:563"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch file (*.patch)",
+   "translation": "补丁文件(*.patch)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:565"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Enter URL patch",
+   "translation": "输入补丁文件的 URL 地址",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:585"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Patch URL:",
+   "translation": "补丁 URL:",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:586"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Save file as",
+   "translation": "保存为",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:709"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file (*.toml)",
+   "translation": "配置文件(*.toml)",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:711",
+    "../src/conf-window.cpp:728"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to save config options to file: %1",
+   "translation": "无法保存配置选项到文件：%1",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:718"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Load from",
+   "translation": "从...加载",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:726"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Failed to load config options from file: %1",
+   "translation": "无法从文件：%1 中加载配置选项",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:736"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Config file(%1) is outdated",
+   "translation": "配置文件 (%1) 已过期",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:772"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT - Realtime kernel",
+   "translation": "RT - 实时内核",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:485"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "Do you want to install build packages?",
+   "translation": "您想要安装构建好的内核吗？",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:370"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "CachyOS default Scheduler (tuned EEVDF)",
+   "translation": "CachyOS 默认调度器（调优后的 EEVDF）",
+   "unfinished": false,
+   "locations": [
+    "../src/conf-window.cpp:482"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "BORE - Burst-Oriented Response Enhancer",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:483"
+   ]
+  },
+  {
+   "context": "ConfWindow",
+   "source": "RT-Bore",
+   "translation": "",
+   "unfinished": true,
+   "locations": [
+    "../src/conf-window.cpp:486"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "CachyOS Kernel Manager",
+   "translation": "CachyOS 内核管理器",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:17"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install/uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work if you are already running a pacman instance.</p>\n</body>\n</html>",
+   "translation": "<html>\n<body>\n<p>在这里，您将会看到有关已安装的，以及可用的 Linux 内核信息。</p>\n<p>您可以使用最左侧列中的复选框来安装/卸载内核软件包。</p>\n<p>若您同时运行了一个 pacman 实例，此软件将不会工作。</p>\n</body>\n</html>",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:28"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Choose",
+   "translation": "选择",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:64"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "PkgName",
+   "translation": "软件包名称",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:69"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Version",
+   "translation": "版本",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:74"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Category",
+   "translation": "目录",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:79"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "sched-ext scheduler config",
+   "translation": "sched-ext 调度器配置",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:116"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Configure",
+   "translation": "配置",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:123"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Cancel",
+   "translation": "取消",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:130"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Execute",
+   "translation": "执行",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.ui:137"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "No kernels found!\nPlease run `pacman -Sy` to update DB!\nThis is needed for the app to work properly",
+   "translation": "没有发现内核！\n请运行 `pacman -Sy` 来更新数据库！\n这是让此软件正常工作所必需的操作",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:227"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to clone repository!\nPlease check your internet connection and try again",
+   "translation": "无法克隆仓库！\n请检查您的网络连接并再试一次",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:201"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nWe are preparing configuration window for you\ncloning PKGBUILDs..",
+   "translation": "请稍等...\n我们正在为您准备配置窗口\n克隆 PKGBUILD 中..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:276",
+    "../src/km-window.cpp:340"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to initialize alpm handle (%1)",
+   "translation": "初始化 ALPM 句柄失败（%1）",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:143"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Failed to release alpm handle (%1)",
+   "translation": "释放 ALPM 句柄失败（%1）",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:156"
+   ]
+  },
+  {
+   "context": "MainWindow",
+   "source": "Please wait...\nInitializing kernels..",
+   "translation": "请稍等...\n正在初始化内核..",
+   "unfinished": false,
+   "locations": [
+    "../src/km-window.cpp:361"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "CachyOS Configure sched-ext",
+   "translation": "CachyOS sched-ext 配置",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:17"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "<html><head/><body><p align=\"center\">Configure sched-ext scheduler:</p></body></html>",
+   "translation": "<html><head/><body><p align=\"center\">配置 sched-ext 调度器:</p></body></html>",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:40"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Select sched-ext scheduler:",
+   "translation": "选择 sched-ext 调度器",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:82"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Select scheduler profile:",
+   "translation": "选择调度器配置文件：",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:92"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "unknown",
+   "translation": "未知",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:115"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Running sched-ext scheduler:",
+   "translation": "运行中的 sched-ext 调度器",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:75"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Set sched-ext extra scheduler flags:",
+   "translation": "设置 sched-ext 调度器附加参数",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:122"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Disable",
+   "translation": "禁用",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:176"
+   ]
+  },
+  {
+   "context": "SchedExtWindow",
+   "source": "Apply",
+   "translation": "应用",
+   "unfinished": false,
+   "locations": [
+    "../src/schedext-window.ui:183"
+   ]
+  }
+ ]
+}

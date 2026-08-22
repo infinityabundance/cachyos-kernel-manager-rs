@@ -1,0 +1,7 @@
+{
+  "system_locale": "C",
+  "lookups": [
+    { "context": "MainWindow", "source": "Execute" },
+    { "context": "ConfOptionsPage", "source": "Enable CachyOS config" }
+  ]
+}

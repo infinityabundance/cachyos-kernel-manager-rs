@@ -1,0 +1,8 @@
+{
+  "system_locale": "zh_CN",
+  "lookups": [
+    { "context": "MainWindow", "source": "Execute" },
+    { "context": "ConfOptionsPage", "source": "Enable CachyOS config" },
+    { "context": "SchedExtWindow", "source": "Running sched-ext scheduler:" }
+  ]
+}
