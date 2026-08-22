@@ -69,8 +69,8 @@
   {
    "phase": 8,
    "name": "Iced UI",
-   "status": "in-progress",
-   "wording": "complete semantic UI over the pinned-down substrate: the orthogonal app-state refactor, the semantic models (main-window, configure-window, strings inventory, sched-ext window), the Iced rendering layer (tree + Configure tabs + sched-ext window + progress/error/confirm dialogs + the path dialogs), i18n resolution (ui/i18n-resolution court: initTranslations load order + the qrc alias set + QTranslator semantics, gap-009 pinned), keyboard (space toggles the focused row), and accessibility (focus traversal, descriptive labels). Remaining: the full differential VM court matrix for the running GUI and the close-during-transaction worker race (gap-010)."
+   "status": "sealed",
+   "wording": "The Phase 8 scope — the complete semantic UI over the pinned-down substrate — is SEALED: the orthogonal app-state refactor; the semantic models (main-window, configure-window, strings inventory, sched-ext window) courted by ui/dialog-strings + ui/main-window-semantics + ui/configure-window-semantics; the Iced rendering layer (tree with sortable headers, Configure Options/Patches tabs, sched-ext window, progress/error/confirm dialogs, the inline path dialogs; feature gui, gui-alpm adds real libalpm + scx dbus) verified by the 35-test rendering suite + the gui CI jobs; i18n courted by ui/i18n-resolution (initTranslations load order + the qrc alias set + QTranslator semantics; gap-009 zh_CN pinned); keyboard (space toggles the focused row) and accessibility (focus traversal + descriptive labels; an AT-SPI court for the running candidate GUI is blocked on an iced a11y bridge — gap-011). The close-during-transaction worker race (gap-010) is characterized and NOT reproduced (runtime-owned tasks). The oracle-side differential courts (Phases 2/5/6) continue to witness the oracle GUI against the semantic models; the full Phase 9 differential matrix is the next phase."
   },
   {
    "phase": 9,

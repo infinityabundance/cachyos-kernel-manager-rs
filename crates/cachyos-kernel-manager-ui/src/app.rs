@@ -401,8 +401,11 @@ impl App {
             Message::VariantChanged { variant } => {
                 // `main_combo_box` change handler + reset_patches_data_tab
                 // (conf-window.cpp:553-602); the source-array probe is a
-                // UI-side action (the app's git cache) — empty here.
+                // UI-side action (the app's git cache) — empty here. The
+                // core build_options must follow (the RunBuild effect's
+                // variant_dir comes from it).
                 self.configure.on_variant_changed(variant, &[]);
+                self.state.build_options.variant = variant;
                 Task::none()
             }
             Message::PatchAdded { entry } => {
@@ -1770,6 +1773,8 @@ mod tests {
         let _ = update(&mut app, UiMessage::VariantPicked(KernelVariant::Hardened));
         assert_eq!(app.configure.variant, KernelVariant::Hardened);
         assert_eq!(app.configure.switch.lto_selected, LtoMode::None);
+        // the core build_options follow (the RunBuild effect's dir)
+        assert_eq!(app.state.build_options.variant, KernelVariant::Hardened);
     }
 
     #[test]
