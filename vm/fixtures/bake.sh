@@ -12,6 +12,12 @@
 set -euo pipefail
 
 FIXTURE="${1:?usage: bake.sh <fixture>}"
+# fail closed if the fixture name is empty or unsafe: the deletion below is
+# `rm -rf /host-images/fixtures/$FIXTURE` — an empty FIXTURE would wipe the
+# whole fixtures dir, and a path-traversal name would escape it
+case "$FIXTURE" in
+    ''|*/*|*..*) echo "bake.sh: unsafe fixture name: $FIXTURE" >&2; exit 1 ;;
+esac
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 VM="$ROOT/vm"
 IMAGES="$VM/images"

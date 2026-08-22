@@ -1,0 +1,7 @@
+{
+ "fixture": "epoch-versions",
+ "raw_image_hash": "sha256:407bd014000ccd8865f9023f0ab241c37f438ea500075a1ae5f0710d137f0d91",
+ "baked_at": "2026-08-21T23:47:01Z",
+ "fixture_digest": "sha256:afd3b14b5891c18284504d4ef7bff6ef1c98ca24bec72d8a6b4fa2ad3760ebfa",
+ "spec_sha256": "sha256:6e7d124d4f3e00934e64c43af40ec61aacaa23e42155f116f96db17db213ee78"
+}

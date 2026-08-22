@@ -70,7 +70,10 @@ trap - EXIT
 sync
 
 step "capture package manifest"
-arch-chroot "$ROOT" pacman -Q | sort > "$OUT/packages.txt"
+# tolerate fixtures whose /etc/pacman.conf is deliberately malformed or
+# missing (the malformed/missing-conf courts): pacman -Q then fails, but the
+# manifest is evidence metadata — degrade to an empty list, never abort
+arch-chroot "$ROOT" pacman -Q 2>/dev/null | sort > "$OUT/packages.txt" || true
 chmod 644 "$OUT/packages.txt"
 
 step "create fixture disk image (loop-free)"

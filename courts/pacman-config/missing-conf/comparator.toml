@@ -1,0 +1,7 @@
+version = "1.0.0"
+fixture = "missing-conf"
+
+ignore = ["oracle.stdout", "oracle.stderr", "candidate.stderr", "oracle-trace.log"]
+byte_exact = []
+json_semantic = ["oracle-state.json", "candidate-state.json", "residual.json"]
+volatile_prefixes = ["/tmp/", "/proc/", "/run/user/", "/var/log/"]

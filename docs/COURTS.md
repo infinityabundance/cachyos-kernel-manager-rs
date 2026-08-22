@@ -38,17 +38,23 @@ over coordinate screenshots; §0 forbids screenshots as proof). The probe
 commands the oracle executes at startup (findmnt/chwd/pacman -Qqs/...) are
 witnessed via strace `execve` capture for archaeology.
 
-## Baseline status (Phase 2)
+## Baseline status
 
-All 10 baseline kernel-discovery courts PASS (oracle == candidate, 0
-residuals, evidence verified): `minimal`, `several-kernels`,
+18 courts PASS (oracle == candidate, 0 residuals, evidence verified): the 10
+Phase 2 kernel-discovery courts (`minimal`, `several-kernels`,
 `upgrade-available`, `downgrade-visible`, `custom-repo`,
 `cross-repo-installed`, `duplicate-across-repos`, `stale-db`,
-`empty-all-dbs`, `empty-sync-db`. Drift/slew: `minimal` ×3 and
-`upgrade-available` ×2 re-runs on identical overlays are deterministic.
+`empty-all-dbs`, `empty-sync-db`), and the 8 Phase 4 courts
+(`kernel-discovery/adversarial-names`, `epoch-versions`,
+`companion-resolution`; `pacman-config/testing-and-disabled`,
+`case-sensitivity`, `duplicated-sections`, `malformed`, `missing-conf`).
+
+Drift/slew: `minimal` ×3 and `upgrade-available` ×2 re-runs on identical
+overlays are deterministic.
 
 The residuals encountered while establishing the baseline (and their
-resolutions) are recorded in `atlas/residual-ledger.json` (RES-2026-001..008).
+resolutions) are recorded in `atlas/residual-ledger.json`
+(RES-2026-001..010).
 
 Before running courts, `vm-ctl.sh cleanup` removes stale qemu processes
 (they survive process-tree kills because they run in their own systemd

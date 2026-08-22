@@ -1,7 +1,7 @@
 {
- "fixture": "out",
- "raw_image_hash": "sha256:c53f81fa9d190f88e755dc31cab59698372a515bd2710ef109963697b852f097",
- "baked_at": "2026-08-21T17:58:55Z",
- "fixture_digest": "sha256:c8dadb9eebf9b04a88f07754dd36911a27a1ef664fbed8c0c1b466a4f8e178c8",
+ "fixture": "minimal",
+ "raw_image_hash": "sha256:29b8bef06c84bdbc8cfd0ca11164160835162aebebe6f184e771ba04defb5c6a",
+ "baked_at": "2026-08-21T23:06:44Z",
+ "fixture_digest": "sha256:6ad96a9187b265701028ac8e83a1543beb00a011c0fe623d709b896a57bf7405",
  "spec_sha256": "sha256:5020914f84d4eb0f3428ed7092bf0ce0d8b5492356668eb6b81e8cef9ce83e28"
 }

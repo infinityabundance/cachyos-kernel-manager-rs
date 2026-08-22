@@ -90,10 +90,12 @@ CachyOS is rolling; reproducibility is snapshot-based:
 - the machine residual is compared between the oracle and candidate runs:
   any drift is a fixture-integrity residual, not a parity pass.
 
-## Fixture matrix (directive §41) — Phase 2 baseline
+## Fixture matrix — Phase 2 baseline + Phase 4 ALPM/config
 
-All 10 baseline fixtures are baked and their kernel-discovery courts PASS
-(oracle == candidate, 0 residuals, verified evidence):
+All 18 fixtures are baked and their courts PASS (oracle == candidate, 0
+residuals, verified evidence):
+
+Phase 2 kernel-discovery baseline:
 
 | fixture | coverage | status |
 |---|---|---|
@@ -107,6 +109,19 @@ All 10 baseline fixtures are baked and their kernel-discovery courts PASS
 | stale-db | cachyos.db removed; section registered, no packages | PASS |
 | empty-all-dbs | no sync dbs -> 'No kernels found!' dialog | PASS |
 | empty-sync-db | registered repo with a zero-package db | PASS |
+
+Phase 4 (ALPM layer + pacman-config):
+
+| fixture | coverage | status |
+|---|---|---|
+| adversarial-names | headers-without-kernel, kernel-without-headers, linux-api-headers skip | PASS |
+| epoch-versions | epoch/unusual version syntax, cross-epoch ∧/∨ markers | PASS |
+| companion-resolution | zfs/nvidia/nvidia-open companion presence (source-anchored model) | PASS |
+| testing-and-disabled | [testing] skipped, [core-testing] registered, commented repos ignored | PASS |
+| case-sensitivity | [Fixtures] lowercased by mINI, discovers fixtures.db | PASS |
+| duplicated-sections | duplicated [fixtures] merges to one registration | PASS |
+| malformed | [a=b key, unclosed [broken, stray text, numeric auto-section "0" | PASS |
+| missing-conf | no /etc/pacman.conf: zero registrations, empty-discovery dialog | PASS |
 
 Drift/slew: `minimal` (3x) and `upgrade-available` (2x) re-run on identical
 overlays — deterministic PASS, no drift.

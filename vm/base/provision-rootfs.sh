@@ -2,11 +2,13 @@
 #
 # provision-rootfs.sh — runs INSIDE the privileged Docker builder container.
 #
-# Produces, in order:
-#   1. /out/base.raw     — raw disk image (BIOS MBR + one ext4 root partition)
-#   2. /out/base.qcow2   — qcow2 conversion of base.raw (the immutable base)
-#   3. /out/manifest.json— reference_image_hash + full package manifest +
-#                          oracle revision + build environment fingerprints
+# Produces, in order (big artifacts DIRECTLY on the host bind mount
+# /host-images — the container's tmpfs-backed layer is too small):
+#   1. /host-images/base.raw   — raw disk image (MBR + ext4 root partition)
+#   2. /host-images/base-rootfs — exported rootfs DIRECTORY (fixture bakes)
+#   3. /out/manifest.json      — reference_image_hash + package manifest +
+#                                oracle revision + environment fingerprints
+#   4. /out/boot/              — vmlinuz + initramfs for qemu direct-kernel
 #
 # The result is a controlled CachyOS userland with the ORACLE application
 # built from the frozen commit, ready for snapshot-based courts.
@@ -28,8 +30,6 @@ ORACLE_COMMIT="6b4a373e6a4e7295a0803034e597c4f2a055a411"
 ORACLE_TARBALL="/in/oracle-src.tar.gz"
 IMG_ROOT=/img
 OUT=/out
-RAW_IMAGE="$OUT/base.raw"
-QCOW_IMAGE="$OUT/base.qcow2"
 DISK_SIZE=16G
 ROOT_LABEL="cachyoskmroot"
 # The builder container's writable layer is tmpfs-backed (docker data root

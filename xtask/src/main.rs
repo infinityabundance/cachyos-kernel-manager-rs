@@ -601,7 +601,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
 
     // compare
     let residuals = match cachyos_kernel_manager_casefile::vm_court::compare_vm_observations(
-        &case.dir, case_id,
+        &case.dir,
+        case_id,
+        &case.comparator.companion_model,
     ) {
         Ok(r) => r,
         Err(e) => {

@@ -1,0 +1,7 @@
+{
+ "fixture": "adversarial-names",
+ "raw_image_hash": "sha256:162eb270547b1fc71d3887b01e763077e4a9d0a87d77d3d6778dffcc7f9b6ff4",
+ "baked_at": "2026-08-21T23:32:03Z",
+ "fixture_digest": "sha256:f81a75aa79f19f18e02be2ef8533aa0496f100050ba0129616b4f9f418dcb672",
+ "spec_sha256": "sha256:17d5869ac322aa3822145dba511ad7672b2cec57ad318ef0f40412df59b2fe7f"
+}

@@ -15,6 +15,7 @@ pub mod evidence;
 pub mod normalize;
 pub mod vm_court;
 
+use crate::vm_court::CompanionExpectation;
 use cachyos_kernel_manager_frf::{EvidentiaryChain, Residual};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -66,6 +67,12 @@ pub struct Comparator {
     /// Volatile path patterns normalized before comparison (e.g. PIDs).
     #[serde(default)]
     pub volatile_prefixes: Vec<String>,
+    /// Source-anchored companion expectations, keyed by kernel name
+    /// (`kernel.cpp:226-244`). When present, the candidate's per-row
+    /// companions are compared against this model and mismatches become
+    /// residuals.
+    #[serde(default)]
+    pub companion_model: BTreeMap<String, CompanionExpectation>,
 }
 
 /// A loaded case directory.

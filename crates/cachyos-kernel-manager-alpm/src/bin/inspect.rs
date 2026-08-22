@@ -25,7 +25,6 @@ use cachyos_kernel_manager_core::kernel::{
     classify_category, kernel_headers_name, matches_headers_needle, strip_version_marker,
     DisplayVersion,
 };
-use std::io::Read;
 
 const PACMAN_CONF: &str = "/etc/pacman.conf";
 const ALPM_ROOT: &str = "/";
@@ -59,12 +58,12 @@ fn open() -> AlpmHandle {
 }
 
 fn read_pacman_conf() -> String {
-    let mut s = String::new();
-    std::fs::File::open(PACMAN_CONF)
-        .unwrap_or_else(|e| panic!("{PACMAN_CONF}: {e}"))
-        .read_to_string(&mut s)
-        .expect("read pacman.conf");
-    s
+    // mINI parity: an unreadable /etc/pacman.conf yields an EMPTY structure
+    // (ini.hpp INIReader: file not open -> operator>> returns false, data
+    // stays empty), so the oracle registers ZERO sync dbs and discovery is
+    // empty. A missing file must not abort the candidate — it must produce
+    // the same empty registration.
+    std::fs::read_to_string(PACMAN_CONF).unwrap_or_default()
 }
 
 fn exec_stdout(cmd: &str, args: &[&str]) -> String {

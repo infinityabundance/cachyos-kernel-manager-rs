@@ -10,6 +10,16 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+/// Companion candidates of a row (the oracle's per-kernel companion names,
+/// `kernel.cpp:226-244`): each is `None` when the candidate package does not
+/// exist in the same database.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct CompanionRow {
+    pub zfs: Option<String>,
+    pub nvidia: Option<String>,
+    pub nvidia_open: Option<String>,
+}
+
 /// One comparable kernel row.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KernelRowObservable {
@@ -22,6 +32,11 @@ pub struct KernelRowObservable {
     pub category: String,
     /// Checkbox state.
     pub checked: bool,
+    /// Companion candidates (candidate-only observable; the oracle does not
+    /// expose companions through AT-SPI at discovery time — compared against
+    /// the source-anchored `companion_model` from comparator.toml).
+    #[serde(default)]
+    pub companions: Option<CompanionRow>,
 }
 
 /// The normalized observation set.
@@ -321,6 +336,7 @@ fn row_from_flat(cells: &[&Value], layout: &ColumnLayout) -> Option<KernelRowObs
         version,
         category,
         checked,
+        companions: None,
     })
 }
 
@@ -413,6 +429,7 @@ fn row_from_node(node: &Value) -> Option<KernelRowObservable> {
         version: version.unwrap_or_default(),
         category: category.unwrap_or_default(),
         checked: node_checked(node),
+        companions: None,
     })
 }
 
@@ -446,14 +463,26 @@ pub fn candidate_observation(state: &Value) -> Result<Observation, NormalizerErr
             .get("checked_default")
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
+        let companions = k.get("companions").map(|c| CompanionRow {
+            zfs: opt_str(c.get("zfs")),
+            nvidia: opt_str(c.get("nvidia")),
+            nvidia_open: opt_str(c.get("nvidia_open")),
+        });
         obs.rows.push(KernelRowObservable {
             raw,
             version,
             category,
             checked,
+            companions,
         });
     }
     Ok(obs)
+}
+
+fn opt_str(v: Option<&Value>) -> Option<String> {
+    v.and_then(|x| x.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
 }
 
 /// Normalize a machine residual (schema `cachyos-km-machine-residual-v1`)

@@ -9,11 +9,29 @@ use crate::normalize::{
 };
 use crate::CaseError;
 use cachyos_kernel_manager_frf::Residual;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::path::Path;
 
 /// Comparator version (bump on comparison-semantics changes).
-pub const COMPARATOR_VERSION: &str = "1.0.0";
+pub const COMPARATOR_VERSION: &str = "1.1.0";
+
+/// Source-anchored companion expectation from `comparator.toml`
+/// (`[companion_model]`, keyed by kernel NAME). The oracle does not expose
+/// companion resolution through AT-SPI at discovery time, so the candidate's
+/// companions are compared against this model, which is derived from
+/// `kernel.cpp:226-244` and recorded in the court claim. The differential
+/// companion proof arrives with the Phase 5 transaction courts.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct CompanionExpectation {
+    #[serde(default)]
+    pub zfs: Option<String>,
+    #[serde(default)]
+    pub nvidia: Option<String>,
+    #[serde(default)]
+    pub nvidia_open: Option<String>,
+}
 
 /// Read a JSON file.
 fn read_json(path: &Path) -> Result<Value, CaseError> {
@@ -26,6 +44,7 @@ pub fn compare_observations(
     court: &str,
     oracle: &Observation,
     candidate: &Observation,
+    companion_model: &BTreeMap<String, CompanionExpectation>,
 ) -> Vec<Residual> {
     let mut residuals = Vec::new();
 
@@ -67,6 +86,32 @@ pub fn compare_observations(
                         &o.checked.to_string(),
                         &c.checked.to_string(),
                     ));
+                }
+                // companions: source-anchored model check (the oracle side
+                // carries None; the model keys on the row's RAW `<repo>/<name>`
+                // so per-repo duplicates can carry distinct expectations)
+                if let Some(expected) = companion_model.get(&c.raw) {
+                    if let Some(companions) = &c.companions {
+                        for (field, actual, want) in [
+                            ("zfs", &companions.zfs, &expected.zfs),
+                            ("nvidia", &companions.nvidia, &expected.nvidia),
+                            (
+                                "nvidia_open",
+                                &companions.nvidia_open,
+                                &expected.nvidia_open,
+                            ),
+                        ] {
+                            if actual != want {
+                                residuals.push(mismatch(
+                                    court,
+                                    i,
+                                    &format!("companion-{field}"),
+                                    &want.clone().unwrap_or_default(),
+                                    &actual.clone().unwrap_or_default(),
+                                ));
+                            }
+                        }
+                    }
                 }
             }
             (Some(o), None) => residuals.push(mismatch(court, i, "row", &o.raw, "<missing>")),
@@ -116,6 +161,7 @@ fn mismatch(court: &str, row: usize, field: &str, oracle: &str, candidate: &str)
 pub fn compare_vm_observations(
     case_dir: &Path,
     court_id: &str,
+    companion_model: &BTreeMap<String, CompanionExpectation>,
 ) -> Result<Vec<Residual>, CaseError> {
     let oracle_dir = case_dir.join("oracle");
     let candidate_dir = case_dir.join("candidate");
@@ -153,7 +199,12 @@ pub fn compare_vm_observations(
         .map_err(|e: NormalizerError| CaseError::Other(format!("oracle normalize: {e}")))?;
     let c_obs = candidate_observation(&candidate_state)
         .map_err(|e: NormalizerError| CaseError::Other(format!("candidate normalize: {e}")))?;
-    residuals.extend(compare_observations(court_id, &o_obs, &c_obs));
+    residuals.extend(compare_observations(
+        court_id,
+        &o_obs,
+        &c_obs,
+        companion_model,
+    ));
 
     Ok(residuals)
 }
@@ -171,4 +222,95 @@ pub fn normalizer_versions() -> Vec<(String, String)> {
             RESIDUAL_NORMALIZER_VERSION.to_string(),
         ),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::normalize::{CompanionRow, KernelRowObservable};
+    use std::collections::BTreeMap;
+
+    fn row(raw: &str, companions: Option<CompanionRow>) -> KernelRowObservable {
+        KernelRowObservable {
+            raw: raw.into(),
+            version: "1.0-1".into(),
+            category: "stable".into(),
+            checked: false,
+            companions,
+        }
+    }
+
+    fn obs(rows: Vec<KernelRowObservable>) -> Observation {
+        Observation {
+            rows,
+            dialogs: vec![],
+        }
+    }
+
+    fn model(
+        kernel: &str,
+        zfs: Option<&str>,
+        nvidia: Option<&str>,
+    ) -> BTreeMap<String, CompanionExpectation> {
+        let mut m = BTreeMap::new();
+        m.insert(
+            kernel.to_string(),
+            CompanionExpectation {
+                zfs: zfs.map(|s| s.to_string()),
+                nvidia: nvidia.map(|s| s.to_string()),
+                nvidia_open: None,
+            },
+        );
+        m
+    }
+
+    #[test]
+    fn companion_model_match_produces_no_residuals() {
+        let oracle = obs(vec![row("fixtures/linux-cachyos-court2", None)]);
+        let candidate = obs(vec![row(
+            "fixtures/linux-cachyos-court2",
+            Some(CompanionRow {
+                zfs: Some("linux-cachyos-court2-zfs".into()),
+                nvidia: None,
+                nvidia_open: None,
+            }),
+        )]);
+        let m = model(
+            "fixtures/linux-cachyos-court2",
+            Some("linux-cachyos-court2-zfs"),
+            None,
+        );
+        let residuals = compare_observations("court", &oracle, &candidate, &m);
+        assert!(residuals.is_empty(), "{residuals:?}");
+    }
+
+    #[test]
+    fn companion_model_mismatch_produces_residuals() {
+        let oracle = obs(vec![row("fixtures/linux-cachyos-court2", None)]);
+        let candidate = obs(vec![row(
+            "fixtures/linux-cachyos-court2",
+            Some(CompanionRow {
+                zfs: Some("linux-cachyos-court2-zfs".into()),
+                nvidia: None,
+                nvidia_open: None,
+            }),
+        )]);
+        // model expects nvidia present but the candidate found none
+        let m = model(
+            "fixtures/linux-cachyos-court2",
+            Some("linux-cachyos-court2-zfs"),
+            Some("linux-cachyos-court2-nvidia"),
+        );
+        let residuals = compare_observations("court", &oracle, &candidate, &m);
+        assert!(residuals.iter().any(|r| r.id.contains("companion-nvidia")));
+    }
+
+    #[test]
+    fn companion_model_ignores_rows_not_in_model() {
+        let oracle = obs(vec![row("cachyos/linux-cachyos", None)]);
+        let candidate = obs(vec![row("cachyos/linux-cachyos", None)]);
+        let m = BTreeMap::new();
+        let residuals = compare_observations("court", &oracle, &candidate, &m);
+        assert!(residuals.is_empty());
+    }
 }

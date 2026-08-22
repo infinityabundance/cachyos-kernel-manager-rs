@@ -97,6 +97,30 @@
    "resolution": "qemu runs in systemd user scopes with MemoryMax/MemorySwapMax (12G/4G); VM RAM 16G->8G + virtio-balloon; docker builders capped; stale-qemu detection + cleanup subcommand.",
    "commit": "8d5fa45",
    "regression_witness": "cgroup limits verified (memory.max=12G) on running VMs"
+  },
+  {
+   "id": "RES-2026-009",
+   "court": "oracle-infrastructure/images-store",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "n/a (infrastructure)",
+   "candidate_fingerprint": "vm/images lost base.qcow2, boot/, harness_key, share/, fixtures/minimal; base-rootfs export damaged (boot/, home/, /etc/cachyos-km/, root/.ssh/, bin/lib/sbin symlinks missing; subdir mtimes rewritten)",
+   "classification": "environment_dependent",
+   "root_cause": "exact trigger not conclusively identified. Two REAL deletion bugs in the session's build-script edits were found and fixed: (1) build-base.sh ran its stale-output cleanup AFTER the provision, deleting the freshly host-direct-written base.raw/base-rootfs/boot/fixtures; (2) bake.sh's `rm -rf /host-images/fixtures/$FIXTURE` had no empty-variable guard (an empty FIXTURE would wipe the whole fixtures dir).",
+   "resolution": "moved the stale cleanup BEFORE the provision; added empty/path-traversal guards to bake.sh (fail closed); rebuilt the base image (new reference_image_hash sha256:62f1fca7...); regenerated the harness key; re-baked all 18 fixtures; re-ran all 18 courts (all PASS).",
+   "commit": "pending",
+   "regression_witness": "18/18 courts pass on the rebuilt fixtures; base-rootfs complete (boot/, etc/cachyos-km/fixture.marker, root/.ssh present)"
+  },
+  {
+   "id": "RES-2026-010",
+   "court": "fixture-construction/epoch-artifact-names",
+   "first_observed": "2026-08-21",
+   "oracle_fingerprint": "n/a (fixture infrastructure)",
+   "candidate_fingerprint": "epoch-versions fixture bake failed: pacman -U could not find /tmp/fakepkg-linux-cachyos-eup-9.8.8-1-any.pkg.tar.zst",
+   "classification": "underspecified_behavior",
+   "root_cause": "makepkg embeds the EPOCH in the artifact filename (name-1:9.9.9-1-any.pkg.tar.zst) \u2014 the -U install paths omitted the epoch prefix; the edown repo also needed the higher-epoch artifact removed before repo-add (repo-add keeps the newest by version, and the epoch differentiates the filenames).",
+   "resolution": "install paths now carry the epoch prefix; the 2:9.9.9-1 file is removed from the repo before repo-add so the sync db records 1:9.9.9-1 while the local db keeps 2:9.9.9-1.",
+   "commit": "pending",
+   "regression_witness": "court kernel-discovery/epoch-versions passes (\u22282:9.9.9-1 downgrade marker witnessed)"
   }
  ]
 }

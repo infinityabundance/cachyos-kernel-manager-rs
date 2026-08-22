@@ -1,0 +1,14 @@
+assumptions = [
+  "The oracle and the candidate register sync databases from /etc/pacman.conf with the SAME rule (mINI sections, testing/options skipped, in file order).",
+  "Sync db files are read from /var/lib/pacman/sync/; no refresh/network happens during discovery.",
+  "libalpm is the authoritative version comparator on both sides (alpm_pkg_vercmp).",
+]
+
+[[normalizers]]
+name = "a11y-rows"
+version = "1.1.0"
+source_hash = "pending"
+input_domain = "oracle-state.json (schema cachyos-km-oracle-a11y-v1)"
+transformation = "extract ordered kernel rows + dialogs from the flat Qt TABLE_CELL tree (numeric AT-SPI roles)"
+justification = "Qt exposes the kernel QTreeWidget as a flat cell list; role ids are the canonical raw evidence"
+falsifier = "a row set/order/version/category/checked difference between oracle and candidate"

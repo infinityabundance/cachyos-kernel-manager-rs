@@ -1,0 +1,7 @@
+{
+ "fixture": "companion-resolution",
+ "raw_image_hash": "sha256:ecfe2af941b6c98ac39dae3b124787c44d8a7fb76aa5fa04948b6f7011e0e432",
+ "baked_at": "2026-08-21T23:34:23Z",
+ "fixture_digest": "sha256:b6f56c01b327b77e4c1238daa50eb6b93a604f9ec964c83ea7185a15902a30a1",
+ "spec_sha256": "sha256:3463efa304476b1637dc092beb4f43d72af4feae5092f318d971d568914a11d0"
+}

@@ -1,0 +1,23 @@
+version = "1.0.0"
+fixture = "companion-resolution"
+
+ignore = ["oracle.stdout", "oracle.stderr", "candidate.stderr", "oracle-trace.log"]
+byte_exact = []
+json_semantic = ["oracle-state.json", "candidate-state.json", "residual.json"]
+volatile_prefixes = ["/tmp/", "/proc/", "/run/user/", "/var/log/"]
+
+# Source-anchored companion expectations (kernel.cpp:226-244): the oracle
+# looks up "<kernel>-zfs", "<kernel>-nvidia", "<kernel>-nvidia-open" in the
+# SAME database and stores the package (or null). The oracle does not expose
+# companions through AT-SPI at discovery time, so the candidate's companions
+# are compared against this model; the differential companion proof arrives
+# with the Phase 5 transaction courts.
+[companion_model."fixtures/linux-cachyos-court2"]
+zfs = "linux-cachyos-court2-zfs"
+nvidia = "linux-cachyos-court2-nvidia"
+nvidia_open = "linux-cachyos-court2-nvidia-open"
+
+[companion_model."fixtures/linux-cachyos-court3"]
+
+[companion_model."fixtures/linux-cachyos-court4"]
+zfs = "linux-cachyos-court4-zfs"

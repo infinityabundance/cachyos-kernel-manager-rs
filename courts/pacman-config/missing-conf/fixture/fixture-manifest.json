@@ -1,0 +1,7 @@
+{
+ "fixture": "missing-conf",
+ "raw_image_hash": "sha256:65966b5313df174d2c41fed2b3d0aff86fd99bbe288967e9e9d49f53de57114d",
+ "baked_at": "2026-08-21T23:51:31Z",
+ "fixture_digest": "sha256:fa22e14b6770026c45bb1890799a1bf54affba16648196096aad78f85a631301",
+ "spec_sha256": "sha256:4d5ca93c5c616279364ec7f4b1dfb6ca6257f1755a721b5151699d1436bb553a"
+}

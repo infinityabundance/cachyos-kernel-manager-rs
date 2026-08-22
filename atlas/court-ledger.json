@@ -246,6 +246,76 @@
    "surface": "kernel.empty_sync_db",
    "court": "kernel-discovery/empty-sync-db",
    "status": "passing"
+  },
+  {
+   "surface": "kernel.headers_without_kernel",
+   "court": "kernel-discovery/adversarial-names",
+   "status": "passing"
+  },
+  {
+   "surface": "kernel.kernel_without_headers",
+   "court": "kernel-discovery/adversarial-names",
+   "status": "passing"
+  },
+  {
+   "surface": "kernel.linux_api_headers_skip",
+   "court": "kernel-discovery/adversarial-names",
+   "status": "passing"
+  },
+  {
+   "surface": "kernel.epoch_versions",
+   "court": "kernel-discovery/epoch-versions",
+   "status": "passing"
+  },
+  {
+   "surface": "kernel.unusual_version_syntax",
+   "court": "kernel-discovery/epoch-versions",
+   "status": "passing"
+  },
+  {
+   "surface": "kernel.companion_resolution",
+   "court": "kernel-discovery/companion-resolution",
+   "status": "passing"
+  },
+  {
+   "surface": "pacman_conf.testing_section_skipped",
+   "court": "pacman-config/testing-and-disabled",
+   "status": "passing"
+  },
+  {
+   "surface": "pacman_conf.core_testing_registered",
+   "court": "pacman-config/testing-and-disabled",
+   "status": "passing"
+  },
+  {
+   "surface": "pacman_conf.disabled_repos",
+   "court": "pacman-config/testing-and-disabled",
+   "status": "passing"
+  },
+  {
+   "surface": "pacman_conf.case_insensitive_sections",
+   "court": "pacman-config/case-sensitivity",
+   "status": "passing"
+  },
+  {
+   "surface": "pacman_conf.duplicated_sections_merge",
+   "court": "pacman-config/duplicated-sections",
+   "status": "passing"
+  },
+  {
+   "surface": "pacman_conf.malformed_lines",
+   "court": "pacman-config/malformed",
+   "status": "passing"
+  },
+  {
+   "surface": "pacman_conf.missing_file",
+   "court": "pacman-config/missing-conf",
+   "status": "passing"
+  },
+  {
+   "surface": "pacman_conf.numeric_auto_sections",
+   "court": "pacman-config/malformed",
+   "status": "passing"
   }
  ]
 }

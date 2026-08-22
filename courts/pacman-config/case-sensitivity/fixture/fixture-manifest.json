@@ -1,0 +1,7 @@
+{
+ "fixture": "case-sensitivity",
+ "raw_image_hash": "sha256:3b4bd96a511b116d4743c9514f4d64396f5e51690265aebfe2d3a7b07015af3e",
+ "baked_at": "2026-08-21T23:39:48Z",
+ "fixture_digest": "sha256:a60424bc8c92ff6e716540f4d0e233c60ac50ca0daaf5e780c0e9cb2de4fcfb4",
+ "spec_sha256": "sha256:82f10a669515e01e3994d289776c43f395ae6a039b1e0bd049a998fa3891b9cd"
+}

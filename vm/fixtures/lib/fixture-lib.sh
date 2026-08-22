@@ -33,8 +33,12 @@ build_fakepkg() {
     local name="$1" ver="$2" rel="$3" epoch="${4:-0}"
     # the repo dir must exist BEFORE the artifact install below (the dir is
     # otherwise only created by repo_add_all -> ensure_fixtures_repo, and
-    # install to a missing dir with a trailing slash fails "Not a directory")
-    ensure_fixtures_repo
+    # install to a missing dir with a trailing slash fails "Not a directory").
+    # NOTE: only the DIRECTORY is ensured here — the pacman.conf [fixtures]
+    # section is added by ensure_fixtures_repo (repo_add_all) so fixtures
+    # with a custom section name can control the conf themselves.
+    mkdir -p "$FIXTURES_REPO_DIR"
+    chown -R test:test "$FIXTURES_REPO_DIR"
     local work="/tmp/fakepkg-$name"
     rm -rf "$work"
     mkdir -p "$work"

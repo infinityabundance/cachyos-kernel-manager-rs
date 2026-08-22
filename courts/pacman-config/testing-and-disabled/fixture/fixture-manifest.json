@@ -1,0 +1,7 @@
+{
+ "fixture": "testing-and-disabled",
+ "raw_image_hash": "sha256:0219704f10de2b43cf2ec4b13b75a60fba772bc79a2295f629a036149d7565ab",
+ "baked_at": "2026-08-21T23:37:21Z",
+ "fixture_digest": "sha256:1871ec4b67f0796c82126e8d8eb887c98fc6ebc8242a9df40ab5eecb26ee895b",
+ "spec_sha256": "sha256:1d91d06df94a13a3c96138b0f68bbe16d4f588ea3327fb5f5559c27511155f7d"
+}

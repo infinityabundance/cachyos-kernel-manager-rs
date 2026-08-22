@@ -89,8 +89,13 @@ impl MiniIni {
                     section = no_comment[1..closing].trim().to_ascii_lowercase();
                     ini.ensure_section(&section);
                     in_section = true;
+                    continue;
                 }
-                continue;
+                // mINI: a '[' line WITHOUT a closing ']' does NOT return from
+                // parseLine — it FALLS THROUGH to the key/value branch
+                // (ini.hpp parseLine: the `if (closingBracketAt != npos)`
+                // block is skipped, the '=' scan still runs). So `[a=b`
+                // becomes a key `[a` in the current (or auto) section.
             }
             // key=value with \= escaping
             let line_norm = line.replace("\\=", "  ");
@@ -223,5 +228,24 @@ Server = https://mirror.cachyos.org/repo/x86_64/cachyos
     fn cr_and_nul_dropped() {
         let ini = MiniIni::parse("[a]\r\nx = 1\r\n[b]\u{0}\n");
         assert_eq!(ini.section_names(), vec!["a", "b"]);
+    }
+
+    #[test]
+    fn section_line_without_closing_bracket_falls_through_to_keyvalue() {
+        // mINI parseLine: `[a=b` has no ']' so the section block is skipped
+        // and the '=' scan runs — the line becomes a key `[a` (value `b`).
+        // Before any real section this lands in the numeric auto-section.
+        let ini = MiniIni::parse("[a=b\n[core]\n");
+        assert_eq!(ini.section_names(), vec!["0", "core"]);
+        assert_eq!(ini.keys_of("0"), vec!["[a"]);
+        assert_eq!(register_sections(&ini), vec!["0", "core"]);
+
+        // inside a section the key lands there
+        let ini = MiniIni::parse("[sec]\n[a=b\n");
+        assert_eq!(ini.keys_of("sec"), vec!["[a"]);
+
+        // `[broken` (no '=', no ']') is PDATA_UNKNOWN -> ignored entirely
+        let ini = MiniIni::parse("[broken\n[core]\n");
+        assert_eq!(ini.section_names(), vec!["core"]);
     }
 }

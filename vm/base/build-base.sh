@@ -62,17 +62,23 @@ docker run -d --name "$CONTAINER_NAME" --privileged \
 
 trap 'docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true' EXIT
 
+# stale outputs from interrupted runs may be root-owned and unremovable by
+# the host user; the container (root) removes them FIRST, BEFORE the
+# provision writes fresh outputs directly to /host-images (the stale
+# cleanup must NEVER run after the provision — it would delete the fresh
+# base.raw/base-rootfs/boot/fixtures it just wrote)
+for stale in base.raw base.qcow2 manifest.json provision.log base-rootfs boot fixtures; do
+    [ -n "$stale" ] || continue
+    docker exec "$CONTAINER_NAME" rm -rf "/host-images/$stale" || true
+done
+
+step "provision rootfs + oracle"
 docker cp "$VM/base/provision-rootfs.sh" "$CONTAINER_NAME:/provision.sh"
 docker cp "$VM/base/pacman.conf" "$CONTAINER_NAME:/etc/pacman.conf"
 docker exec -e SSH_PUBKEY="$SSH_PUBKEY" -e BUILDER_IMAGE="$CONTAINER_IMAGE" \
     "$CONTAINER_NAME" bash /provision.sh
 
 step "copying outputs out of the container (host-user ownership)"
-# stale outputs from interrupted runs may be root-owned and unremovable by
-# the host user; the container (root) removes them first
-for stale in base.raw base.qcow2 manifest.json provision.log base-rootfs boot fixtures; do
-    docker exec "$CONTAINER_NAME" rm -rf "/host-images/$stale" || true
-done
 # base.raw + rootfs.img + the base-rootfs export are written DIRECTLY to
 # /host-images by the provision script (the container's tmpfs layer is too
 # small for them); only small metadata is docker cp'd

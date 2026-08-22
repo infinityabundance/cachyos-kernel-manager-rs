@@ -1,0 +1,7 @@
+{
+ "fixture": "malformed",
+ "raw_image_hash": "sha256:b5e81caf4140f6fbd1011ba1441653554dc02b216c9610c1c0f5cc1b8b8e04dc",
+ "baked_at": "2026-08-21T23:49:32Z",
+ "fixture_digest": "sha256:1d1cc3eb62dd0951aab8fd1f2ea92d8815e270d373a2cc4ed9550effc51da889",
+ "spec_sha256": "sha256:f4af9f36fe5856369703eab6b2fc8aa8f871c24475b55006aefd4c76854583d2"
+}

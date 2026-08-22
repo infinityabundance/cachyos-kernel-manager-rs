@@ -36,7 +36,7 @@ package_hashes = { "cachyos-kernel-manager-1.19.0-1" = "sha256:3dd688c687014eb5b
 
 # Reference image hash: digest of the disposable VM base image used for oracle
 # differential courts. Populated by `cargo xtask vm build`.
-reference_image_hash = "sha256:db67e67859776634b24f31642434f479c2b898e6bd578c6cd8355411fbd73243"
+reference_image_hash = "sha256:62f1fca70ee19321f7ac896d03a45b3b9291b32019b2aeb1919bf052d5ef494c"
 
 [identity]
 # Externally visible application identity, recorded from upstream source at freeze time.

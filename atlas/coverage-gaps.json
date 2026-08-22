@@ -19,7 +19,9 @@
     "kernel-discovery/minimal",
     "kernel-discovery/several-kernels",
     "kernel-discovery/custom-repo",
-    "kernel-discovery/duplicate-across-repos"
+    "kernel-discovery/duplicate-across-repos",
+    "kernel-discovery/adversarial-names",
+    "kernel-discovery/epoch-versions"
    ],
    "note": "ordering verified against real cachyos/core/extra dbs (row order == repo order \u00d7 db cache order, matching alpm_db_search); an adversarial hand-built needle db is still unwitnessed"
   },
@@ -33,7 +35,16 @@
    "id": "gap-004",
    "surface": "mINI case-insensitivity effects on pacman.conf section names",
    "evidence": "ini.hpp header claims sections/keys are case-insensitive; the effect on a `[CORE]` section is unwitnessed",
-   "court_needed": "pacman-config/mini-vs-pacman"
+   "court_needed": "pacman-config/mini-vs-pacman",
+   "status": "covered",
+   "covered_by": [
+    "pacman-config/case-sensitivity",
+    "pacman-config/testing-and-disabled",
+    "pacman-config/duplicated-sections",
+    "pacman-config/malformed",
+    "pacman-config/missing-conf"
+   ],
+   "note": "mINI case-insensitivity, testing/options skip, duplicate merge, Include-not-followed, malformed/missing files: all witnessed differentially against the oracle"
   },
   {
    "id": "gap-005",

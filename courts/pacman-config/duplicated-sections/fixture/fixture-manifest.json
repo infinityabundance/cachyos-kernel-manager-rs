@@ -1,0 +1,7 @@
+{
+ "fixture": "duplicated-sections",
+ "raw_image_hash": "sha256:1f4a49c4ececdbe595473d66bc02e5a9e217c584dfdddf33f3a18f70b03f6e0e",
+ "baked_at": "2026-08-21T23:42:17Z",
+ "fixture_digest": "sha256:02fd5d7d0fa74089c37736152d405f5c2872d6cb7832e2444ec6886092713396",
+ "spec_sha256": "sha256:b60d8fead3800f777e872cd97669f290641e0b1148e17632d4da8d92cf09f519"
+}
