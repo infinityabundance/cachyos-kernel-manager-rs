@@ -1,0 +1,11 @@
+assumptions = [
+  "The frozen oracle source (main.cpp:45-56,111-113 @ 6b4a373e) is the single authority; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "QSharedMemory unix backend semantics (qsharedmemory_unix.cpp): create fails when the segment exists; IPC_RMID on the creator's attach destroys the segment when the last attachment ends (crash-release); attach succeeds iff the segment exists; detach succeeds after a successful attach.",
+  "The corpus encodes the four OS outcomes (create1/attach/detach/create2); the decision table IS the observable (the Qt runtime is not re-executed).",
+  "The candidate's real lock uses the same NAME + crash-release via flock; its behavior is unit-tested.",
+  "The model JSON is rendered identically by both sides (serde_json pretty, fixed field order).",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-singleinstance-corpus.sh", input_domain = "CLI stdout + exit code per corpus file", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the decision JSON IS the observable; the exit code pins the parse path", falsifier = "a byte in any decision JSON, or the exit code, differing between oracle and candidate" },
+]

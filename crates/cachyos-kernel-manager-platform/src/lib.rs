@@ -8,6 +8,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod single_instance;
+
 use std::path::PathBuf;
 
 /// Single-instance lock key: `QSharedMemory("CachyOS-KM-lock")`

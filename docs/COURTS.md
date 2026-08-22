@@ -241,6 +241,29 @@ catalogs) and the `gui`/`gui-alpm` CI jobs. The remaining Phase 8 work is
 courted in `atlas/status.json`: the differential VM court matrix for the
 running GUI and the close-during-transaction worker race (gap-010).
 
+## Phase 9 status (full differential matrix) — IN PROGRESS
+
+Phase 9 attacks the open gaps + the matrix discipline (failure paths,
+historical regressions, repeated executions, drift/slew). First surface:
+
+- `single-instance/stale-lock` — PASS (non-VM). The oracle's
+  `IsInstanceAlreadyRunning` (`main.cpp:45-56`) as a decision table over
+  the four OS outcomes (create/attach/detach/create-retry): fresh →
+  proceed; held-by-live-process → already-running; stale-after-crash → the
+  attach/detach retry RECOVERS (the IPC_RMID + last-detach destruction) →
+  proceed; the vanished/detach-failure paths. The candidate's real lock is
+  a `flock(2)`-exclusive file named `CachyOS-KM-lock` under
+  `$XDG_RUNTIME_DIR` (same name identity + crash-release), acquired by the
+  root binary before any UI init; the second instance exits `-1`.
+  Witness: `tools/run-singleinstance-corpus.sh` → `cargo xtask court run
+  single-instance/stale-lock`. gap-001 covered.
+
+Remaining Phase 9 surfaces (atlas/status.json + coverage-gaps.json): the
+alpm search-ordering adversarial needle db (gap-002), the makepkg -scf vs
+-sicf runtime dependency-resolution witness (gap-006), repeated-execution
+drift/slew runs, historical-regression courts, and the
+close-during-transaction race witness (gap-010).
+
 ## Case format
 
 ```

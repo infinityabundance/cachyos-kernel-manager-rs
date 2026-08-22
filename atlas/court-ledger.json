@@ -19,8 +19,8 @@
   },
   {
    "surface": "single_instance",
-   "court": "single-instance/lock-identity",
-   "status": "defined"
+   "court": "single-instance/stale-lock",
+   "status": "passing"
   },
   {
    "surface": "i18n.locales",
@@ -214,8 +214,8 @@
   },
   {
    "surface": "exit_codes",
-   "court": "single-instance/lock-identity",
-   "status": "defined"
+   "court": "single-instance/stale-lock",
+   "status": "passing"
   },
   {
    "surface": "user_visible_dialogs",

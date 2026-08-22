@@ -1,0 +1,9 @@
+version = "1.0.0"
+
+# Pure non-VM court: the shared corpus drives both CLIs; oracle/ and
+# candidate/ outputs are compared byte-for-byte. No baked fixture image
+# (the VM-capability marker key is deliberately ABSENT).
+ignore = []
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

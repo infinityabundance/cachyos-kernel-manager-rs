@@ -7,7 +7,12 @@
    "id": "gap-001",
    "surface": "QSharedMemory stale-lock recovery on crash",
    "evidence": "main.cpp:45-56 attach+detach retry path; behavior when the previous instance crashed without detaching",
-   "court_needed": "single-instance/stale-lock"
+   "court_needed": "single-instance/stale-lock",
+   "status": "covered",
+   "covered_by": [
+    "single-instance/stale-lock"
+   ],
+   "note": "the create/attach/detach/create retry decision table is courted (fresh/held/stale-crash-recovery/vanished/detach-failure); the candidate's real lock is a flock(2) file with the same NAME + crash-release property"
   },
   {
    "id": "gap-002",

@@ -1,0 +1,8 @@
+{
+  "schema": "cachyos-km-single-instance-corpus-v1",
+  "scenario": "fresh",
+  "create1_ok": true,
+  "attach_ok": false,
+  "detach_ok": false,
+  "create2_ok": false
+}

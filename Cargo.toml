@@ -98,6 +98,10 @@ members = [
     # lang/*.ts translation catalogs directly for the ui/i18n-resolution
     # court (Phase 8).
     "tools/i18n-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # IsInstanceAlreadyRunning decision (main.cpp:45-56) for the
+    # single-instance/stale-lock court (Phase 9).
+    "tools/singleinstance-oracle-ref",
 ]
 default-members = [".", "xtask"]
 

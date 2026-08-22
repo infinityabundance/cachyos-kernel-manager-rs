@@ -19,6 +19,22 @@ fn main() {
         println!("cachyos-kernel-manager {VERSION}");
         return;
     }
+
+    // The single-instance lock (`main.cpp:45-56,111-113`): a second
+    // instance exits -1 before ANY UI initialization.
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/root".to_string());
+    let (_lock, decision) =
+        cachyos_kernel_manager_platform::single_instance::InstanceLock::try_acquire(&home)
+            .unwrap_or_else(|e| {
+                eprintln!("cachyos-kernel-manager: cannot acquire the single-instance lock: {e}");
+                std::process::exit(1);
+            });
+    if decision == cachyos_kernel_manager_platform::single_instance::LockDecision::AlreadyRunning {
+        std::process::exit(
+            cachyos_kernel_manager_platform::single_instance::SECOND_INSTANCE_EXIT_CODE,
+        );
+    }
+
     if args.iter().any(|a| a == "--diagnose") {
         diagnose();
         return;

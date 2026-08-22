@@ -1,0 +1,30 @@
+# CLAIM — single-instance/stale-lock
+claim = "The candidate's single-instance lock decision (cachyos-kernel-manager-single-instance witness rendering cachyos_kernel_manager_platform::single_instance::decide, cachyos-km-single-instance-v1) reproduces the frozen oracle's IsInstanceAlreadyRunning (main.cpp:45-56) BYTE-FOR-BYTE over the shared corpus of lock-state scenarios: the create/attach/detach/create retry semantics of QSharedMemory(\"CachyOS-KM-lock\") with the unix backend (qsharedmemory_unix.cpp): create fails when the segment exists; the segment is marked IPC_RMID on the creator's attach so a stale segment from a CRASHED holder is destroyed by the last detach (the retry RECOVERS); only a segment still held by a LIVE other process survives the retry and yields already-running. The exit code of the second instance is -1 (main.cpp:113). The candidate's real lock is a flock(2)-exclusive file named CachyOS-KM-lock under $XDG_RUNTIME_DIR (or the cache root) — the same NAME identity and the same crash-release property; the pure decision table is the courted surface, the OS primitive is unit-tested."
+
+model = "Oracle: tools/singleinstance-oracle-ref, an independent re-declaration of IsInstanceAlreadyRunning from the frozen main.cpp + the QSharedMemory unix semantics. Candidate: cachyos_kernel_manager_platform::single_instance::decide, rendered by the cachyos-kernel-manager-single-instance bin. Both consume the shared corpus (cachyos-km-single-instance-corpus-v1)."
+
+assumptions = [
+  "The frozen oracle source (oracle/upstream/src/main.cpp:45-56,111-113 @ 6b4a373e) is the single authority; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "QSharedMemory unix backend semantics (qsharedmemory_unix.cpp): create fails when the segment exists; the segment is marked IPC_RMID when the creator attaches, so it is destroyed when the last attachment ends (a crashed holder releases it); attach succeeds iff the segment exists; detach succeeds after a successful attach.",
+  "The corpus encodes the four OS outcomes the oracle's function observes (create1/attach/detach/create2) — the oracle's function itself is not re-executed in this court (driving QSharedMemory states from outside needs the Qt runtime; the decision table IS the observable).",
+  "The candidate's real lock (flock on CachyOS-KM-lock) provides the same NAME identity + crash-release property; the flock semantics are unit-tested (held locks block a second acquire; drop releases).",
+  "The model JSON is rendered identically by both sides (serde_json pretty, fixed field order).",
+]
+
+observables = [
+  "the decision (proceed | already-running) for every lock-state scenario",
+]
+
+witness = "tools/run-singleinstance-corpus.sh (runs every corpus file through both CLIs), then cargo xtask court run single-instance/stale-lock."
+
+independence = "tools/singleinstance-oracle-ref re-declares the decision independently from the frozen main.cpp; the candidate's platform single_instance module was written as its own reconstruction against the same authority. Neither reads the other's output; the shared corpus is the only input both consume."
+
+falsifier = "Any byte difference in any decision, over any corpus file."
+
+[[evidence]]
+artifact = "oracle/<corpus-name>.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/<corpus-name>.json"
+sha256 = "pending"

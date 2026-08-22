@@ -1,0 +1,8 @@
+{
+  "schema": "cachyos-km-single-instance-corpus-v1",
+  "scenario": "detach-failure-held",
+  "create1_ok": false,
+  "attach_ok": true,
+  "detach_ok": false,
+  "create2_ok": false
+}

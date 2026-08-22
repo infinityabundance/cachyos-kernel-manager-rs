@@ -75,8 +75,8 @@
   {
    "phase": 9,
    "name": "Full differential court matrix",
-   "status": "pending",
-   "wording": "failure paths, historical regressions, repeated executions, drift/slew"
+   "status": "in-progress",
+   "wording": "failure paths, historical regressions, repeated executions, drift/slew. Started with the open gaps: single-instance/stale-lock PASS (the QSharedMemory create/attach/detach/create retry decision table + the real flock-based lock, gap-001 covered). Remaining: the alpm search-ordering adversarial needle db (gap-002), the makepkg -scf vs -sicf runtime dependency-resolution witness (gap-006), repeated-execution drift/slew runs, historical-regression courts, and the close-during-transaction race witness (gap-010)."
   },
   {
    "phase": 10,

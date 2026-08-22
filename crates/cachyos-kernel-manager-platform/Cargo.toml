@@ -10,3 +10,9 @@ publish = false
 
 [dependencies]
 serde = { workspace = true }
+serde_json = { workspace = true }
+fs2 = "0.4"
+
+[[bin]]
+name = "cachyos-kernel-manager-single-instance"
+path = "src/bin/single-instance.rs"
