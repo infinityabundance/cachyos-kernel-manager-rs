@@ -138,6 +138,14 @@ boundary for the hardware probes):
 | update-available-execute | installed 1.0-1, sync 2.0-1 -> BOTH `-S --needed` and `-Rsn` (upgrade quirk) | PASS |
 | terminal-matrix | emulator stubs -> exit-code surface per scenario | PASS |
 
+Phase 6 (build subsystem, part 1):
+
+| fixture | coverage | status |
+|---|---|---|
+| git-cache | real Configure flow -> prepare_git_repo refresh chain (checkout --force master / clean -fd / pull) witnessed via strace vs the candidate git_cache_plan model | PASS |
+
+(config-roundtrip/canonicalization is a non-VM court — no fixture image.)
+
 Drift/slew: `minimal` (3x) and `upgrade-available` (2x) re-run on identical
 overlays — deterministic PASS, no drift.
 

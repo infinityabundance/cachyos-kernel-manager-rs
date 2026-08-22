@@ -85,6 +85,12 @@ pub struct Comparator {
     /// compares exit codes + outputs.
     #[serde(default)]
     pub terminal_matrix: Option<serde_json::Value>,
+    /// Phase 6 configure-flow court (git-cache/lifecycle): when true, the
+    /// runner drives the real GUI Configure button (AT-SPI) under strace on
+    /// the oracle side and runs the candidate's git-cache model, comparing
+    /// the witnessed git exec chain (prepare_git_repo argv).
+    #[serde(default)]
+    pub configure: bool,
 }
 
 /// The `[transaction]` comparator section.

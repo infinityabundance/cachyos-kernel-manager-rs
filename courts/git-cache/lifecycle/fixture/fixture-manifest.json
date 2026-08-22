@@ -1,0 +1,7 @@
+{
+ "fixture": "git-cache",
+ "raw_image_hash": "sha256:8e40feb92bdeed6f48185c5ecfd75be914ca24d5e1d330b00d50c45a9fd05e6a",
+ "baked_at": "2026-08-22T03:17:55Z",
+ "fixture_digest": "sha256:874c51ce281ca0e3ed566e43c7c700df8aade7633d207443183865dbe867fd6d",
+ "spec_sha256": "sha256:411d83b1249ee826baa0e2b8e3c7970a9a7486bbd954248c2504a040151d2ab1"
+}

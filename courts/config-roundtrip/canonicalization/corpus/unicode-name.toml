@@ -1,0 +1,2 @@
+# Unicode custom names survive the round trip as literal UTF-8.
+custom_name_edit = "κέρνελ-日本語-🚀"

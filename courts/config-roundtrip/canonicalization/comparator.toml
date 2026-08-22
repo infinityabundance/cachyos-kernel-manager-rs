@@ -1,0 +1,10 @@
+version = "1.0.0"
+
+# Non-VM court: no baked fixture image. The corpus files are the immutable
+# inputs (fixture role), the CLIs' stdout/exit are the compared artifacts.
+# Case::compare fingerprints every file in oracle/ vs candidate/, so the
+# per-corpus canonical outputs and exit codes are compared byte-for-byte.
+ignore = ["candidate.stderr", "oracle.stderr"]
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

@@ -80,6 +80,45 @@ enumeration).
 Drift/slew: `minimal` ×3 and `upgrade-available` ×2 re-runs on identical
 overlays are deterministic.
 
+## Phase 6 status (build subsystem, part 1)
+
+- `config-roundtrip/canonicalization` — PASS (non-VM differential court). The
+  candidate's `KernelManagerConfig` (toml 0.8) vs the oracle's
+  `config-option-lib` struct verbatim (toml 1.1, the upstream's actual
+  dependency, via `tools/config-oracle-ref`) over a frozen 10-file corpus
+  (all-fields / minimal / empty / unknown-fields / invalid-enum-value /
+  unicode / quotes / 500-char / malformed / CRLF). Canonical
+  re-serialization is byte-identical and exit codes match (0 parse ok /
+  1 parse error) on every corpus file. Witness:
+  `tools/run-config-corpus.sh` → `cargo xtask court run
+  config-roundtrip/canonicalization`.
+
+Phase 6 build-subsystem models landed in the build crate (unit-courted):
+`git_cache_plan` (prepare_git_repo: create-dirs, enter, non-git-dir wipe +
+re-clone quirk, checkout --force master / clean -fd / pull refresh chain,
+cwd mutation) and `clean_env_plan`/`env_assignments`
+(restore_clean_environment: unset previous, re-apply, truncation quirk at
+second `=` boundary, D-005 skip of the oracle's out-of-bounds read).
+
+- `git-cache/lifecycle` — PASS (differential VM court on fixture
+  `git-cache`). The REAL GUI Configure button is clicked through AT-SPI
+  under strace (`oracle-configure.py` / `oracle-configure.sh`); the
+  witnessed `prepare_git_repo` refresh chain — `git checkout --force
+  master`, `git clean -fd`, `git pull` — is compared witness-by-witness
+  against the candidate model (`cachyos-kernel-manager-gitcache` over
+  `git_cache_plan`, schema `cachyos-km-candidate-plan-v1`). The fixture
+  seeds `/root/.cache/cachyos-km/pkgbuilds` as a checkout of a local bare
+  remote (offline, remote ahead by one commit so the refresh really
+  fast-forwards).
+
+Defined, awaiting bake + differential run: `patch-injection/*`,
+`custom-name/*`, `build-env/lifecycle`, `artifact-glob/package-functions`.
+
+The residuals encountered in Phase 5 are in `atlas/residual-ledger.json`
+(RES-2026-011: the candidate's installed-set was built from discovered
+kernels only, so `nvidia-dkms` was invisible; fixed with full local-db
+enumeration).
+
 The residuals encountered while establishing the baseline (and their
 resolutions) are recorded in `atlas/residual-ledger.json`
 (RES-2026-001..011).

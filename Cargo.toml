@@ -35,6 +35,10 @@ members = [
     "crates/cachyos-kernel-manager-oracle",
     "crates/cachyos-kernel-manager-frf",
     "xtask",
+    # Court evidence infrastructure, never shipped. Builds the oracle's
+    # config-option-lib struct verbatim with toml 1.1 (the upstream's actual
+    # dependency) for the config-roundtrip differential courts.
+    "tools/config-oracle-ref",
 ]
 default-members = [".", "xtask"]
 

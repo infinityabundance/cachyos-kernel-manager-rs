@@ -1,0 +1,11 @@
+assumptions = [
+  "The fixture seeds /root/.cache/cachyos-km/pkgbuilds as a git checkout (branch master, clean tree) whose origin is /root/cachyos-km-remote.git (local bare remote, one commit ahead) — so the refresh chain actually fast-forwards.",
+  "The oracle's on_configure runs prepare_build_environment in a QtConcurrent worker (km-window.cpp:347-350); the git execs are children of the oracle process and appear in the strace -f log.",
+  "The candidate git-cache model probes the identical overlay: /root/.cache/cachyos-km exists, /root/.cache/cachyos-km/pkgbuilds exists AND has .git → the plan is refresh-only (no wipe, no clone).",
+  "Non-VM comparisons of the git argv (unit tests in the build crate) cover the wipe/clone branches; this court witnesses the refresh branch end-to-end against the real GUI.",
+]
+
+normalizers = [
+  { name = "strace-execve-git", version = "1.0.0", source_hash = "vm/in-vm/extract-git-cache.py", input_domain = "oracle-trace.log execve lines", transformation = "extract only the git argv chains in order (probes and terminal-helper are courted elsewhere and excluded)", justification = "the git argv IS the prepare_git_repo observable; excluding unrelated execs keeps the claim focused", falsifier = "a git exec missing, reordered, or with different argv between oracle and candidate" },
+  { name = "machine-residual", version = "1.0.0", source_hash = "vm/in-vm/residual.sh", input_domain = "machine state before each run", transformation = "hash the installed package list + db hashes", justification = "fixture-integrity check", falsifier = "any drift between the two runs" },
+]

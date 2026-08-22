@@ -1,0 +1,3 @@
+# Broken TOML: both sides must fail the parse (exit 1, empty stdout). The
+# stderr messages differ (C++ fmt vs Rust) and are intentionally not compared.
+hardly_check = [unclosed

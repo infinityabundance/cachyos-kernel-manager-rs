@@ -9,6 +9,7 @@
 #![forbid(unsafe_code)]
 
 use cachyos_kernel_manager_core::options::BuildOptions;
+use std::path::Path;
 
 /// The build command rendered by the oracle (`conf-window.cpp:734`). The
 /// success marker is `.done-status`, not the exit code.
@@ -177,6 +178,126 @@ pub fn options_env_string(options: &BuildOptions) -> String {
     options.env_string()
 }
 
+/// Filesystem facts `prepare_git_repo` branches on (`utils.cpp:161-196`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GitCacheState {
+    /// `parent_dir` exists (`fs::create_directories` runs regardless).
+    pub parent_dir_exists: bool,
+    /// `repo_path` exists.
+    pub repo_exists: bool,
+    /// `repo_path/.git` exists (only meaningful when `repo_exists`).
+    pub repo_is_git: bool,
+}
+
+/// One step of the oracle's `prepare_git_repo` sequence (`utils.cpp:161-196`).
+/// The order matters: this is the exact argv/cwd chain the VM court
+/// (`courts/git-cache/lifecycle`) witnesses via strace.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GitCacheStep {
+    /// `fs::create_directories(parent_dir)` — errors swallowed (ec ignored).
+    CreateDirectories,
+    /// Enter (cwd := parent_dir); failure aborts the whole sequence.
+    EnterParentDir,
+    /// A non-git `repo_path` directory is wiped (`fs::remove_all`) before
+    /// cloning — the "stale non-git dir" quirk.
+    RemoveNonGitRepo,
+    /// `git clone <url> <repo_name>` from cwd = parent_dir; a nonzero exit
+    /// aborts the sequence.
+    GitClone { url: String, name: String },
+    /// Enter (cwd := repo_path); failure aborts the sequence.
+    EnterRepoDir,
+    /// `git checkout --force master`; failure short-circuits the refresh
+    /// (no clean/pull) and only prints.
+    GitCheckoutForceMaster,
+    /// `git clean -fd`; failure short-circuits the refresh (no pull).
+    GitCleanFd,
+    /// `git pull`; failure only prints.
+    GitPull,
+}
+
+/// The full command/cwd plan for `prepare_git_repo` (`utils.cpp:161-196`),
+/// determined purely by the filesystem state. Abort points (EnterParentDir,
+/// GitClone, EnterRepoDir) stop the execution at that step; the steps after
+/// them are never attempted and the caller must not run them.
+pub fn git_cache_plan(
+    state: &GitCacheState,
+    parent_dir: &Path,
+    repo_path: &Path,
+    clone_url: &str,
+) -> Vec<GitCacheStep> {
+    // The oracle re-checks `fs::exists` after `remove_all` (utils.cpp:177-185),
+    // so a wiped non-git dir is followed by a clone. (`parent_dir` is only
+    // entered, never executed — EnterParentDir is a cwd step, not an execve.)
+    let _ = parent_dir;
+    let mut plan = vec![
+        GitCacheStep::CreateDirectories,
+        GitCacheStep::EnterParentDir,
+    ];
+    let removed = state.repo_exists && !state.repo_is_git;
+    if removed {
+        plan.push(GitCacheStep::RemoveNonGitRepo);
+    }
+    if !state.repo_exists || removed {
+        plan.push(GitCacheStep::GitClone {
+            url: clone_url.to_string(),
+            name: repo_path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or_default()
+                .to_string(),
+        });
+    }
+    plan.push(GitCacheStep::EnterRepoDir);
+    plan.push(GitCacheStep::GitCheckoutForceMaster);
+    plan.push(GitCacheStep::GitCleanFd);
+    plan.push(GitCacheStep::GitPull);
+    plan
+}
+
+/// `restore_clean_environment` (`utils.cpp:204-227`): unset every previously
+/// set option (in order), then apply `all_set_values` line by line and
+/// return the newly set variable names.
+///
+/// Returns `(unsets, sets)` — `unsets` are the previously set names, `sets`
+/// are `(var, value)` parsed from `all_set_values`.
+pub fn clean_env_plan(
+    previously_set_options: &[String],
+    all_set_values: &str,
+) -> (Vec<String>, Vec<(String, String)>) {
+    (
+        previously_set_options.to_vec(),
+        env_assignments(all_set_values),
+    )
+}
+
+/// Parse `all_set_values` exactly like the oracle's `make_split_view` +
+/// `make_multiline` split pair (`string_utils.hpp:36-71`): lines split on
+/// `\n` with empty segments dropped, each line split on `=` with empty
+/// segments dropped, `var = parts[0]`, `value = parts[1]`.
+///
+/// Oracle quirks reproduced: a value containing `=` is truncated at the
+/// second `=` boundary (`expr_split[1]` only). A line with fewer than two
+/// non-empty `=` segments makes the oracle read `expr_split[1]` out of
+/// bounds (UB); the candidate skips such lines instead (D-005, parity does
+/// not mean immortalizing defects).
+pub fn env_assignments(all_set_values: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for line in all_set_values.split('\n') {
+        if line.is_empty() {
+            continue;
+        }
+        let mut parts = line.split('=').filter(|s| !s.is_empty());
+        match (parts.next(), parts.next()) {
+            (Some(var), Some(value)) => {
+                out.push((var.to_string(), value.to_string()));
+            }
+            // Oracle UB (`expr_split[1]` on a single-element vector).
+            _ => {}
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -310,5 +431,141 @@ mod tests {
     #[test]
     fn build_command_contains_done_status_marker() {
         assert!(MAKEPKG_BUILD_COMMAND.contains("&& touch .done-status"));
+    }
+
+    #[test]
+    fn git_cache_plan_fresh_clone() {
+        let state = GitCacheState {
+            parent_dir_exists: false,
+            repo_exists: false,
+            repo_is_git: false,
+        };
+        let plan = git_cache_plan(
+            &state,
+            Path::new("/home/u/.cache/cachyos-km"),
+            Path::new("/home/u/.cache/cachyos-km/pkgbuilds"),
+            "https://github.com/cachyos/linux-cachyos.git",
+        );
+        assert_eq!(
+            plan,
+            vec![
+                GitCacheStep::CreateDirectories,
+                GitCacheStep::EnterParentDir,
+                GitCacheStep::GitClone {
+                    url: "https://github.com/cachyos/linux-cachyos.git".into(),
+                    name: "pkgbuilds".into(),
+                },
+                GitCacheStep::EnterRepoDir,
+                GitCacheStep::GitCheckoutForceMaster,
+                GitCacheStep::GitCleanFd,
+                GitCacheStep::GitPull,
+            ]
+        );
+    }
+
+    #[test]
+    fn git_cache_plan_existing_checkout_refreshes_without_clone() {
+        let state = GitCacheState {
+            parent_dir_exists: true,
+            repo_exists: true,
+            repo_is_git: true,
+        };
+        let plan = git_cache_plan(
+            &state,
+            Path::new("/home/u/.cache/cachyos-km"),
+            Path::new("/home/u/.cache/cachyos-km/pkgbuilds"),
+            "https://github.com/cachyos/linux-cachyos.git",
+        );
+        assert_eq!(
+            plan,
+            vec![
+                GitCacheStep::CreateDirectories,
+                GitCacheStep::EnterParentDir,
+                GitCacheStep::EnterRepoDir,
+                GitCacheStep::GitCheckoutForceMaster,
+                GitCacheStep::GitCleanFd,
+                GitCacheStep::GitPull,
+            ]
+        );
+    }
+
+    #[test]
+    fn git_cache_plan_non_git_dir_wiped_then_cloned() {
+        // The "stale non-git dir" quirk: repo exists but has no .git -> it
+        // is removed, then the clone runs from the (still entered) parent.
+        let state = GitCacheState {
+            parent_dir_exists: true,
+            repo_exists: true,
+            repo_is_git: false,
+        };
+        let plan = git_cache_plan(
+            &state,
+            Path::new("/home/u/.cache/cachyos-km"),
+            Path::new("/home/u/.cache/cachyos-km/pkgbuilds"),
+            "https://github.com/cachyos/linux-cachyos.git",
+        );
+        assert_eq!(
+            plan,
+            vec![
+                GitCacheStep::CreateDirectories,
+                GitCacheStep::EnterParentDir,
+                GitCacheStep::RemoveNonGitRepo,
+                GitCacheStep::GitClone {
+                    url: "https://github.com/cachyos/linux-cachyos.git".into(),
+                    name: "pkgbuilds".into(),
+                },
+                GitCacheStep::EnterRepoDir,
+                GitCacheStep::GitCheckoutForceMaster,
+                GitCacheStep::GitCleanFd,
+                GitCacheStep::GitPull,
+            ]
+        );
+    }
+
+    #[test]
+    fn env_assignments_parse_lines_and_truncate_extra_equals() {
+        // Empty lines are dropped; a value containing '=' is truncated at
+        // the second '=' boundary (expr_split[1] only) — oracle quirk.
+        let sets = env_assignments("_cc_harder=yes\n_HZ_ticks=1000\n\n_cpu=zen4=x\n");
+        assert_eq!(
+            sets,
+            vec![
+                ("_cc_harder".to_string(), "yes".to_string()),
+                ("_HZ_ticks".to_string(), "1000".to_string()),
+                ("_cpu".to_string(), "zen4".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn env_assignments_skips_lines_without_separator() {
+        // "=v", "a=" and bare lines make the oracle read expr_split[1] out
+        // of bounds (UB); the candidate skips them (D-005).
+        assert!(env_assignments("=v\na=\nbare\n").is_empty());
+        assert!(env_assignments("").is_empty());
+    }
+
+    #[test]
+    fn clean_env_plan_unsets_previous_then_applies() {
+        let prev = vec!["_lto".to_string(), "_cc_harder".to_string()];
+        let (unsets, sets) = clean_env_plan(&prev, "_lto=thin\n_cc_harder=yes\n");
+        assert_eq!(unsets, prev);
+        assert_eq!(
+            sets,
+            vec![
+                ("_lto".to_string(), "thin".to_string()),
+                ("_cc_harder".to_string(), "yes".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn clean_env_plan_deduplicates_no_env_leakage() {
+        // Variables set in the previous run are unset before the new ones
+        // are applied; a var absent from the new values is not re-added.
+        let prev = vec!["_stale_var".to_string()];
+        let (unsets, sets) = clean_env_plan(&prev, "_lto=thin\n");
+        assert_eq!(unsets, vec!["_stale_var".to_string()]);
+        assert_eq!(sets, vec![("_lto".to_string(), "thin".to_string())]);
     }
 }

@@ -1,0 +1,37 @@
+# CLAIM — git-cache/lifecycle
+claim = "Given the 'git-cache' fixture (a seeded git checkout at /root/.cache/cachyos-km/pkgbuilds with a local bare remote ahead by one commit), clicking the oracle's Configure button produces exactly the git exec chain the candidate's prepare_git_repo model (git_cache_plan) predicts: git checkout --force master, git clean -fd, git pull — in that order, no clone — plus the same discovery rows."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 GUI. on_configure (km-window.cpp:340-351) shows the progress dialog and runs prepare_build_environment (utils.cpp:198-202: ~/.cache/cachyos-km + pkgbuilds under HOME=/root) in a background thread; prepare_git_repo (utils.cpp:161-196): create_directories, enter parent (cwd mutation), remove a non-git repo_path, clone when absent, enter repo, then the refresh chain git checkout --force master / git clean -fd / git pull (short-circuit OR). Candidate: cachyos-kernel-manager-gitcache — probes the identical fixture filesystem (exists checks exactly like fs::exists) and emits git_cache_plan's modeled exec chain."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked fixture image (identical machine state).",
+  "The oracle runs as root under Xvfb with AT-SPI enabled; the Configure button is clicked through the accessibility tree (XTEST at a11y coordinates), never by screenshots.",
+  "The fixture's git operations are fully offline: the checkout's origin is a local bare remote, so git pull never touches the network.",
+  "HOME=/root in the court VM, so prepare_build_environment targets /root/.cache/cachyos-km/pkgbuilds (the same paths the candidate model probes).",
+  "The conf window's probes (reset_patches_data_tab) may or may not complete before the observation ends; they are not part of this claim (courted separately in patch-injection/*).",
+]
+
+observables = [
+  "Ordered git exec argv chain (checkout --force master / clean -fd / pull; clone when the fixture forces it)",
+  "Kernel rows of the SAME run (discovery parity still holds)",
+  "Machine residual identity between the two runs (fixture-integrity)",
+  "PKGBUILD content before/after the run (refresh must not mutate it)",
+]
+
+witness = "cargo xtask court run git-cache/lifecycle --vm against fixture 'git-cache'."
+
+independence = "The oracle is the real upstream binary driven through its real GUI in a disposable VM; the candidate is a separate Rust model probing the identical fixture. Neither generates the other's output; the exec chain is witnessed from the operating system (strace), not from the application."
+
+falsifier = "Any difference in git exec order or argv, any discovery row difference, or machine residual drift."
+
+[[evidence]]
+artifact = "oracle/oracle-transaction.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/oracle-trace.log"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/candidate-transaction.json"
+sha256 = "pending"

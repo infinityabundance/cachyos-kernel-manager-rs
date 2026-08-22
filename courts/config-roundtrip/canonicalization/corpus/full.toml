@@ -1,0 +1,20 @@
+# All 18 fields, as the oracle's write_config_file would produce after a
+# save with every option set.
+hardly_check = true
+per_gov_check = false
+tcp_bbr3_check = true
+cachy_config_check = true
+nconfig_check = false
+xconfig_check = true
+localmodcfg_check = false
+use_current_check = true
+builtin_zfs_check = false
+builtin_nvidia_open_check = true
+build_debug_check = false
+hz_ticks_combo = "1000"
+tickrate_combo = "full"
+preempt_combo = "lazy"
+hugepage_combo = "always"
+lto_combo = "thin"
+cpu_opt_combo = "zen4"
+custom_name_edit = "$pkgbase-custom"

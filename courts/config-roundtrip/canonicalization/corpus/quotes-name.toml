@@ -1,0 +1,3 @@
+# Custom names may contain quotes (escaped in the basic string). The
+# canonical re-serialization must escape identically on both sides.
+custom_name_edit = "a\"b\"c"

@@ -10,29 +10,34 @@ oracle in disposable VMs, and every discrepancy is treated as evidence.
 > inspect this repository and see exactly why trusting the Rust
 > implementation would be reasonable.
 
-## Status — Phase 0/1 done, Phase 3 foundation built
+## Status — Phases 0–5 done, Phase 6 (build subsystem) in progress
 
 | phase | scope | status |
 |---|---|---|
 | 0 | freeze authority | **done** — `oracle/UPSTREAM.lock` (v1.19.0, `6b4a373e`, deterministic archive `1e464db6…`, package hash `3dd688c6…`, hash-verified) |
 | 1 | archaeology + atlas | **done** — `atlas/inventory.json` (37 surfaces), `docs/*` (full source archaeology), git-history lore |
-| 2 | VM oracle instrumentation | **in progress** — docker+qemu image builder, fixture baker (10 baseline fixtures), SSH/9p harness, AT-SPI observation, candidate inspect tool (libalpm FFI), FRF comparator + evidence; base image building |
-| 3 | pure domain core | **built** — discovery, version state, category, options/transitions, selection, app state machine; 80 tests |
-| 4 | ALPM layer | **built (minimal)** — isolated FFI (`alpm_initialize/register/db_get_pkg/pkgcache/vercmp/installed_db`), mINI pacman.conf port, null backend; transaction API deliberately excluded |
-| 5–13 | exec/build/…/release | partially modeled (plan, exec, build, config crates); UI, SCX, packaging, hostile review pending |
+| 2 | VM oracle instrumentation | **done** — docker+qemu image builder, fixture baker, SSH/9p harness, AT-SPI observation, candidate inspect tool (libalpm FFI), FRF comparator + evidence; all 10 baseline discovery courts PASS |
+| 3 | pure domain core | **done** — discovery, version state, category, options/transitions, selection, app state machine |
+| 4 | ALPM layer | **done** — isolated FFI (`alpm_initialize/register/db_get_pkg/pkgcache/vercmp/installed_db`), mINI pacman.conf port, null backend; all 8 Phase 4 courts PASS |
+| 5 | execution/privilege | **done** — plan/exec layers, terminal-helper matrix, polkit identity, differential GUI transaction courts (strace exec-chain witnesses); 10 Phase 5 courts PASS |
+| 6 | build subsystem | **in progress** — PKGBUILD mutation/env/artifact models (build crate); `config-roundtrip/canonicalization` PASS (toml 0.8 vs upstream toml 1.1 differential); `git-cache/lifecycle` PASS (real Configure flow, strace-witnessed refresh chain vs `git_cache_plan`); patch-injection/custom-name VM courts defined |
+| 7 | SCX | pending (Phase 7) |
+| 8 | Iced UI | pending (Phase 8) |
+| 9–13 | differential matrix, packaging, boot courts, hostile review, release | pending |
 
 Nothing beyond its phase is claimed complete. The GUI lands in Phase 8; the
-current binary is a foundation diagnostic that verifies the oracle freeze.
+current binaries are foundation diagnostics + court witness tools.
 
 ## Quick start
 
 ```sh
 cargo build            # builds the workspace (no GUI yet)
-cargo test             # 68 unit/property tests over the reconstructed semantics
+cargo test --workspace # 106 unit/property tests over the reconstructed semantics
 cargo xtask oracle verify   # verifies the frozen source archive hash
 cargo xtask oracle info     # prints the frozen authority record
 cargo xtask court list      # lists court case directories
-cargo xtask court run --all # runs courts whose fixtures are present
+cargo xtask court run --all # runs the pure courts whose fixtures are present
+cargo xtask court run <case> --vm  # differential VM court (real oracle GUI)
 cargo xtask upstream diff <ref>  # diff locked oracle vs a candidate ref
 ```
 

@@ -1,0 +1,107 @@
+# CLAIM — config-roundtrip/canonicalization
+claim = "Given the frozen config-option-lib (revision 6b4a373e) as the oracle's config schema, the candidate's KernelManagerConfig parse→re-serialize produces byte-identical canonical TOML on the 10-file corpus (all fields, minimal, empty, unknown fields, invalid enum-like values, unicode/quoted/500-char names, malformed, CRLF), with identical exit codes."
+
+model = "Oracle: config-option-lib/src/lib.rs @ 6b4a373e — Rust struct with #[serde(default)] on every field, parsed and serialized with the toml crate 1.1 (the upstream's actual dependency), witnessed via tools/config-oracle-ref (verbatim upstream struct, same toml major version). Candidate: crates/cachyos-kernel-manager-config KernelManagerConfig — same field names/types/order, same serde attributes, toml 0.8 (workspace pin). Both CLIs implement the same contract: parse <file> prints the canonical re-serialization; exit 0 on success, 1 on parse error."
+
+assumptions = [
+  "The oracle's config layer is itself Rust serde+toml, so the honest differential is the upstream struct/attributes/semantics vs the candidate's, on identical input files (toml 1.1 vs 0.8 is the substantive difference under test).",
+  "The corpus is frozen before any run and byte-identical for both sides.",
+  "Parse errors surface as exit 1 with empty stdout on both sides; stderr texts differ (C++ fmt vs Rust) and are excluded from comparison.",
+  "This is a NON-VM court: both executables run on the same host, so no machine-residual witness is required.",
+]
+
+observables = [
+  "Per corpus file: canonical re-serialization (stdout), byte-for-byte",
+  "Per corpus file: exit code (0 parse ok / 1 parse error)",
+  "Field order in the canonical output (struct declaration order)",
+]
+
+witness = "tools/run-config-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run config-roundtrip/canonicalization."
+
+independence = "tools/config-oracle-ref re-declares the upstream struct verbatim with the upstream's toml 1.1; the candidate uses its own crate with the workspace's toml 0.8. Neither generates the other's output; both are run over the same frozen corpus files."
+
+falsifier = "Any byte difference in canonical output or any exit-code mismatch on any corpus file."
+
+[[evidence]]
+artifact = "oracle/crlf.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/crlf.exit"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/empty.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/full.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/invalid-enum-value.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/long-name.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/malformed.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/minimal.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/quotes-name.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/unicode-name.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/unknown-fields.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/full.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/minimal.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/empty.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/unknown-fields.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/invalid-enum-value.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/unicode-name.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/long-name.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/malformed.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/quotes-name.canonical"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/crlf.canonical"
+sha256 = "pending"

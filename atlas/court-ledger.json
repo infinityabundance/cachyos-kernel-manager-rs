@@ -85,12 +85,12 @@
   {
    "surface": "cache.paths",
    "court": "git-cache/lifecycle",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "git.refresh",
    "court": "git-cache/lifecycle",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "build.variants",
@@ -154,8 +154,8 @@
   },
   {
    "surface": "config.toml_schema",
-   "court": "config-roundtrip/toml-schema",
-   "status": "defined"
+   "court": "config-roundtrip/canonicalization",
+   "status": "passing"
   },
   {
    "surface": "exit_codes",

@@ -1,0 +1,4 @@
+# String fields are free-form: an invalid enum-like value loads fine and is
+# flagged "outdated" by the UI layer (set_combobox_val returns nonzero).
+hz_ticks_combo = "99999"
+preempt_combo = "absurd"

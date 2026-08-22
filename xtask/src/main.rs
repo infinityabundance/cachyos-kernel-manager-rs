@@ -516,6 +516,17 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         return ExitCode::FAILURE;
     }
     std::fs::copy(&plan_src, share.join("inspect/cachyos-kernel-manager-plan")).expect("copy plan");
+    // Phase 6: the git-cache model tool (configure-flow courts)
+    let gitcache_src = repo_root().join("target/debug/cachyos-kernel-manager-gitcache");
+    if !gitcache_src.exists() {
+        eprintln!("build the git-cache model tool first: cargo build -p cachyos-kernel-manager-build --bin cachyos-kernel-manager-gitcache");
+        return ExitCode::FAILURE;
+    }
+    std::fs::copy(
+        &gitcache_src,
+        share.join("inspect/cachyos-kernel-manager-gitcache"),
+    )
+    .expect("copy gitcache");
     // iterate without rebaking: fresh in-VM scripts via the 9p share
     let scripts_dst = share.join("scripts");
     let _ = std::fs::remove_dir_all(&scripts_dst);
@@ -532,6 +543,7 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     // on both sides.
     let is_transaction = case.comparator.transaction.is_some();
     let is_terminal_matrix = case.comparator.terminal_matrix.is_some();
+    let is_configure = case.comparator.configure;
     let tx_select: Vec<String> = case
         .comparator
         .transaction
@@ -603,7 +615,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             }
             match side {
                 "oracle" => {
-                    let script = if is_transaction {
+                    let script = if is_configure {
+                        "oracle-configure.sh"
+                    } else if is_transaction {
                         "oracle-transact.sh"
                     } else {
                         "oracle-observe.sh"
@@ -616,7 +630,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                     run("bash", &[ctl, "exec", &cmd])?;
                 }
                 "candidate" => {
-                    let script = if is_transaction {
+                    let script = if is_configure {
+                        "candidate-gitcache.sh"
+                    } else if is_transaction {
                         "candidate-plan.sh"
                     } else {
                         "candidate-observe.sh"
@@ -683,7 +699,7 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             }
         }
     }
-    if is_transaction {
+    if is_transaction || is_configure {
         match cachyos_kernel_manager_casefile::vm_court::compare_vm_transactions(&case.dir, case_id)
         {
             Ok(mut tx) => residuals.append(&mut tx),

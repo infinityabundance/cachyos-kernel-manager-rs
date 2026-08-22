@@ -1,0 +1,11 @@
+assumptions = [
+  "The frozen upstream clone (oracle/upstream) is the source of truth for the oracle's config schema; config-option-lib/src/lib.rs @ 6b4a373e declares the exact struct and serde attributes.",
+  "tools/config-oracle-ref re-declares that struct verbatim (same fields, order, #[serde(default)]) and uses the same toml major version as the upstream (1.1) — its output IS the oracle's output for this surface.",
+  "The candidate config crate reproduces the same struct semantics with the workspace's toml 0.8; any serialization divergence between toml 0.8 and 1.1 is a real residual this court must catch.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+  "Non-VM court: both executables run on the same host; there is no machine-state component to the config surface.",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-config-corpus.sh", input_domain = "CLI stdout + exit code per corpus file", transformation = "capture stdout verbatim into <name>.canonical and the exit code into <name>.exit; stderr is dropped", justification = "the canonical re-serialization IS the observable; stderr texts are implementation-specific (C++ fmt vs Rust) and outside the behavioral contract", falsifier = "a byte in stdout, or the exit code, differing between oracle and candidate" },
+]

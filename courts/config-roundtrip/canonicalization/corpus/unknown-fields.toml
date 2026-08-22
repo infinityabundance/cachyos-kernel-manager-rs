@@ -1,0 +1,4 @@
+# Unknown fields must be ignored (no deny_unknown_fields in the oracle).
+hardly_check = true
+future_field = "x"
+another_future = 42

@@ -1,0 +1,14 @@
+[package]
+name = "config-oracle-ref"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Reference implementation of the oracle's config-option-lib (config-option-lib/src/lib.rs @ 6b4a373e) for differential config-roundtrip courts. NOT part of the candidate; evidence infrastructure."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "1.1"
+
+[[bin]]
+name = "config-oracle-ref"
+path = "src/main.rs"
