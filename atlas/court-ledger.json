@@ -23,6 +23,11 @@
    "status": "passing"
   },
   {
+   "surface": "drift_slew.pure_determinism",
+   "court": "drift-slew/pure-determinism",
+   "status": "passing"
+  },
+  {
    "surface": "i18n.locales",
    "court": "i18n/locale-resolution",
    "status": "defined"

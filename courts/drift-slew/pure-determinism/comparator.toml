@@ -1,0 +1,10 @@
+version = "1.0.0"
+
+# Pure self-consistency court: oracle/ = run 1, candidate/ = run 2 of the
+# SAME witnesses over the SAME frozen corpora. No baked fixture image (the
+# VM-capability marker key is deliberately ABSENT). The nested directory
+# layout (oracle/<witness>/<name>.json) is compared recursively.
+ignore = []
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

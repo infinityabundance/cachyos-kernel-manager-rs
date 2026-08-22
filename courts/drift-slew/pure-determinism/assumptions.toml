@@ -1,0 +1,11 @@
+assumptions = [
+  "Each witness is a pure function of its corpus file (no wall-clock/PIDs/timestamps/network/environment-dependent ordering).",
+  "Fresh-process isolation: three separate processes per witness; the only shared state is the immutable read-only corpus.",
+  "The outputs are the witness stdout (serde_json pretty, stable field order) + the exit code; stderr is dropped.",
+  "The witness set is the pure corpus-driven set; VM-court witnesses are covered by the forensic workflow's re-runs.",
+  "The casefile defaults compare oracle/ vs candidate/ byte-for-byte; the runner's run3-vs-run1 diff is an additional assert.",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-drift-corpus.sh", input_domain = "CLI stdout + exit code per witness per corpus file (three runs each)", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit per run; run 1 -> oracle/, run 2 -> candidate/, run 3 diffed against run 1 (hard failure on drift); stderr is dropped", justification = "the stdout IS the observable; cross-run byte-equality is the claim", falsifier = "a byte differing between runs 1 and 2 (a residual) or between runs 1 and 3 (a runner failure)" },
+]

@@ -1,0 +1,31 @@
+# CLAIM — drift-slew/pure-determinism
+claim = "The candidate's pure corpus-driven witness CLIs are DETERMINISTIC across fresh processes: every witness rendered THREE times over its frozen corpus (each run a separate process, separate invocation, no shared state beyond the immutable corpus inputs) produces BYTE-IDENTICAL output and exit codes. The witness set covers the courted pure surfaces: config-roundtrip/canonicalization (cachyos-kernel-manager-config), option-transitions/variant-switch (cachyos-kernel-manager-variant-switch), build-env/lifecycle (cachyos-kernel-manager-buildflow), build-env/env-rendering (cachyos-kernel-manager-env), ui/main-window-semantics, ui/configure-window-semantics, ui/i18n-resolution, single-instance/stale-lock, and the fixed ui/dialog-strings table. Run 1 = oracle/, run 2 = candidate/ (the casefile compares them); run 3 is diffed against run 1 by the runner itself (a hard failure on ANY byte difference) — so the court pins run1==run2 AND the runner pins run1==run3: three independent executions, zero drift. This is the Phase 9 repeated-execution / drift-slew guarantee for the pure layer (the VM courts' determinism is witnessed by their own re-runs in the forensic workflow)."
+
+model = "Oracle: the FIRST execution of each candidate witness. Candidate: the SECOND execution of the SAME witness over the SAME corpus. The THIRD execution is the runner's own determinism assert. The outputs ARE the candidate's own rendering (a self-consistency court — the parity of each witness with the frozen source is courted by the individual ui/*, config-roundtrip, option-transitions, build-env, single-instance courts; THIS court pins the across-execution determinism)."
+
+assumptions = [
+  "Each witness is a pure function of its corpus file: no wall-clock output, no PIDs, no timestamps, no network, no environment-dependent ordering (the corpus JSONs are the only inputs).",
+  "Fresh-process isolation: each of the three runs starts a new process; the only shared state is the immutable corpus (read-only) and the OS (locale/font/clock do not influence the outputs — the witnesses render serde_json from parsed inputs).",
+  "The outputs are the witness stdout (serde_json pretty, stable field order) + the exit code; stderr is dropped.",
+  "The witness set is the PURE corpus-driven set (the VM-court witnesses run under the forensic workflow where their determinism is witnessed by re-runs on identical overlays).",
+  "The comparators are the casefile defaults: oracle/ vs candidate/ compared byte-for-byte; the runner's run3-vs-run1 diff is an additional assert (documented in the runner source hash).",
+]
+
+observables = [
+  "the full oracle/ and candidate/ output trees (every witness × every corpus file)",
+  "the exit codes",
+]
+
+witness = "tools/run-drift-corpus.sh (three runs per witness over the frozen corpora), then cargo xtask court run drift-slew/pure-determinism."
+
+independence = "There is no oracle re-declaration here — the court's subject IS the candidate's own execution stability. The individual witness parities are courted independently by their own courts; this court's falsifier is any cross-execution difference, which no oracle-side artifact could mask."
+
+falsifier = "Any byte difference between run 1 and run 2 (a residual), or between run 1 and run 3 (a runner failure), of any witness over any corpus file."
+
+[[evidence]]
+artifact = "oracle/<witness>/<name>.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/<witness>/<name>.json"
+sha256 = "pending"

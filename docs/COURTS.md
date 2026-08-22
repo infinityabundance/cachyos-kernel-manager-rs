@@ -260,9 +260,17 @@ historical regressions, repeated executions, drift/slew). First surface:
 
 Remaining Phase 9 surfaces (atlas/status.json + coverage-gaps.json): the
 alpm search-ordering adversarial needle db (gap-002), the makepkg -scf vs
--sicf runtime dependency-resolution witness (gap-006), repeated-execution
-drift/slew runs, historical-regression courts, and the
-close-during-transaction race witness (gap-010).
+-sicf runtime dependency-resolution witness (gap-006), historical-regression
+courts, and the close-during-transaction race witness (gap-010).
+
+The repeated-execution / drift-slew guarantee for the pure layer is courted
+by `drift-slew/pure-determinism` — every pure corpus-driven witness runs
+THREE times over its frozen corpus (fresh processes); run 1 = oracle/, run
+2 = candidate/ (compared by the casefile), run 3 diffed against run 1 by
+the runner (a hard failure on any drift). Witnesses: config, variant-switch,
+buildflow, env, mainwindow, confwindow, i18n, single-instance, strings.
+Witness: `tools/run-drift-corpus.sh`. The VM courts' determinism is
+witnessed by the forensic workflow's re-runs on identical overlays.
 
 ## Case format
 
