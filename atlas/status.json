@@ -81,8 +81,8 @@
   {
    "phase": 10,
    "name": "Packaging and migration",
-   "status": "in-progress",
-   "wording": "Arch package, drop-in files, package replacement, upgrade/revert courts. Done: packaging/PKGBUILD (builds the Rust GUI with gui-alpm + installs the byte-identical drop-in files), packaging/file-layout PASS (the candidate's installed file set == the frozen oracle package's 15-file surface, the 14 shared files byte-identical, sha256:3dd688c6... oracle package preserved in oracle/packages/), packaging/upgrade PASS (VM: oracle 1.19.0-1 -> candidate 0.1.0-1 -> oracle 1.19.0-1; the file surface + discovery rows preserved across the transition; the oracle's --version abort quirk documented). Remaining: the packaging/README + the migration docs, the full packaging court matrix in the forensic workflow, and the Phase 11 boot/system courts follow."
+   "status": "sealed",
+   "wording": "The Phase 10 scope — Arch package, drop-in files, package replacement, upgrade/revert courts — is SEALED: packaging/PKGBUILD (builds the Rust GUI with gui-alpm, installs the byte-identical drop-in surface), packaging/file-layout PASS (the candidate's installed file set == the frozen oracle package's 15-file surface; the 14 shared files byte-identical; the frozen package preserved in oracle/packages/, sha256 3dd688c6...), packaging/upgrade PASS (VM: oracle 1.19.0-1 -> candidate 0.1.0-1 -> oracle 1.19.0-1 via real pacman; the file surface + discovery rows preserved; the oracle's --version abort quirk documented in KNOWN_DIVERGENCES.md), the migration docs (docs/COMPATIBILITY.md §Migration: the cache + config schema unchanged; the candidate reads the oracle's state), and the forensic packaging matrix wired. The boot/system courts (Phase 11) follow."
   },
   {
    "phase": 11,

@@ -67,6 +67,20 @@ court ledger as `desktop.categories`.
 - SCX button visibility (`/sys/kernel/sched_ext/state`), scxctl-ui window
   behavior.
 
+## Migration (Phase 10)
+
+The candidate package replaces the oracle's in place: same `pkgname`
+(`cachyos-kernel-manager`), same installed file surface (courted by
+`packaging/file-layout`), so `pacman -U` of the candidate package replaces
+the Qt binary with the Rust binary and `pacman -U` of the frozen oracle
+package reverts it (courted by `packaging/upgrade`: the file surface + the
+discovery rows are preserved across the transition; the package version
+transitions 1.19.0-1 → 0.1.0-1 → 1.19.0-1). The user cache
+(`~/.cache/cachyos-km/`) and the config schema are unchanged — the
+candidate reads the oracle's state. The candidate ADDS a `--version` flag
+(the oracle has none — it aborts without a display); the GUI surface is
+unaffected.
+
 ## Divergence policy
 
 Every divergence is either:
