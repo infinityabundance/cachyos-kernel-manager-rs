@@ -1,0 +1,32 @@
+# CLAIM — kernel-discovery/needle-order
+claim = "Given the 'needle-order' fixture (gap-002: an adversarial sync db with 40 interleaved kernel/headers families plus linux-api-headers lookalikes, headers-without-kernel, kernel-without-headers, notlinux-*, and bare linux/linux-lts traps), the candidate's kernel discovery produces the same rows — raw name, version text incl. the ∨/∧ markers, category, checked state, AND ORDER — as the oracle's GUI tree, observed through AT-SPI. The ORDER claim is the gap-002 point: the oracle's alpm_db_search (kernel.cpp:184-197) and the candidate's alpm_db_get_pkgcache both iterate libalpm's pkgcache hash, so the row order must match byte-for-byte on the SAME libalpm — this fixture makes that order non-trivial (40+ needle matches, interleaved inserts) so any ordering divergence between the search path and the pkgcache path would surface as a residual."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 GUI (libalpm alpm_db_search discovery per kernel.cpp:179-286, mINI pacman.conf registration per alpm_utils.cpp:32-47 — sections lowercased, testing/options skipped, Include NOT followed, duplicates merged, display per kernel.cpp:56-79 + km-window.cpp:89-106). Candidate: cachyos-kernel-manager-inspect over the same libalpm databases + the same registration/display rules."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked fixture image (identical machine state).",
+  "The oracle runs under Xvfb with AT-SPI enabled; the tree is read from the accessibility tree, never screenshots.",
+  "The [fixtures] repo is registered by BOTH sides (mINI lowercasing; 'fixtures' survives the testing/options skip) — the adversarial db IS observable to both.",
+  "alpm_db_search and alpm_db_get_pkgcache iterate the same libalpm pkgcache hash on the SAME libalpm build; the ORDER is a libalpm-internal property, NOT an ALPM contract (gap-002: it may change across libalpm versions) — this court pins the equivalence on the frozen oracle's libalpm.",
+  "The needle is 'linux[^ ]*-headers'; linux-api-headers and any package containing that substring are skipped (kernel.cpp:199-204); a headers match without a kernel package is skipped (kernel.cpp:209-213).",
+  "The comparison normalizes PIDs/paths (volatile_prefixes) and compares the AT-SPI tree + candidate state JSON semantically.",
+]
+
+observables = [
+  "the tree rows in order (raw/version/category/checked)",
+  "the candidate's inspect state JSON (same fields, same order)",
+]
+
+witness = "cargo xtask court run kernel-discovery/needle-order --vm (bake: cargo xtask vm bake needle-order)."
+
+independence = "The oracle side is the REAL shipped v1.19.0 GUI running against the fixture; the candidate side is the inspect tool reading the SAME databases with its own libalpm handle. Neither generates the other's output; the fixture is the only shared input."
+
+falsifier = "Any row absent/present/ordered differently between the AT-SPI tree and the candidate's state JSON."
+
+[[evidence]]
+artifact = "oracle/oracle-state.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/candidate-state.json"
+sha256 = "pending"

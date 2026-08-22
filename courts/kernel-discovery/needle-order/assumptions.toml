@@ -1,0 +1,16 @@
+assumptions = [
+  "Fixture: the 'needle-order' adversarial sync db (40 kernel/headers families + linux-api-headers lookalikes, headers-without-kernel, kernel-without-headers, notlinux-*, bare linux/linux-lts) in the [fixtures] repo; no kernels installed from it.",
+  "Disposable court VM with the fixture marker (/etc/cachyos-km/fixture.marker); destructive courts fail closed without it.",
+  "Sync databases are NOT refreshed during the run (no -Sy).",
+  "AUR support disabled in the oracle build (default).",
+  "The row ORDER is the claim: alpm_db_search (oracle) and alpm_db_get_pkgcache (candidate) iterate the same libalpm pkgcache hash on the SAME libalpm; the equivalence is witnessed, not assumed (gap-002: the hash order is a libalpm-internal property, not an ALPM contract).",
+]
+
+[[normalizers]]
+name = "at-spi-tree-extraction"
+version = "1.0.0"
+source_hash = "pending"
+input_domain = "oracle-state.json (full at-spi tree)"
+transformation = "extract ordered kernel rows (raw/version/category/checked) + dialogs; drop PIDs, dbus names, coordinates"
+justification = "The at-spi tree contains presentation metadata not part of the behavioral contract; row identity/order/text IS the contract."
+falsifier = "A row that the extractor drops or reorders is a real residual (the raw tree remains in evidence)."

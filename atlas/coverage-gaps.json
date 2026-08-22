@@ -19,16 +19,17 @@
    "surface": "alpm_db_search ordering within a sync db",
    "evidence": "kernel.cpp:184-197 relies on libalpm search ordering; not guaranteed by the ALPM contract across versions",
    "court_needed": "kernel-discovery/needle",
-   "status": "partially-covered",
+   "status": "covered",
    "covered_by": [
     "kernel-discovery/minimal",
     "kernel-discovery/several-kernels",
     "kernel-discovery/custom-repo",
     "kernel-discovery/duplicate-across-repos",
     "kernel-discovery/adversarial-names",
-    "kernel-discovery/epoch-versions"
+    "kernel-discovery/epoch-versions",
+    "kernel-discovery/needle-order"
    ],
-   "note": "ordering verified against real cachyos/core/extra dbs (row order == repo order \u00d7 db cache order, matching alpm_db_search); an adversarial hand-built needle db is still unwitnessed"
+   "note": "ordering verified against real cachyos/core/extra dbs (row order == repo order \u00d7 db cache order, matching alpm_db_search); the adversarial hand-built needle db (40 interleaved families + api/lonely/orphan/bare-linux traps) is now WITNESSED by kernel-discovery/needle-order --vm: the row set AND order are identical between the oracle's alpm_db_search and the candidate's alpm_db_get_pkgcache on the same libalpm (the order remains a libalpm-internal property, not an ALPM contract)"
   },
   {
    "id": "gap-003",

@@ -272,6 +272,15 @@ buildflow, env, mainwindow, confwindow, i18n, single-instance, strings.
 Witness: `tools/run-drift-corpus.sh`. The VM courts' determinism is
 witnessed by the forensic workflow's re-runs on identical overlays.
 
+`kernel-discovery/needle-order` — PASS (differential VM court on fixture
+`needle-order`, gap-002 covered). The adversarial needle db (40 interleaved
+kernel/headers families + linux-api-headers lookalikes, headers-without-
+kernel, kernel-without-headers, notlinux-*, bare linux/linux-lts): the
+oracle's `alpm_db_search` row set AND order are identical to the
+candidate's `alpm_db_get_pkgcache`-based discovery on the same libalpm.
+The order is a libalpm-internal property, NOT an ALPM contract — the court
+pins the equivalence on the frozen oracle's libalpm.
+
 ## Case format
 
 ```

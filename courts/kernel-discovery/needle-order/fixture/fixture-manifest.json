@@ -1,0 +1,7 @@
+{
+ "fixture": "needle-order",
+ "raw_image_hash": "sha256:cf0eaa739b63e40b57c1f77dffa4bdd9e6b439b60228dbca3c2a40f37b111313",
+ "baked_at": "2026-08-22T11:27:07Z",
+ "fixture_digest": "sha256:4a4a6081112a1bdb774318a9943c49b6588a1642f0cf49b92a985a3f3671b5f8",
+ "spec_sha256": "sha256:ab7d64e28bfc1be923b2537d357a992d4dd522ee84463d8711c01b693d62d083"
+}
