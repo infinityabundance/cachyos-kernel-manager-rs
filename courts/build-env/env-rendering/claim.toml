@@ -1,0 +1,102 @@
+# CLAIM — build-env/env-rendering
+claim = "Given the 10-case corpus of UI option states, the candidate's BuildOptions::env_string renders byte-identical env strings to the oracle's get_all_set_values (conf-window.cpp:421-451), including the checkbox binding order, the option_map var names (compile_options.json), the cpu_opt omission at manual, and the _use_lto_suffix=n workaround."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — get_all_set_values renders _<var>=<value>\\n per option: 11 checkboxes yes/no in binding order (conf-window.cpp:164-176), combos _HZ_ticks/_tickrate/_preempt/_hugepage/_use_llvm_lto, _processor_opt only when != manual, _use_lto_suffix=n when lto != none and custom name != $pkgbase. The var names come from detail::option_map generated verbatim from compile_options.json (mkoptions.py). Witnessed via tools/env-oracle-ref (the exact algorithm). Candidate: BuildOptions::env_pairs/env_string (crates/cachyos-kernel-manager-core/src/options.rs:486-535)."
+
+assumptions = [
+  "The oracle's env string is pure string logic over the UI state — deterministic, no machine state — so the honest differential is the source-derived algorithm vs the candidate's model on identical corpus states (non-VM court).",
+  "The corpus holds only UI-possible combo values (the combos cannot contain other values); both sides reject invalid values with exit 1.",
+  "The env string is variant-independent (get_all_set_values reads no variant state) — the corpus does not carry a variant field.",
+]
+
+observables = [
+  "Per corpus file: the env string, byte-for-byte",
+  "Per corpus file: exit code (0 render ok / 1 invalid state)",
+  "The exact set and ORDER of the emitted var=value lines",
+]
+
+witness = "tools/run-env-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run build-env/env-rendering."
+
+independence = "tools/env-oracle-ref reproduces the oracle's algorithm from the frozen C++ source (conf-window.cpp + compile_options.json) independently of the candidate's Rust model; neither generates the other's output."
+
+falsifier = "Any byte difference in the env string or any exit-code mismatch on any corpus file."
+
+[[evidence]]
+artifact = "oracle/default.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/all-on.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/all-off.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/combos-nondefault.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/cpu-manual-skip.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/lto-none-no-suffix.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/sentinel-custom.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/empty-custom.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/thin-dist.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/mixed.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/default.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/all-on.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/all-off.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/combos-nondefault.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/cpu-manual-skip.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/lto-none-no-suffix.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/sentinel-custom.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/empty-custom.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/thin-dist.env"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/mixed.env"
+sha256 = "pending"

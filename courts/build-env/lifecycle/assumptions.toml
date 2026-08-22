@@ -1,0 +1,11 @@
+assumptions = [
+  "The build-flow decisions (on_execute/finished_proc/aur_kernel command+path+argv construction) are deterministic logic over (variant, cwd, globs); there is no machine component, so a NON-VM differential against the source-derived decisions is the strongest witness.",
+  "tools/buildflow-oracle-ref re-declares the exact decisions from conf-window.cpp:696-735/378-405 + aur_kernel.cpp:53; its output IS the oracle's output for this surface.",
+  "The candidate BuildFlowPlan model reproduces the same decisions; any divergence is a real residual this court must catch.",
+  "gap-006 (makepkg -scf vs -sicf dependency-resolution differences) is courted at the command-construction level here; the runtime behavior of -s vs -sicf is a makepkg/AUR semantic documented in the atlas.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-buildflow-corpus.sh", input_domain = "CLI stdout + exit code per corpus file", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the plan JSON IS the observable; error texts are implementation-specific", falsifier = "a byte in the plan JSON, or the exit code, differing between oracle and candidate" },
+]

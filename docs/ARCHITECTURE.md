@@ -87,19 +87,18 @@ persist config) so the machine is replayable and testable.
 
 | phase | scope | status |
 |---|---|---|
-| 0 | freeze authority | DONE (6b4a373e / v1.19.0) |
-| 1 | atlas/archaeology | DONE (atlas/inventory.json, docs/*) |
-| 2 | oracle instrumentation (VMs) | PENDING (vm/ + xtask oracle) |
-| 3 | pure domain core | IN PROGRESS (this milestone: models + tests) |
-| 4 | ALPM layer | SKELETON (binding module stubbed behind feature) |
-| 5 | execution/privilege | MODELED (exec crate); helper implementation pending |
-| 6 | build subsystem | MODELS DONE (build crate); process wiring pending |
-| 7 | SCX | PENDING |
-| 8 | Iced UI | PENDING (ui crate defines messages/state) |
-| 9 | differential courts | PENDING (courts/ format defined) |
-| 10 | packaging | PENDING |
-| 11 | boot courts | PENDING |
-| 12 | hostile review | PENDING |
-| 13 | release evidence | PENDING |
+| 0 | Freeze authority | **sealed** | oracle v1.19.0 (6b4a373e) frozen; source archive + package hashes hash-verified (oracle/UPSTREAM.lock) |
+| 1 | Build atlas | **sealed** | atlas/inventory.json (37 surfaces), court ledger, residual ledger, coverage gaps, docs/* archaeology |
+| 2 | Oracle instrumentation | **sealed** | docker+qemu VM farm, fixture baker, AT-SPI observation, FRF comparator + evidence; all 10 baseline discovery courts PASS |
+| 3 | Pure domain core | **sealed** | discovery, version state, category, options/transitions, selection, app state machine; 100+ tests; refinement deferred to Phase 9 |
+| 4 | ALPM layer | **sealed** | isolated FFI with a build-time ABI court (abi/probe.c: list layout, enum sizes, every extern signature) + the alpm-ffi/abi-surface evidence court; mINI pacman.conf port; all Phase 4 courts PASS |
+| 5 | Execution/privilege | **sealed** | execution/privilege SEMANTICS and oracle characterization sealed: plan/exec layers, terminal-helper matrix, polkit identity, differential GUI transaction courts (strace exec-chain witnesses); 10 Phase 5 courts PASS. The PRODUCTION privilege replacement (narrow typed helper) is planned, not implemented (D-001). |
+| 6 | Build subsystem | **sealed** | PKGBUILD mutation models + courts (patch-injection/source-array, custom-name/pkgbase-injection), artifact-glob/package-functions, build-env/env-rendering + lifecycle + failure-lifecycle + cancellation, option-transitions/variant-switch, git-cache/lifecycle, config-roundtrip/canonicalization, aur/enablement-matrix (discovery gating + commit ordering; the meson-vs-CMake flag difference documented); all Phase 6 courts PASS, 112 workspace tests |
+| 7 | SCX | pending | typed org.scx.Loader client + sched-ext courts (button visibility, state readback, apply/disable) |
+| 8 | Iced UI | pending | complete semantic UI over the pinned-down substrate: keyboard, dialogs, progress, i18n, accessibility |
+| 9 | Full differential court matrix | pending | failure paths, historical regressions, repeated executions, drift/slew |
+| 10 | Packaging and migration | pending | Arch package, drop-in files, package replacement, upgrade/revert courts |
+| 11 | Boot/system courts | pending | real kernel mutations, reboot, residual comparison |
+| 12 | Hostile review | pending | security, fuzzing, race/mutation testing, dependency audit, unexplained residual hunt; production privilege replacement (D-001) |
+| 13 | Release evidence | pending | parity ledger, known divergences, signed/hashable evidence pack (evidence/releases), reproducible release instructions |
 
-Nothing beyond its phase is claimed complete.

@@ -1,0 +1,92 @@
+# CLAIM — aur/enablement-matrix
+claim = "Given the 7-case corpus of (feature flag, paru/awk availability, repo kernel names, paru probe output, AUR selections, pre-expanded repo install/remove lists), the candidate's AUR model (discover_aur + expand_aur_install + commit_commands in the plan crate) renders byte-identical discovery rows, probe-run flag, gate stderr, and commit-command sequence to the oracle's AUR support (kernel.cpp:253-283 discovery + 89-95 install routing + 288-304 commit_transaction + aur_kernel.cpp:32-55): the ENABLE_AUR_KERNELS gate (shipped oracle = OFF -> no probe, no rows, no message, inert aur list), the `!paru || !awk` gate message (5b075dc flip), the `!kernels.empty()` probe gate, the `paru --aur -Sl | grep ' linux[^ ]*-headers' | awk '{print $2}'` probe, make_multiline empty-drop splitting, replace_all `-headers` stripping, name dedup, the `aur/<name>`/`unknown-version` row construction, the AUR-first commit order (git-refresh `~/.cache/cachyos-km/aur_pkgbuilds/<name>` from `https://aur.archlinux.org/<name>.git` then `makepkg -sicf --cleanbuild --skipchecksums`, non-escalated), and the `headers`-substring build skip."
+
+model = "Oracle: cachyos-kernel-manager v1.19.0 (6b4a373e) — AUR support is `#ifdef ENABLE_AUR_KERNELS` (meson `aur_kernels` option, default off; the shipped CMake binary has it OFF, so the oracle's AUR path is unreachable in the VM and the honest witness is a source-derived reference). tools/aur-oracle-ref re-declares the exact decisions from kernel.cpp:253-283/89-95/288-304 + aur_kernel.cpp:42-55 + string_utils.hpp (make_multiline/replace_all) + utils.cpp (prepare_git_repo url/dir, runCmdTerminal non-escalated). Candidate: discover_aur/expand_aur_install/commit_commands (crates/cachyos-kernel-manager-plan), rendered by crates/cachyos-kernel-manager-plan/src/bin/aur-model.rs."
+
+assumptions = [
+  "The AUR decision surface (flag gating, discovery parsing, row construction, commit ordering, argv construction) is deterministic pure logic over the corpus inputs; the machine effects (git refresh argv from filesystem state, makepkg runtime, terminal-helper invocation) are courted elsewhere (git-cache/lifecycle, build-env/lifecycle, terminal-helper/emulator-matrix) and fixed as inputs here.",
+  "The shipped CMake oracle compiles AUR support OUT, so the enabled-side behavior cannot be witnessed against the frozen binary; the source-derived reference is the strongest possible witness for the enabled side, and the disabled side IS witnessed by the shipped-oracle corpus case (flag off, everything present, nothing happens).",
+  "The paru probe stdout in the corpus is the awk-filtered output (bare header names) — the `paru --aur -Sl | grep ... | awk '{print $2}'` pipeline's exec chain is courted by the exec/probe-commands surface; the pipeline's OUTPUT is this court's input.",
+  "aur_selections are only non-empty in corpus cases where the oracle could actually have produced rows (flag on + paru + awk + non-empty kernels); the unreachable state 'non-empty aur list with feature disabled' is protected by the model's aur_enabled gate (unit-courted by aur_commit_is_inert_when_feature_disabled) since the oracle cannot reach it.",
+  "The repo install/remove lists are pre-expanded inputs (the companion expansion is courted by transaction-plan/*); this court proves the AUR-first commit ORDER and the AUR argv, not the repo expansion.",
+  "The gate stderr is an observable (HISTORICAL_LORE: the message was reworded at 5b075dc) and is compared byte-exact, NOT ignored.",
+]
+
+observables = [
+  "probe_run (did the oracle exec the paru pipeline?)",
+  "aur_rows: repo/name/headers/version/raw per row, in discovery order, deduped",
+  "The gate stderr byte-for-byte (Paru and/or AWK are not installed! Disabling AUR kernels support)",
+  "The commit sequence: per-AUR-kernel git-refresh (url, dir) + build-aur argv, THEN install-repo argv, THEN remove-repo argv",
+  "The headers-substring build skip",
+  "The AUR name is NEVER part of the pacman -S list",
+]
+
+witness = "tools/run-aur-corpus.sh (runs both CLIs over the 7-case corpus, capturing stdout, stderr, and exit code), then cargo xtask court run aur/enablement-matrix."
+
+independence = "tools/aur-oracle-ref re-declares the oracle's AUR decisions from the frozen C++ source; the candidate is the plan crate's Rust model. Neither generates the other's output; both are checked byte-for-byte against each other over the frozen corpus."
+
+falsifier = "Any byte difference in any output file (model JSON, stderr, exit code) on any corpus case."
+
+[[evidence]]
+artifact = "oracle/shipped-oracle.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/flag-on-full.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/flag-on-paru-missing.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/flag-on-awk-missing.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/flag-on-empty-kernels.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/flag-on-headers-skip.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/flag-on-multi-aur-order.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/flag-on-empty-commit.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/shipped-oracle.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/flag-on-full.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/flag-on-paru-missing.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/flag-on-awk-missing.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/flag-on-empty-kernels.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/flag-on-headers-skip.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/flag-on-multi-aur-order.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/flag-on-empty-commit.json"
+sha256 = "pending"

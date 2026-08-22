@@ -1,0 +1,10 @@
+{
+ "switches": [
+  "lts",
+  "cachyos",
+  "hardened",
+  "cachyos",
+  "lts",
+  "hardened"
+ ]
+}

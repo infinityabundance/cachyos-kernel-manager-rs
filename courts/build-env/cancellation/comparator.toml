@@ -1,0 +1,8 @@
+version = "1.0.0"
+
+# Non-VM court: no baked fixture image. The corpus files are the immutable
+# inputs (fixture role), the CLIs' stdout/exit are the compared artifacts.
+ignore = ["candidate.stderr", "oracle.stderr"]
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

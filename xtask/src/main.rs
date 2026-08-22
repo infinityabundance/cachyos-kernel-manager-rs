@@ -24,6 +24,13 @@ fn repo_root() -> &'static Path {
         .expect("xtask is a direct member")
 }
 
+/// Quote a string for a single-quoted shell argument passed over ssh exec
+/// (the in-VM scripts parse `--custom-name <v>` style args). Single quotes
+/// are escaped the standard way (`'` -> `'\''`).
+fn shell_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
+}
+
 fn lock_path() -> std::path::PathBuf {
     repo_root().join("oracle/UPSTREAM.lock")
 }
@@ -83,9 +90,11 @@ fn main() -> ExitCode {
         ["vm", "build"] => vm_build(),
         ["vm", "bake", fixture] => vm_bake(fixture),
         ["evidence", "verify"] => evidence_verify(),
+        ["evidence", "release", name] => evidence_release(name),
+        ["evidence", "verify-release", name] => evidence_verify_release(name),
         _ => {
             eprintln!(
-                "usage: cargo xtask <oracle verify|info|archive|pkg-hash> | upstream diff <ref> | court list | court run <case> [--vm] | court run --all | vm build | vm bake <fixture> | evidence verify"
+                "usage: cargo xtask <oracle verify|info|archive|pkg-hash> | upstream diff <ref> | court list | court run <case> [--vm] | court run --all | vm build | vm bake <fixture> | evidence verify | evidence release <name> | evidence verify-release <name>"
             );
             ExitCode::FAILURE
         }
@@ -281,6 +290,24 @@ fn court_run(case_id: &str) -> ExitCode {
     match case.compare() {
         Ok(residuals) if residuals.is_empty() => {
             println!("court {case_id}: PASS (fixture+oracle+candidate fingerprints identical)");
+            // record the evidence for the publication layer (same record
+            // shape the VM runner writes)
+            let mut ev = cachyos_kernel_manager_casefile::evidence::EvidenceRecord {
+                court: case_id.to_string(),
+                oracle_revision: cachyos_kernel_manager_oracle::UpstreamLock::load(&lock_path())
+                    .map(|l| l.oracle.commit)
+                    .unwrap_or_else(|_| "unknown".to_string()),
+                candidate_revision: env!("CARGO_PKG_VERSION").to_string(),
+                fixture_digest: None,
+                normalizers: vec![("stdout-capture".to_string(), "1.0.0".to_string())],
+                comparator_version: "1.0.0".to_string(),
+                result: "pass".to_string(),
+                residual_count: 0,
+                artifacts: vec![],
+            };
+            let _ = ev.add_directory(&case.dir.join("oracle"), "oracle");
+            let _ = ev.add_directory(&case.dir.join("candidate"), "candidate");
+            let _ = ev.write(&case.dir);
             ExitCode::SUCCESS
         }
         Ok(residuals) => {
@@ -527,6 +554,17 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         share.join("inspect/cachyos-kernel-manager-gitcache"),
     )
     .expect("copy gitcache");
+    // Phase 6: the mutation model tool (patch-injection/custom-name courts)
+    let mutate_src = repo_root().join("target/debug/cachyos-kernel-manager-mutate");
+    if !mutate_src.exists() {
+        eprintln!("build the mutation model tool first: cargo build -p cachyos-kernel-manager-build --bin cachyos-kernel-manager-mutate");
+        return ExitCode::FAILURE;
+    }
+    std::fs::copy(
+        &mutate_src,
+        share.join("inspect/cachyos-kernel-manager-mutate"),
+    )
+    .expect("copy mutate");
     // iterate without rebaking: fresh in-VM scripts via the 9p share
     let scripts_dst = share.join("scripts");
     let _ = std::fs::remove_dir_all(&scripts_dst);
@@ -544,12 +582,14 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     let is_transaction = case.comparator.transaction.is_some();
     let is_terminal_matrix = case.comparator.terminal_matrix.is_some();
     let is_configure = case.comparator.configure;
+    let is_mutation = case.comparator.mutate.is_some();
     let tx_select: Vec<String> = case
         .comparator
         .transaction
         .as_ref()
         .map(|t| t.select.clone())
         .unwrap_or_default();
+    let mutate_spec = case.comparator.mutate.clone();
 
     // the packaged terminal-helper (candidate side of the matrix court)
     let packaged_helper =
@@ -615,7 +655,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             }
             match side {
                 "oracle" => {
-                    let script = if is_configure {
+                    let script = if is_mutation {
+                        "oracle-mutate.sh"
+                    } else if is_configure {
                         "oracle-configure.sh"
                     } else if is_transaction {
                         "oracle-transact.sh"
@@ -623,6 +665,13 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                         "oracle-observe.sh"
                     };
                     let mut cmd = format!("bash /mnt/host/scripts/{script} /mnt/host/out");
+                    if let Some(spec) = &mutate_spec {
+                        cmd.push_str(&format!(
+                            " --custom-name {} --patch-url {}",
+                            shell_quote(&spec.custom_name),
+                            shell_quote(&spec.patch_url)
+                        ));
+                    }
                     for raw in &tx_select {
                         cmd.push(' ');
                         cmd.push_str(raw);
@@ -630,7 +679,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                     run("bash", &[ctl, "exec", &cmd])?;
                 }
                 "candidate" => {
-                    let script = if is_configure {
+                    let script = if is_mutation {
+                        "candidate-mutate.sh"
+                    } else if is_configure {
                         "candidate-gitcache.sh"
                     } else if is_transaction {
                         "candidate-plan.sh"
@@ -638,6 +689,13 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                         "candidate-observe.sh"
                     };
                     let mut cmd = format!("bash /mnt/host/scripts/{script} /mnt/host/out");
+                    if let Some(spec) = &mutate_spec {
+                        cmd.push_str(&format!(
+                            " --custom-name {} --patch-url {}",
+                            shell_quote(&spec.custom_name),
+                            shell_quote(&spec.patch_url)
+                        ));
+                    }
                     for raw in &tx_select {
                         cmd.push(' ');
                         cmd.push_str(raw);
@@ -705,6 +763,15 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             Ok(mut tx) => residuals.append(&mut tx),
             Err(e) => {
                 eprintln!("transaction comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    if is_mutation {
+        match cachyos_kernel_manager_casefile::vm_court::compare_mutation(&case.dir, case_id) {
+            Ok(mut m) => residuals.append(&mut m),
+            Err(e) => {
+                eprintln!("mutation comparison error: {e}");
                 return ExitCode::FAILURE;
             }
         }
@@ -845,5 +912,89 @@ fn evidence_verify() -> ExitCode {
             eprintln!("evidence problem: {b}");
         }
         ExitCode::FAILURE
+    }
+}
+
+/// `evidence release <name>` — assemble an immutable evidence release
+/// (directive §89, the publication layer): per-court recipe hashes,
+/// content-addressed artifact hashes, normalizer/comparator versions,
+/// fixture+image digests, FRF receipts, and the release root hash, written
+/// to `evidence/releases/<name>/` (small hash files — committed). The raw
+/// (gitignored) artifacts stay out of the repo; the hashes make any future
+/// archive verifiable against this record.
+fn evidence_release(name: &str) -> ExitCode {
+    let lock = match cachyos_kernel_manager_oracle::UpstreamLock::load(&lock_path()) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("cannot load UPSTREAM.lock: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let git_commit = run_capture("git", &["rev-parse", "HEAD"])
+        .unwrap_or_else(|e| format!("unknown ({e})"))
+        .trim()
+        .to_string();
+    let created_at = run_capture("date", &["-u", "+%Y-%m-%dT%H:%M:%SZ"])
+        .unwrap_or_else(|_| "unknown".to_string())
+        .trim()
+        .to_string();
+    let builder = cachyos_kernel_manager_casefile::evidence_release::ReleaseBuilder {
+        release: name.to_string(),
+        created_at,
+        git_commit: git_commit.clone(),
+        oracle_revision: lock.oracle.commit.clone(),
+        candidate_revision: env!("CARGO_PKG_VERSION").to_string(),
+        base_image_hash: lock.oracle.reference_image_hash.clone(),
+    };
+    match builder.write_release(repo_root(), &repo_root().join("courts")) {
+        Ok(dir) => {
+            println!("evidence release {name} written to {}", dir.display());
+            let root = std::fs::read_to_string(dir.join("ROOT-HASH")).unwrap_or_default();
+            println!("root hash: {root}");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("evidence release error: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// `evidence verify-release <name>` — verify a written release against the
+/// current filesystem: artifact hashes (where the raw evidence is present),
+/// the FRF receipt hashes, and the root hash.
+fn evidence_verify_release(name: &str) -> ExitCode {
+    match cachyos_kernel_manager_casefile::evidence_release::verify_release(
+        repo_root(),
+        &repo_root().join("courts"),
+        name,
+    ) {
+        Ok(problems) if problems.is_empty() => {
+            println!("evidence release {name}: VERIFIED (artifact hashes + root hash consistent)");
+            ExitCode::SUCCESS
+        }
+        Ok(problems) => {
+            for p in &problems {
+                eprintln!("release problem: {p}");
+            }
+            ExitCode::FAILURE
+        }
+        Err(e) => {
+            eprintln!("release verify error: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// Run a command and capture stdout (trimmed), failing softly.
+fn run_capture(cmd: &str, args: &[&str]) -> Result<String, String> {
+    let out = Command::new(cmd)
+        .args(args)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    } else {
+        Err(format!("{cmd} exited with {}", out.status))
     }
 }

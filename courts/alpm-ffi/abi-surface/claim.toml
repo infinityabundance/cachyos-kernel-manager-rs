@@ -1,0 +1,40 @@
+# CLAIM — alpm-ffi/abi-surface
+claim = "The hand-written Rust FFI's ABI assumptions match the ACTUAL installed libalpm headers: the alpm_list_t layout (data/prev/next at offsets 0/sizeof(void*)/2*sizeof(void*), sizeof == 3 pointers), the int-sized enums (alpm_errno_t, alpm_siglevel_t), ALPM_SIG_USE_DEFAULT == (1 << 30), and every extern \"C\" function signature in ffi.rs (return type, argument types, calling convention)."
+
+model = "Oracle: the real system headers — abi/probe.c compiled with -Werror against pkg-config's include path: _Static_asserts for the layout facts + a function-pointer assignment for every extern declaration (a mismatch is a compile error) + a runtime print of the constants. Candidate: cachyos-kernel-manager-alpm-abi prints the Rust side's ACTUAL compiled constants (size_of/offset_of over RawList, the enums, ALPM_SIG_USE_DEFAULT). build.rs additionally compiles+runs the probe at build time and panics on any invariant violation — the FFI cannot build against a drifted ABI."
+
+assumptions = [
+  "The host/VM has libalpm development headers (the `libalpm` feature requires them) and a C compiler.",
+  "This is a NON-VM court: the ABI is a property of the installed libalpm, not of the oracle GUI; the same headers the oracle links against are probed.",
+  "The two historical bugs (list-layout OOM, installed_db SIGSEGV) were exactly the class of hand-reconstructed ABI facts this court machine-verifies.",
+]
+
+observables = [
+  "sizeof(void*) and sizeof(alpm_list_t) (3 pointers)",
+  "offsetof(alpm_list_t, data/prev/next)",
+  "sizeof(alpm_errno_t) and sizeof(alpm_siglevel_t) (int-sized)",
+  "ALPM_SIG_USE_DEFAULT value",
+  "The function-signature compile checks (probe compiles with -Werror)",
+]
+
+witness = "tools/run-abi-probe.sh (runs the C probe + the Rust constants), then cargo xtask court run alpm-ffi/abi-surface. The build-time gate: cargo build -p cachyos-kernel-manager-alpm --features libalpm (build.rs panics on drift)."
+
+independence = "The C probe reads the real system headers; the Rust constants come from the compiled struct definitions. Neither generates the other's output."
+
+falsifier = "Any byte difference in the printed constants, or a nonzero probe exit (any static assert or signature check failing)."
+
+[[evidence]]
+artifact = "oracle/abi.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/abi.exit"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/abi.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/abi.exit"
+sha256 = "pending"

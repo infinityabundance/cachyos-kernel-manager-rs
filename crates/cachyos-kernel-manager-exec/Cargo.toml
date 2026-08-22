@@ -9,4 +9,18 @@ description = "Typed command plans and argv rendering for the execution boundary
 publish = false
 
 [dependencies]
+cachyos-kernel-manager-core = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
+
+[[bin]]
+name = "cachyos-kernel-manager-buildflow"
+path = "src/bin/buildflow-render.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-finish"
+path = "src/bin/finish-render.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-cancel"
+path = "src/bin/cancel-render.rs"

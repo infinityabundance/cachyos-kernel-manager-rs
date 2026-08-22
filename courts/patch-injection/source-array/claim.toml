@@ -1,0 +1,37 @@
+# CLAIM — patch-injection/source-array
+claim = "Given the 'build-mutation' fixture, driving the real oracle Configure window (add the remote patch 'https://example.invalid/custom.patch' through the QInputDialog, leave the custom name at the window default, click Build kernel) mutates the checkout PKGBUILD with a new source=(...) block — original entries minus *.patch, then the patches list (the fixture's own patches/foo.patch + the added URL), each quoted, inserted at the last newline before prepare() — and the candidate's insert_patch_source_array model produces byte-identical mutated PKGBUILD text from the same pre-mutation PKGBUILD."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — on_execute (conf-window.cpp:696-735): prepare_build_environment, restore_clean_environment(get_all_set_values), get_source_array_from_pkgbuild probe (.testscript sources the PKGBUILD with the env in scope, echoes ${source[@]}), insert_new_source_array_into_pkgbuild (300-326: orig entries minus *.patch, then list-widget items, each fmt '\"{}\"', joined \\n, 'source=(\\n{})\\n', inserted at the last newline at-or-before 'prepare()'), then set_custom_name_in_pkgbuild (328-339: '\\n\\npkgbase=\"<custom>\"' before _major=). The patches list at Build time = reset_patches_data_tab's probe result (.patch entries only) + the user-added URL. Candidate: insert_patch_source_array/build_source_array (build crate)."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked fixture image; the checkout is stable (remote == local, refresh is a no-op), so the pre-mutation PKGBUILD is byte-identical on both sides (witnessed by the before comparison).",
+  "The oracle runs as root under Xvfb with AT-SPI enabled, launched with cwd = /root/.cache/cachyos-km/pkgbuilds so its relative linux-cachyos/* paths resolve (D-004).",
+  "The conf window is driven through the accessibility tree (editable-text/XTEST, real pointer events); the QInputDialog is answered by typing the URL and clicking OK.",
+  "The custom name stays at the window default ($pkgbase-custom); the pkgbase insertion is exercised by the custom-name/pkgbase-injection court.",
+  "The build itself fails fast (makepkg refuses as root); the mutation happens BEFORE the build command and is what this court compares.",
+]
+
+observables = [
+  "The pre-mutation PKGBUILD (byte-identical on both sides — fixture-integrity)",
+  "The post-mutation PKGBUILD, byte-for-byte",
+  "Kernel rows of the SAME run (discovery parity still holds)",
+  "Machine residual identity between the two runs (fixture-integrity)",
+]
+
+witness = "cargo xtask court run patch-injection/source-array --vm against fixture 'build-mutation'."
+
+independence = "The oracle is the real upstream binary driven through its real GUI in a disposable VM; the candidate is a separate Rust model mutating the identical fixture text. Neither generates the other's output."
+
+falsifier = "Any byte difference in the mutated PKGBUILD or the pre-mutation text, any discovery row difference, or machine residual drift."
+
+[[evidence]]
+artifact = "oracle/pkgbuild-after.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/pkgbuild-before.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/candidate-pkgbuild-after.txt"
+sha256 = "pending"

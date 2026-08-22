@@ -1,0 +1,49 @@
+# CLAIM — artifact-glob/package-functions
+claim = "Given the 8 fixture PKGBUILDs x 4 pkgext cases, the candidate's parse+glob models (parse_pkgfuncs_probe_output + artifact_globs) produce identical suffixes, pkgver strings, and artifact globs to the oracle's get_package_names_glob_from_pkgbuild + prepare_func_names (conf-window.cpp:274-298,238-272) over the SAME probe outputs — including the package_ filter (dropping bare package(), keeping hyphenated suffixes), the pkgver: line requirement (broken-pkgbuild error + empty globs), and the PKGEXT fallback to .pkg.tar.zst when the probe yields empty."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — get_pkgext_value_from_makepkgconf (conf-window.cpp:218-236, .testscriptpkgext sources /etc/makepkg.conf, empty -> .pkg.tar.zst fallback), get_package_names_glob_from_pkgbuild (274-298, .testscriptpkgnames: source + declare -F + 'pkgver: $pkgver-$pkgrel'; missing pkgver: line -> stderr 'broken pkgbuild; pkgver must be present' + empty globs), prepare_func_names (238-272: strip 'declare -f ', filter 'package_' prefix, strip it, glob '{suffix}-{pkgver_str}-*{pkgext}'). Both probe scripts are bash (the contract) and are executed by both sides against the identical frozen PKGBUILDs. Candidate: parse_pkgfuncs_probe_output + artifact_globs (build crate)."
+
+assumptions = [
+  "The probe scripts are bash and deterministic over the PKGBUILD text; both sides execute the SAME script text against the SAME frozen PKGBUILD, so the probe output is identical by construction and the comparison targets the parse/glob algorithms.",
+  "The fixture PKGBUILDs are static, benign files (no external commands in package/build functions), so executing the probes on the HOST is safe (host safety, directive §74).",
+  "The pkgext corpus field controls the PKGEXT probe: 'probe' runs the real script (this host's /etc/makepkg.conf — both sides see the same file), 'probe-empty' simulates an empty probe result to exercise the fallback, literals fix a PKGEXT value.",
+  "This is a NON-VM court: the probe evaluation is deterministic host-side logic; no machine state enters the comparison.",
+]
+
+observables = [
+  "Per case: the probe output (declare -F + pkgver: lines), byte-for-byte",
+  "Per case: the parsed package_ suffixes, in probe order",
+  "Per case: the pkgver string (or the broken-pkgbuild error)",
+  "Per case: the artifact globs, in suffix order",
+  "Per case: the PKGEXT value (incl. the .pkg.tar.zst fallback)",
+]
+
+witness = "tools/run-artifact-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run artifact-glob/package-functions."
+
+independence = "tools/artifact-oracle-ref reproduces the oracle's pipeline from the frozen C++ source; the candidate is a separate Rust model over the same probe outputs. Neither generates the other's output."
+
+falsifier = "Any difference in probe output, suffixes, pkgver string, error condition, or globs on any case."
+
+[[evidence]]
+artifact = "oracle/linux-cachyos-pkgext0.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/broken-pkgver-pkgext0.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/epoch-pkgext0.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/linux-cachyos-pkgext0.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/broken-pkgver-pkgext0.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/epoch-pkgext0.json"
+sha256 = "pending"

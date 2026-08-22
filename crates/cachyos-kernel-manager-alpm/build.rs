@@ -1,31 +1,36 @@
-//! Build-time cross-checks for the libalpm FFI (feature `libalpm`).
+//! Build-time ABI court for the libalpm FFI (feature `libalpm`).
 //!
-//! The FFI hardcodes two facts about libalpm. This script verifies them
-//! against the ACTUAL system header at build time, so a future libalpm that
-//! changes the ABI fails loudly here instead of corrupting package state:
+//! The FFI hardcodes ABI facts that have already caused two real bugs
+//! (list-layout OOM; `installed_db` SIGSEGV). Every one of those facts is
+//! now verified against the ACTUAL system headers at build time:
 //!
-//! 1. `ALPM_SIG_USE_DEFAULT == (1 << 30)`
-//! 2. `alpm_pkg_get_installed_db` is declared (the oracle compiles this in
-//!    only when `HAVE_ALPM_INSTALLED_DB` is set by its CMake check; we
-//!    require it unconditionally and document that in `ffi.rs`).
+//! 1. `abi/probe.c` is compiled with `-Werror` — its `_Static_assert`s and
+//!    function-pointer signature checks fail the build if the header drifts
+//!    (layout of `alpm_list_t`, enum sizes, `ALPM_SIG_USE_DEFAULT`, and the
+//!    exact return/argument types of every `extern "C"` declaration in
+//!    `ffi.rs`).
+//! 2. The probe is then RUN; its printed constants are checked against the
+//!    semantic invariants the Rust side relies on (`sizeof(alpm_list_t) ==
+//!    3*sizeof(void*)`, data/prev/next offsets, `alpm_errno_t`/`alpm_siglevel_t`
+//!    are `int`-sized, `ALPM_SIG_USE_DEFAULT == (1 << 30)`).
+//!
+//! The same probe run is court evidence: `alpm-ffi/abi-surface` compares it
+//! byte-for-byte against the Rust-side layout constants.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=abi/probe.c");
     if std::env::var("CARGO_FEATURE_LIBALPM").is_err() {
         return; // FFI not compiled; nothing to verify or link
     }
 
     // link against the system libalpm (pkg-config is authoritative for the
     // library name and search paths)
-    let libs = Command::new("pkg-config")
-        .args(["--libs", "libalpm"])
-        .output()
-        .expect("pkg-config must be installed");
-    assert!(libs.status.success(), "pkg-config --libs libalpm failed");
-    for flag in String::from_utf8_lossy(&libs.stdout).split_whitespace() {
+    let libs = pkg_config("--libs", "libalpm");
+    for flag in libs.split_whitespace() {
         if let Some(lib) = flag.strip_prefix("-l") {
             println!("cargo:rustc-link-lib=dylib={lib}");
         } else if let Some(dir) = flag.strip_prefix("-L") {
@@ -34,42 +39,103 @@ fn main() {
     }
 
     let include_dir = pkg_config_include_dir("libalpm");
-    let header = include_dir.join("alpm.h");
-    let content = std::fs::read_to_string(&header)
-        .unwrap_or_else(|e| panic!("cannot read {header:?}: {e} (libalpm development files required for the `libalpm` feature)"));
+    verify_abi(&include_dir);
+}
 
-    check_contains(
-        &content,
-        "ALPM_SIG_USE_DEFAULT",
-        "(1 << 30)",
-        "ALPM_SIG_USE_DEFAULT changed; update crates/cachyos-kernel-manager-alpm/src/ffi.rs",
+/// Compile `abi/probe.c` against the real headers (-Werror: any static
+/// assert or signature mismatch fails the build) and run it, checking the
+/// printed constants against the Rust-side invariants.
+fn verify_abi(include_dir: &Path) {
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let probe_src = manifest.join("abi/probe.c");
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR"));
+    let probe_bin = out_dir.join("alpm-abi-probe");
+
+    let cc = std::env::var("CC").unwrap_or_else(|_| "cc".to_string());
+    let compile = Command::new(&cc)
+        .arg("-Werror")
+        .arg(format!("-I{}", include_dir.display()))
+        .arg(&probe_src)
+        .arg("-lalpm")
+        .arg("-o")
+        .arg(&probe_bin)
+        .output()
+        .expect("cc must be available (base-devel)");
+    assert!(
+        compile.status.success(),
+        "libalpm ABI probe FAILED to compile — the system headers drifted from the FFI assumptions.\n\
+         stderr:\n{}\n\
+         Update src/ffi.rs (and/or abi/probe.c) to match. Court: alpm-ffi/abi-surface.",
+        String::from_utf8_lossy(&compile.stderr)
     );
-    check_contains(
-        &content,
-        "alpm_pkg_get_installed_db",
-        "alpm_pkg_get_installed_db(alpm_pkg_t *pkg)",
-        "alpm_pkg_get_installed_db missing; update crates/cachyos-kernel-manager-alpm/src/ffi.rs",
+
+    let run = Command::new(&probe_bin).output().expect("run abi probe");
+    assert!(
+        run.status.success(),
+        "libalpm ABI probe crashed:\n{}",
+        String::from_utf8_lossy(&run.stderr)
     );
+    let out = String::from_utf8_lossy(&run.stdout);
+
+    // parse the constants and check the Rust-side invariants
+    let val = |key: &str| -> u64 {
+        out.lines()
+            .find_map(|l| {
+                l.strip_prefix(&format!("{key}="))
+                    .and_then(|v| v.parse().ok())
+            })
+            .unwrap_or_else(|| panic!("ABI probe output missing {key}:\n{out}"))
+    };
+    let ptr = val("sizeof(void*)");
+    assert_eq!(val("sizeof(alpm_list_t)"), 3 * ptr, "alpm_list_t must be data/prev/next (three pointers); update ffi.rs RawList (court alpm-ffi/abi-surface)");
+    assert_eq!(
+        val("offsetof(alpm_list_t,data)"),
+        0,
+        "alpm_list_t.data offset; update ffi.rs RawList"
+    );
+    assert_eq!(
+        val("offsetof(alpm_list_t,prev)"),
+        ptr,
+        "alpm_list_t.prev offset; update ffi.rs RawList"
+    );
+    assert_eq!(
+        val("offsetof(alpm_list_t,next)"),
+        2 * ptr,
+        "alpm_list_t.next offset; update ffi.rs RawList"
+    );
+    assert_eq!(
+        val("sizeof(alpm_errno_t)"),
+        4,
+        "alpm_errno_t must be int-sized (c_int); update ffi.rs"
+    );
+    assert_eq!(
+        val("sizeof(alpm_siglevel_t)"),
+        4,
+        "alpm_siglevel_t must be int-sized (c_int); update ffi.rs"
+    );
+    assert_eq!(
+        val("ALPM_SIG_USE_DEFAULT"),
+        1u64 << 30,
+        "ALPM_SIG_USE_DEFAULT changed; update ffi.rs"
+    );
+    println!("cargo:warning=libalpm ABI probe OK (alpm_list_t layout, enums, signatures, ALPM_SIG_USE_DEFAULT)");
+}
+
+fn pkg_config(flag: &str, pkg: &str) -> String {
+    let out = Command::new("pkg-config")
+        .args([flag, pkg])
+        .output()
+        .expect("pkg-config must be installed");
+    assert!(out.status.success(), "pkg-config {flag} {pkg} failed");
+    String::from_utf8_lossy(&out.stdout).into_owned()
 }
 
 fn pkg_config_include_dir(pkg: &str) -> PathBuf {
-    let out = Command::new("pkg-config")
-        .args(["--cflags", pkg])
-        .output()
-        .expect("pkg-config must be installed");
-    assert!(out.status.success(), "pkg-config --cflags {pkg} failed");
-    let flags = String::from_utf8_lossy(&out.stdout);
+    let flags = pkg_config("--cflags", pkg);
     for flag in flags.split_whitespace() {
         if let Some(dir) = flag.strip_prefix("-I") {
             return PathBuf::from(dir);
         }
     }
     PathBuf::from("/usr/include")
-}
-
-fn check_contains(content: &str, symbol: &str, needle: &str, message: &str) {
-    let found = content
-        .lines()
-        .any(|l| l.contains(symbol) && l.contains(needle));
-    assert!(found, "libalpm header mismatch: {message}");
 }

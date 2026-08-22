@@ -1,0 +1,10 @@
+version = "1.0.0"
+
+# Non-VM court: no baked fixture image. The fixture PKGBUILDs + pkgext
+# cases are the immutable inputs, the CLIs' stdout/exit the compared
+# artifacts. The probes run via bash on the host (deterministic; fixture
+# PKGBUILDs are static and benign — host safety, directive §74).
+ignore = ["candidate.stderr", "oracle.stderr"]
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

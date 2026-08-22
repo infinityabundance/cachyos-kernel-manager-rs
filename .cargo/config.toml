@@ -1,0 +1,4 @@
+[alias]
+# The xtask pattern: `cargo xtask <args>` == `cargo run --quiet -p xtask -- <args>`.
+# Used by the README, the corpus runners, and the CI workflows.
+xtask = "run --quiet -p xtask --"

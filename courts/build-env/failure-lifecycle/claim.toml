@@ -1,0 +1,81 @@
+# CLAIM — build-env/failure-lifecycle
+claim = "Given the 7-case corpus of async-process completion sequences (the .done-status file existence, the terminal-helper exit code, the install-dialog answer, the artifact globs), the candidate's finished_proc model (exec crate) renders byte-identical outcome traces to the oracle's finished_proc (conf-window.cpp:378-405): success keys on the .done-status FILE not the exit code; the success path removes the file, prints `success`, asks the install question, and on Yes prints `pressed yes` + `pacman_cmd := sudo pacman -U <globs>` and starts the re-entrant install; the re-entrant install's OWN completion falls into the failure branch (file gone) and prints `process failed with exit code: 0` to stderr EVEN on pacman success; a missing file prints `process failed with exit code: <n>` (the only use of the exit code); the m_running transitions (false -> true on Yes, false otherwise)."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — finished_proc (conf-window.cpp:378-405) keys on <m_build_conf_path>/.done-status presence: remove + `success` + install question (Yes -> `pressed yes`, `pacman_cmd := sudo pacman -U <globs>` via get_package_names_glob_from_pkgbuild, m_running=true, run_cmd_async re-entry); absent -> `process failed with exit code: <n>` on stderr. Witnessed via tools/finish-oracle-ref. Candidate: finished_proc (crates/cachyos-kernel-manager-exec)."
+
+assumptions = [
+  "finished_proc is deterministic pure logic over (done-status existence, exit code, dialog answer, globs); the machine effects (the terminal-helper process itself, the artifact-glob probe) are courted elsewhere (build-env/lifecycle, artifact-glob/package-functions) and fixed as inputs here.",
+  "The re-entrant install (run_cmd_async of `sudo pacman -U`) re-enters finished_proc on completion; the corpus sequence models this as a second event whose done_status_exists=false (the success path removed the file) — the re-entry quirk `process failed with exit code: 0` on pacman success is courted by the success-then-install-reentry case.",
+  "The dialog answer is a court input (the AT-SPI dialog interaction is a Phase 8 UI surface); the decision AFTER the answer is what this court pins down.",
+  "The exit code is ONLY used in the failure message; the success path ignores it (file-present-exit-nonzero case).",
+]
+
+observables = [
+  "The stdout lines in order (success / pressed yes / pacman_cmd := ...)",
+  "The stderr line (process failed with exit code: <n>) — the trailing \\n included",
+  "next_command (the re-entrant install command or none)",
+  "removes_done_status",
+  "running_after (m_running transitions)",
+]
+
+witness = "tools/run-finish-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run build-env/failure-lifecycle."
+
+independence = "tools/finish-oracle-ref re-declares finished_proc from the frozen C++ source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in any outcome field on any corpus case."
+
+[[evidence]]
+artifact = "oracle/build-success-yes.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/build-success-no.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/build-failure-exit1.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/file-present-exit-nonzero.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/success-then-install-reentry.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/multiple-globs.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/empty-events.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/build-success-yes.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/build-success-no.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/build-failure-exit1.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/file-present-exit-nonzero.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/success-then-install-reentry.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/multiple-globs.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/empty-events.json"
+sha256 = "pending"

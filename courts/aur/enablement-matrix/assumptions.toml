@@ -1,0 +1,12 @@
+assumptions = [
+  "The AUR decision surface is deterministic pure logic over (flag, availability, kernel names, paru output, selections, repo lists); there is no machine component beyond the already-stripped probe output, so a NON-VM differential against the source-derived reference is the strongest witness for the enabled side.",
+  "The shipped oracle (CMake, ENABLE_AUR_KERNELS off) cannot reach the enabled side; the shipped-oracle corpus case witnesses the disabled side with paru INSTALLED and AUR packages listed — the absence of rows/probe/message is attributable to the compile-time flag, not to missing tools.",
+  "tools/aur-oracle-ref re-declares the exact decisions from kernel.cpp:253-283/89-95/288-304 + aur_kernel.cpp:42-55 + string_utils.hpp:48-72 + utils.cpp:161-196; its output IS the oracle's output for this surface.",
+  "The candidate model (plan crate) reproduces the same decisions; any divergence is a real residual this court must catch.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+  "stderr is NOT ignored for this court: the gate message is a user-visible contract (reworded at 5b075dc, HISTORICAL_LORE).",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-aur-corpus.sh", input_domain = "CLI stdout + stderr + exit code per corpus file", transformation = "capture stdout verbatim into <name>.json, stderr into <name>.stderr, exit code into <name>.exit", justification = "the model JSON is the observable; stderr carries the gate message (a contract); exit codes must match", falsifier = "a byte in any of the three files differing between oracle and candidate" },
+]

@@ -35,13 +35,18 @@ use cachyos_kernel_manager_core::kernel::{
 use cachyos_kernel_manager_core::selection::{KernelRow, SelectionState};
 use cachyos_kernel_manager_exec::{exec_shell, terminal_helper_argv, Escalate};
 use cachyos_kernel_manager_plan::{
-    commit_commands, HardwareProfile, PackageAction, Reason, TransactionPlan,
+    commit_commands, discover_aur, expand_aur_install, AurDiscoveryInput, HardwareProfile,
+    PackageAction, Reason, TransactionPlan,
 };
 use serde_json::json;
+use std::path::Path;
 
 const PACMAN_CONF: &str = "/etc/pacman.conf";
 const ALPM_ROOT: &str = "/";
 const ALPM_DBPATH: &str = "/var/lib/pacman/";
+
+/// The oracle's AUR discovery probe (`kernel.cpp:263`).
+const PARU_PROBE: &str = "paru --aur -Sl | grep ' linux[^ ]*-headers' | awk '{print $2}'";
 
 /// The oracle's static-init probe pipelines (byte-exact, `kernel.cpp:41-52`)
 /// and the install-time module probes (`kernel.cpp:114-115`).
@@ -95,6 +100,10 @@ fn probe(cmd: &str, events: &mut Vec<ExecEvent>) -> String {
                 "^linux-cachyos.*-nvidia$"
             },
         ]));
+    } else if cmd.starts_with("paru --aur") {
+        events.push(ExecEvent::new(&["paru", "--aur", "-Sl"]));
+        events.push(ExecEvent::new(&["grep", " linux[^ ]*-headers"]));
+        events.push(ExecEvent::new(&["awk", "{print $2}"]));
     }
     exec_shell(cmd)
 }
@@ -112,18 +121,26 @@ fn chwd_matches(result: &str, family: &str) -> bool {
 fn main() {
     let owned: Vec<String> = std::env::args().skip(1).collect();
     let mut selects: Vec<String> = Vec::new();
+    let mut aur_flag = false;
     let mut it = owned.iter();
     while let Some(arg) = it.next() {
         match arg.as_str() {
             "--select" => match it.next() {
                 Some(v) => selects.push(v.clone()),
                 None => {
-                    eprintln!("usage: cachyos-kernel-manager-plan --select <raw> [--select ...]");
+                    eprintln!(
+                        "usage: cachyos-kernel-manager-plan [--aur] --select <raw> [--select ...]"
+                    );
                     std::process::exit(2);
                 }
             },
+            // `ENABLE_AUR_KERNELS` (meson `aur_kernels`): the shipped CMake
+            // oracle has it OFF — `--aur` models the meson build.
+            "--aur" => aur_flag = true,
             _ => {
-                eprintln!("usage: cachyos-kernel-manager-plan --select <raw> [--select ...]");
+                eprintln!(
+                    "usage: cachyos-kernel-manager-plan [--aur] --select <raw> [--select ...]"
+                );
                 std::process::exit(2);
             }
         }
@@ -154,7 +171,37 @@ fn main() {
     // ------------------------------------------------------------------
     // 2. discovery + rows (identical to the inspect tool)
     // ------------------------------------------------------------------
-    let kernels = discover(&handle);
+    let mut kernels = discover(&handle);
+
+    // 2b. AUR discovery (`kernel.cpp:253-283`) — only when the feature is
+    // enabled (`--aur`, the meson ENABLE_AUR_KERNELS; the shipped CMake
+    // oracle has it OFF and never reaches this block).
+    if aur_flag {
+        let paru_available = Path::new("/sbin/paru").exists();
+        let awk_available = Path::new("/sbin/awk").exists();
+        // the probe runs only when BOTH tools exist AND repo kernels exist
+        // (`kernel.cpp:262`); the model's gates are identical, so the
+        // executed probe and the model must agree.
+        let mut paru_output = String::new();
+        let mut probe_ran = false;
+        if paru_available && awk_available && !kernels.is_empty() {
+            paru_output = probe(PARU_PROBE, &mut probe_events);
+            probe_ran = true;
+        }
+        let discovery = discover_aur(&AurDiscoveryInput {
+            enabled: true,
+            paru_available,
+            awk_available,
+            repo_kernels: kernels.clone(),
+            paru_output,
+        });
+        if let Some(msg) = &discovery.gate_message {
+            eprintln!("{msg}");
+        }
+        debug_assert_eq!(discovery.probe_run, probe_ran, "AUR probe gate divergence");
+        kernels.extend(discovery.aur_kernels);
+    }
+
     let mut local_versions = std::collections::BTreeMap::new();
     // the FULL local db — the oracle's `alpm_db_get_pkg(localdb, name)`
     // lookups cover ANY installed package (nvidia-dkms, companions, ...),
@@ -172,11 +219,21 @@ fn main() {
         .iter()
         .map(|k| {
             let local = handle.local_pkg(&k.name);
-            let display = match &local {
-                Some(l) => DisplayVersion::compute(Some(&l.version), &k.version, |a, b| {
-                    handle.vercmp(a, b).cmp(&0)
-                }),
-                None => DisplayVersion::compute(None, &k.version, |_, _| std::cmp::Ordering::Equal),
+            // `Kernel::version` (`kernel.cpp:56-79`): AUR rows short-circuit
+            // to `unknown-version` and NEVER flag an update (m_update stays
+            // false — there is no sync-db version to compare).
+            let update = if k.repo == "aur" {
+                false
+            } else {
+                let display = match &local {
+                    Some(l) => DisplayVersion::compute(Some(&l.version), &k.version, |a, b| {
+                        handle.vercmp(a, b).cmp(&0)
+                    }),
+                    None => {
+                        DisplayVersion::compute(None, &k.version, |_, _| std::cmp::Ordering::Equal)
+                    }
+                };
+                display.update
             };
             let immutable = local
                 .as_ref()
@@ -190,7 +247,7 @@ fn main() {
                 name: k.name.clone(),
                 installed: local.is_some(),
                 immutable,
-                update_available: display.update,
+                update_available: update,
                 // default checkbox state (init_kernels_tree_widget)
                 checked: local.is_some() && immutable,
             }
@@ -226,11 +283,28 @@ fn main() {
     let mut remove_actions: Vec<PackageAction> = Vec::new();
     let mut module_results: Vec<(bool, bool)> = Vec::new();
     let mut per_selection: Vec<(String, Vec<PackageAction>, Vec<PackageAction>)> = Vec::new();
+    // AUR installs accumulate in a SEPARATE list (the oracle's
+    // g_aur_kernel_install_list) — they never enter the pacman lists.
+    let mut aur_plan = TransactionPlan::default();
 
     for raw in selection.install_set() {
         let Some(kernel) = by_raw.get(&raw) else {
             continue;
         };
+        if kernel.repo == "aur" {
+            // `Kernel::install` (`kernel.cpp:90-95`): AUR kernels go to the
+            // separate aur install list — no companions, no pacman.
+            expand_aur_install(&mut aur_plan, &kernel.name);
+            per_selection.push((
+                raw.clone(),
+                vec![PackageAction {
+                    package: kernel.name.clone(),
+                    reason: Reason::AurDependency,
+                }],
+                Vec::new(),
+            ));
+            continue;
+        }
         let nvidia_modules = any_line(&probe(PKGQ_NVIDIA, &mut probe_events));
         let open_modules = any_line(&probe(PKGQ_NVIDIA_OPEN, &mut probe_events));
         module_results.push((nvidia_modules, open_modules));
@@ -270,11 +344,14 @@ fn main() {
     // ------------------------------------------------------------------
     // 5. commit_transaction: aggregate + render argv
     // ------------------------------------------------------------------
-    let plan = TransactionPlan {
+    let mut plan = TransactionPlan {
         install: install_actions,
         remove: remove_actions,
+        aur_install: Vec::new(),
+        aur_enabled: aur_flag,
         warnings: vec![],
     };
+    plan.aur_install = std::mem::take(&mut aur_plan.aur_install);
     let commands = commit_commands(&plan);
     let command_argv: Vec<Vec<String>> = commands
         .iter()
@@ -285,15 +362,44 @@ fn main() {
             cachyos_kernel_manager_exec::CommandPlan::RemovePackages { packages } => {
                 cachyos_kernel_manager_exec::pacman_remove_argv(packages)
             }
+            cachyos_kernel_manager_exec::CommandPlan::GitRefresh { .. } => {
+                // the git refresh chain is filesystem-dependent and courted
+                // separately (git-cache/lifecycle); the command-level model
+                // renders the canonical first step the oracle runs:
+                // `git clone <url> <name>` from the parent dir.
+                vec!["git".into(), "clone".into()]
+            }
+            cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage => {
+                cachyos_kernel_manager_exec::makepkg_aur_argv()
+            }
             _ => vec![],
         })
         .collect();
 
-    // the terminal-helper invocation for the FIRST command (install runs
-    // first in commit_transaction); escalate=true as in kernel.cpp:297
-    let terminal_argv: Option<Vec<String>> = command_argv
-        .first()
-        .map(|argv| terminal_helper_argv(&argv.join(" "), Escalate::PkexecRootShell));
+    // the terminal-helper invocations: EVERY command runs through
+    // `runCmdTerminal` in the oracle — AUR builds NON-escalated
+    // (`aur_kernel.cpp:53`), the repo install/remove ESCALATED
+    // (`kernel.cpp:297,302`). `terminal` keeps the single-entry schema
+    // (the FIRST command, matching the pre-AUR behavior); the per-command
+    // escalation is recorded in `terminal_commands`.
+    let terminal_argv: Option<Vec<String>> = command_argv.first().map(|argv| {
+        let escalate = match commands.first() {
+            Some(cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage) => Escalate::None,
+            _ => Escalate::PkexecRootShell,
+        };
+        terminal_helper_argv(&argv.join(" "), escalate)
+    });
+    let terminal_commands: Vec<Option<Vec<String>>> = command_argv
+        .iter()
+        .zip(commands.iter())
+        .map(|(argv, c)| {
+            let escalate = match c {
+                cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage => Escalate::None,
+                _ => Escalate::PkexecRootShell,
+            };
+            Some(terminal_helper_argv(&argv.join(" "), escalate))
+        })
+        .collect();
 
     let selections_json: Vec<serde_json::Value> = per_selection
         .iter()
@@ -316,9 +422,14 @@ fn main() {
             "nvidia_modules_installed": module_results.last().map(|(a, _)| *a).unwrap_or(false),
             "nvidia_open_modules_installed": module_results.last().map(|(_, b)| *b).unwrap_or(false),
         },
+        "aur": {
+            "enabled": aur_flag,
+            "aur_install": plan.aur_install,
+        },
         "selections": selections_json,
         "commands": command_argv,
         "terminal": terminal_argv,
+        "terminal_commands": terminal_commands,
     });
 
     println!(

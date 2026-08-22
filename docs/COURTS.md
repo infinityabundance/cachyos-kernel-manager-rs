@@ -80,7 +80,10 @@ enumeration).
 Drift/slew: `minimal` ×3 and `upgrade-available` ×2 re-runs on identical
 overlays are deterministic.
 
-## Phase 6 status (build subsystem, part 1)
+## Phase 6 status (build subsystem) — SEALED
+
+Phase 6 closed with all build-subsystem surfaces courted. The Phase 6
+courts (12 new, all PASS with verified evidence):
 
 - `config-roundtrip/canonicalization` — PASS (non-VM differential court). The
   candidate's `KernelManagerConfig` (toml 0.8) vs the oracle's
@@ -92,14 +95,6 @@ overlays are deterministic.
   1 parse error) on every corpus file. Witness:
   `tools/run-config-corpus.sh` → `cargo xtask court run
   config-roundtrip/canonicalization`.
-
-Phase 6 build-subsystem models landed in the build crate (unit-courted):
-`git_cache_plan` (prepare_git_repo: create-dirs, enter, non-git-dir wipe +
-re-clone quirk, checkout --force master / clean -fd / pull refresh chain,
-cwd mutation) and `clean_env_plan`/`env_assignments`
-(restore_clean_environment: unset previous, re-apply, truncation quirk at
-second `=` boundary, D-005 skip of the oracle's out-of-bounds read).
-
 - `git-cache/lifecycle` — PASS (differential VM court on fixture
   `git-cache`). The REAL GUI Configure button is clicked through AT-SPI
   under strace (`oracle-configure.py` / `oracle-configure.sh`); the
@@ -110,18 +105,69 @@ second `=` boundary, D-005 skip of the oracle's out-of-bounds read).
   seeds `/root/.cache/cachyos-km/pkgbuilds` as a checkout of a local bare
   remote (offline, remote ahead by one commit so the refresh really
   fast-forwards).
+- `patch-injection/source-array` + `custom-name/pkgbase-injection` — PASS
+  (differential VM courts on fixture `build-mutation`). The REAL Configure
+  window is driven through AT-SPI/XTEST (patch list + custom name + Build
+  kernel); the mutated PKGBUILD bytes are compared against the candidate's
+  mutation model (`cachyos-kernel-manager-mutate`), including the
+  source-array probe (real bash, popen newline-strip) and the
+  broken-pkgver path (D-004: the oracle runs with cwd =
+  `/root/.cache/cachyos-km/pkgbuilds`).
+- `build-env/env-rendering` — PASS (non-VM). The oracle's
+  `get_all_set_values` (conf-window.cpp:421-451 + compile_options.json
+  `option_map`) vs the candidate's `BuildOptions::env_string` over a
+  10-case UI-state corpus. Caught a real bug: `lto` maps to
+  `_use_llvm_lto` (RES-2026-012; the candidate initially emitted `_lto`).
+- `build-env/lifecycle` — PASS (non-VM). The oracle's `on_execute` +
+  `finished_proc` + `aur_kernel.cpp` decisions vs the candidate's
+  `BuildFlowPlan` over a 6-case (variant, cwd, globs) corpus: the
+  cpusched_path, the mutable-cwd working_path quirk (D-004), the repo
+  build command (`-scf` + `&& touch .done-status`), the terminal-helper
+  argv, the done-status path, the AUR command (`-sicf`, gap-006), and the
+  artifact-install command (`sudo pacman -U`).
+- `build-env/failure-lifecycle` — PASS (non-VM). `finished_proc`
+  (conf-window.cpp:378-405) vs the candidate model over a 7-case corpus:
+  success keys on the `.done-status` FILE (not the exit code), the
+  stdout lines (`success` / `pressed yes` / `pacman_cmd := ...`), the
+  failure stderr line (`process failed with exit code: <n>`), and the
+  re-entrant install quirk — the install's OWN completion prints
+  `process failed with exit code: 0` even on pacman success.
+- `build-env/cancellation` — PASS (non-VM). The `m_running` guard
+  (a second OK click while running is a no-op) + the unconditional close
+  (default `closeEvent`; window destruction terminates the in-flight
+  `QProcess` child) vs the candidate `configure_trace` over a 6-case
+  action-sequence corpus.
+- `option-transitions/variant-switch` — PASS (non-VM). The oracle's
+  combo-switch transitions (conf-window.cpp:553-602) vs the candidate's
+  `VariantSwitchState` over 6 transition sequences.
+- `artifact-glob/package-functions` — PASS (non-VM). The oracle's glob
+  pipeline (conf-window.cpp:218-298) vs the candidate's bash-probe model
+  over 8 PKGBUILDs × 4 PKGEXT cases; a top-level `exit 1` triggers the
+  broken-pkgver path.
+- `aur/enablement-matrix` — PASS (non-VM). The oracle's AUR support
+  (kernel.cpp:253-283 discovery + 288-304 commit + aur_kernel.cpp:32-55)
+  vs the candidate's AUR model over a 7-case corpus: the
+  `ENABLE_AUR_KERNELS` gate (the SHIPPED CMake oracle has AUR compiled
+  out — the disabled side is witnessed with paru installed and AUR
+  packages listed; the enabled side is witnessed against the
+  source-derived reference), the `!paru || !awk` gate message (5b075dc
+  flip, compared byte-exact on stderr), the `!kernels.empty()` probe
+  gate, `-headers` stripping + dedup, the `aur/<name>` /
+  `unknown-version` rows, and the AUR-first commit order
+  (git-refresh `~/.cache/cachyos-km/aur_pkgbuilds/<name>` from
+  `https://aur.archlinux.org/<name>.git`, then `makepkg -sicf
+  --cleanbuild --skipchecksums`, then `pacman -S --needed`, then
+  `pacman -Rsn`), including the `headers`-substring build skip.
 
-Defined, awaiting bake + differential run: `patch-injection/*`,
-`custom-name/*`, `build-env/lifecycle`, `artifact-glob/package-functions`.
-
-The residuals encountered in Phase 5 are in `atlas/residual-ledger.json`
-(RES-2026-011: the candidate's installed-set was built from discovered
-kernels only, so `nvidia-dkms` was invisible; fixed with full local-db
-enumeration).
-
-The residuals encountered while establishing the baseline (and their
-resolutions) are recorded in `atlas/residual-ledger.json`
-(RES-2026-001..011).
+Phase 6 build-subsystem models live in the build and exec crates
+(unit-courted): `git_cache_plan` (prepare_git_repo: create-dirs, enter,
+non-git-dir wipe + re-clone quirk, checkout --force master / clean -fd /
+pull refresh chain, cwd mutation), `clean_env_plan`/`env_assignments`
+(restore_clean_environment: unset previous, re-apply, truncation quirk at
+second `=` boundary, D-005 skip of the oracle's out-of-bounds read),
+`BuildFlowPlan`, `finished_proc`, `configure_trace` (exec crate), and the
+AUR model (`discover_aur` / `expand_aur_install` / `commit_commands` with
+`aur_enabled` gating, plan crate).
 
 Before running courts, `vm-ctl.sh cleanup` removes stale qemu processes
 (they survive process-tree kills because they run in their own systemd

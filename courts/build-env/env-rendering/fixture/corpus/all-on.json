@@ -1,0 +1,20 @@
+{
+ "hardly": true,
+ "per_gov": true,
+ "tcp_bbr3": true,
+ "cachy_config": true,
+ "nconfig": true,
+ "xconfig": true,
+ "localmodcfg": true,
+ "use_current": true,
+ "builtin_zfs": true,
+ "builtin_nvidia_open": true,
+ "build_debug": true,
+ "hz_ticks": "750",
+ "tickrate": "idle",
+ "preempt": "lazy",
+ "hugepage": "madvise",
+ "lto": "full",
+ "cpu_opt": "zen4",
+ "custom_name": "my-kernel"
+}

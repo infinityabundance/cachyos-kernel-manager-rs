@@ -1,0 +1,7 @@
+version = "1.0.0"
+
+# Non-VM court: the ABI is a property of the installed libalpm headers.
+ignore = ["candidate.stderr", "oracle.stderr"]
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

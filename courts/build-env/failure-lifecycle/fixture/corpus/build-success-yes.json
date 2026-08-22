@@ -1,0 +1,10 @@
+{
+  "events": [
+    {
+      "done_status_exists": true,
+      "exit_code": 0,
+      "user_choice": true,
+      "globs": ["linux-cachyos-6.14.1-3-*.pkg.tar.zst"]
+    }
+  ]
+}

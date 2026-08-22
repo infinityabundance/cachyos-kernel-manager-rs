@@ -1,0 +1,14 @@
+{
+  "release": "v0.2-phase6-complete",
+  "created_at": "2026-08-22T07:24:16Z",
+  "git_commit": "d2c71d5508d9f8ce4123f8228788e3cefec1b0b1",
+  "oracle_revision": "6b4a373e6a4e7295a0803034e597c4f2a055a411",
+  "candidate_revision": "0.1.0",
+  "base_image_hash": "sha256:62f1fca70ee19321f7ac896d03a45b3b9291b32019b2aeb1919bf052d5ef494c",
+  "root_hash": "79c06f02e471476e6e81c57d8b971f516335c8e1f891da4714d3a2252aeefbfd",
+  "courts": 40,
+  "pass": 40,
+  "fail": 0,
+  "unrecorded": 0,
+  "schema": "cachyos-km-evidence-release-v1"
+}

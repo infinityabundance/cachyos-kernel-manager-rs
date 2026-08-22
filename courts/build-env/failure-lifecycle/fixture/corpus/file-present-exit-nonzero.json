@@ -1,0 +1,10 @@
+{
+  "events": [
+    {
+      "done_status_exists": true,
+      "exit_code": 2,
+      "user_choice": false,
+      "globs": []
+    }
+  ]
+}

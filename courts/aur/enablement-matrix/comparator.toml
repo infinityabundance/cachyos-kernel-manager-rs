@@ -1,0 +1,11 @@
+version = "1.0.0"
+
+# Non-VM court: no baked fixture image. The corpus files are the immutable
+# inputs (fixture role), the CLIs' stdout/stderr/exit are the compared
+# artifacts. NOTE: stderr is NOT ignored — the gate message is an
+# observable (unlike the build-env courts, where stderr is implementation
+# noise).
+ignore = []
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

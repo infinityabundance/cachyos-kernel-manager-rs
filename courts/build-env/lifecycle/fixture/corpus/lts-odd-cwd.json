@@ -1,0 +1,8 @@
+{
+ "variant": "lts",
+ "cwd": "/var/tmp/cachyos-km court",
+ "globs": [
+  "linux-cachyos-6.14.1-3-*.pkg.tar.zst",
+  "linux-cachyos-headers-6.14.1-3-*.pkg.tar.zst"
+ ]
+}

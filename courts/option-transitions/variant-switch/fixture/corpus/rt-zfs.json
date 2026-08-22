@@ -1,0 +1,8 @@
+{
+ "switches": [
+  "rt",
+  "cachyos",
+  "rt",
+  "lts"
+ ]
+}

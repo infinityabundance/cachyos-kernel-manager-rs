@@ -1,0 +1,10 @@
+assumptions = [
+  "libalpm development headers are installed and reachable via pkg-config (required by the libalpm feature); a C compiler is available.",
+  "abi/probe.c re-declares EXACTLY the Rust extern declarations (matching ffi.rs); a header drift either fails the -Werror compile or fails the runtime constant check.",
+  "The court is non-VM: the ABI is a property of the installed libalpm, and the probe runs against the same headers the oracle binary links.",
+  "build.rs is the gate (the FFI cannot build against a drifted ABI); this court is the executable evidence record.",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-abi-probe.sh", input_domain = "probe/binary stdout + exit code", transformation = "capture stdout verbatim into abi.txt and the exit code into abi.exit; stderr is dropped", justification = "the printed constants ARE the observable; compiler stderr is implementation noise", falsifier = "a byte in the constants, or the exit code, differing between oracle and candidate" },
+]

@@ -1,0 +1,20 @@
+{
+ "hardly": true,
+ "per_gov": false,
+ "tcp_bbr3": false,
+ "cachy_config": true,
+ "nconfig": false,
+ "xconfig": false,
+ "localmodcfg": false,
+ "use_current": false,
+ "builtin_zfs": true,
+ "builtin_nvidia_open": false,
+ "build_debug": false,
+ "hz_ticks": "1000",
+ "tickrate": "full",
+ "preempt": "full",
+ "hugepage": "always",
+ "lto": "thin",
+ "cpu_opt": "manual",
+ "custom_name": ""
+}

@@ -1,0 +1,7 @@
+{
+ "fixture": "build-mutation",
+ "raw_image_hash": "sha256:59c28c526d57d4ec55858ec3bab31f1d2a108529c95b5982401787f8fb17c4fa",
+ "baked_at": "2026-08-22T06:34:00Z",
+ "fixture_digest": "sha256:bcb860d627fc72a6ff6265b79030d6a4c3b6a65c7a78ec53c2f05449dad7e531",
+ "spec_sha256": "sha256:dab19d95a6b98ea2187c375b6f2c88d795603941f4c68f307005bd07946aaec0"
+}

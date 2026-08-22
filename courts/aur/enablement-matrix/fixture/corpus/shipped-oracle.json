@@ -1,0 +1,10 @@
+{
+  "aur_enabled": false,
+  "paru_available": true,
+  "awk_available": true,
+  "repo_kernel_names": ["linux-cachyos", "linux-cachyos-lts"],
+  "paru_output": "linux-cachyos-zen-headers\nlinux-cachyos-rc-headers\n",
+  "aur_selections": [],
+  "install_packages": ["linux-cachyos", "linux-cachyos-headers"],
+  "remove_packages": []
+}

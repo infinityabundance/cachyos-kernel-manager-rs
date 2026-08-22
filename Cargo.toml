@@ -39,6 +39,34 @@ members = [
     # config-option-lib struct verbatim with toml 1.1 (the upstream's actual
     # dependency) for the config-roundtrip differential courts.
     "tools/config-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # get_all_set_values env rendering (conf-window.cpp:421-451 +
+    # compile_options.json) for the build-env/env-rendering court.
+    "tools/env-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # variant-switch transitions (conf-window.cpp:553-602) for the
+    # option-transitions/variant-switch court.
+    "tools/options-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # build-flow decisions (conf-window.cpp on_execute/finished_proc +
+    # aur_kernel.cpp) for the build-env/lifecycle court.
+    "tools/buildflow-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # artifact-glob pipeline (conf-window.cpp:218-298) for the
+    # artifact-glob/package-functions court.
+    "tools/artifact-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # AUR support (kernel.cpp:253-283 discovery + 288-304 commit +
+    # aur_kernel.cpp:32-55) for the aur/enablement-matrix court.
+    "tools/aur-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # finished_proc (conf-window.cpp:378-405) for the
+    # build-env/failure-lifecycle court.
+    "tools/finish-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # Configure-window lifecycle (conf-window.cpp:688-701) for the
+    # build-env/cancellation court.
+    "tools/cancel-oracle-ref",
 ]
 default-members = [".", "xtask"]
 

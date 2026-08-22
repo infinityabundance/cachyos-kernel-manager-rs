@@ -12,6 +12,7 @@
 #![forbid(unsafe_code)]
 
 pub mod evidence;
+pub mod evidence_release;
 pub mod normalize;
 pub mod vm_court;
 
@@ -91,6 +92,24 @@ pub struct Comparator {
     /// the witnessed git exec chain (prepare_git_repo argv).
     #[serde(default)]
     pub configure: bool,
+    /// Phase 6 mutation court (patch-injection/*, custom-name/*): when
+    /// present, the runner drives the real Configure window (sets the custom
+    /// name, adds a remote patch, clicks Build kernel) on the oracle side and
+    /// runs the candidate's mutation model against the same fixture PKGBUILD,
+    /// comparing the mutated PKGBUILD byte-for-byte.
+    #[serde(default)]
+    pub mutate: Option<MutationSpec>,
+}
+
+/// The `[mutate]` comparator section: the Configure-window actions the
+/// runner performs on the oracle side and feeds to the candidate model.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct MutationSpec {
+    /// The custom-name text to set (empty = leave the window default
+    /// `$pkgbase-custom`).
+    pub custom_name: String,
+    /// The remote patch URL to add (empty = add none).
+    pub patch_url: String,
 }
 
 /// The `[transaction]` comparator section.

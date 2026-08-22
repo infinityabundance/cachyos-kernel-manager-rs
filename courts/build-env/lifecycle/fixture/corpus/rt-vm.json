@@ -1,0 +1,9 @@
+{
+ "variant": "rt",
+ "cwd": "/tmp",
+ "globs": [
+  "linux-cachyos-rt-bore-6.14.1-3-*.pkg.tar.zst",
+  "linux-cachyos-rt-bore-headers-6.14.1-3-*.pkg.tar.zst",
+  "linux-cachyos-rt-bore-docs-6.14.1-3-*.pkg.tar.zst"
+ ]
+}

@@ -238,6 +238,20 @@
       "notes": "pkgver-pkgrel read from sourced PKGBUILD echo 'pkgver: $pkgver-$pkgrel'. Uses sudo (not pkexec) inside non-escalated terminal."
     },
     {
+      "id": "build.failure_lifecycle",
+      "authority": "src/conf-window.cpp:378-405",
+      "value": "finished_proc keys on <build_path>/.done-status PRESENCE (not the exit code): present -> remove file + stdout 'success' + install question (Yes -> 'pressed yes', 'pacman_cmd := sudo pacman -U <globs>', m_running=true, re-entrant run_cmd_async); absent -> stderr 'process failed with exit code: <n>'. The re-entrant install's OWN completion sees the file gone -> 'process failed with exit code: 0' even on pacman success.",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by build-env/failure-lifecycle."
+    },
+    {
+      "id": "build.cancellation",
+      "authority": "src/conf-window.cpp:549-550,688-701",
+      "value": "on_execute: if (m_running) return; (second OK click is a no-op). on_cancel -> close(); closeEvent -> QWidget::closeEvent (accepted unconditionally). Window destruction destroys QProcess m_cmd, terminating the in-flight child = the build cancellation.",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by build-env/cancellation."
+    },
+    {
       "id": "aur.enablement",
       "authority": "meson_options.txt, meson.build:39-41, src/kernel.cpp:253-283",
       "value": "ENABLE_AUR_KERNELS compile flag (meson aur_kernels option, default false); requires /sbin/paru AND /sbin/awk (flip at 5b075dc: was OR, now AND)",

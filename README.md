@@ -10,29 +10,33 @@ oracle in disposable VMs, and every discrepancy is treated as evidence.
 > inspect this repository and see exactly why trusting the Rust
 > implementation would be reasonable.
 
-## Status — Phases 0–5 done, Phase 6 (build subsystem) in progress
+> The shipped cachyos-kernel-manager binary remains a foundation diagnostic (oracle freeze + config verification; the GUI arrives in Phase 8). Nothing beyond the sealed phases is claimed complete.
+
+## Status
 
 | phase | scope | status |
 |---|---|---|
-| 0 | freeze authority | **done** — `oracle/UPSTREAM.lock` (v1.19.0, `6b4a373e`, deterministic archive `1e464db6…`, package hash `3dd688c6…`, hash-verified) |
-| 1 | archaeology + atlas | **done** — `atlas/inventory.json` (37 surfaces), `docs/*` (full source archaeology), git-history lore |
-| 2 | VM oracle instrumentation | **done** — docker+qemu image builder, fixture baker, SSH/9p harness, AT-SPI observation, candidate inspect tool (libalpm FFI), FRF comparator + evidence; all 10 baseline discovery courts PASS |
-| 3 | pure domain core | **done** — discovery, version state, category, options/transitions, selection, app state machine |
-| 4 | ALPM layer | **done** — isolated FFI (`alpm_initialize/register/db_get_pkg/pkgcache/vercmp/installed_db`), mINI pacman.conf port, null backend; all 8 Phase 4 courts PASS |
-| 5 | execution/privilege | **done** — plan/exec layers, terminal-helper matrix, polkit identity, differential GUI transaction courts (strace exec-chain witnesses); 10 Phase 5 courts PASS |
-| 6 | build subsystem | **in progress** — PKGBUILD mutation/env/artifact models (build crate); `config-roundtrip/canonicalization` PASS (toml 0.8 vs upstream toml 1.1 differential); `git-cache/lifecycle` PASS (real Configure flow, strace-witnessed refresh chain vs `git_cache_plan`); patch-injection/custom-name VM courts defined |
-| 7 | SCX | pending (Phase 7) |
-| 8 | Iced UI | pending (Phase 8) |
-| 9–13 | differential matrix, packaging, boot courts, hostile review, release | pending |
+| 0 | Freeze authority | **sealed** | oracle v1.19.0 (6b4a373e) frozen; source archive + package hashes hash-verified (oracle/UPSTREAM.lock) |
+| 1 | Build atlas | **sealed** | atlas/inventory.json (37 surfaces), court ledger, residual ledger, coverage gaps, docs/* archaeology |
+| 2 | Oracle instrumentation | **sealed** | docker+qemu VM farm, fixture baker, AT-SPI observation, FRF comparator + evidence; all 10 baseline discovery courts PASS |
+| 3 | Pure domain core | **sealed** | discovery, version state, category, options/transitions, selection, app state machine; 100+ tests; refinement deferred to Phase 9 |
+| 4 | ALPM layer | **sealed** | isolated FFI with a build-time ABI court (abi/probe.c: list layout, enum sizes, every extern signature) + the alpm-ffi/abi-surface evidence court; mINI pacman.conf port; all Phase 4 courts PASS |
+| 5 | Execution/privilege | **sealed** | execution/privilege SEMANTICS and oracle characterization sealed: plan/exec layers, terminal-helper matrix, polkit identity, differential GUI transaction courts (strace exec-chain witnesses); 10 Phase 5 courts PASS. The PRODUCTION privilege replacement (narrow typed helper) is planned, not implemented (D-001). |
+| 6 | Build subsystem | **sealed** | PKGBUILD mutation models + courts (patch-injection/source-array, custom-name/pkgbase-injection), artifact-glob/package-functions, build-env/env-rendering + lifecycle + failure-lifecycle + cancellation, option-transitions/variant-switch, git-cache/lifecycle, config-roundtrip/canonicalization, aur/enablement-matrix (discovery gating + commit ordering; the meson-vs-CMake flag difference documented); all Phase 6 courts PASS, 112 workspace tests |
+| 7 | SCX | pending | typed org.scx.Loader client + sched-ext courts (button visibility, state readback, apply/disable) |
+| 8 | Iced UI | pending | complete semantic UI over the pinned-down substrate: keyboard, dialogs, progress, i18n, accessibility |
+| 9 | Full differential court matrix | pending | failure paths, historical regressions, repeated executions, drift/slew |
+| 10 | Packaging and migration | pending | Arch package, drop-in files, package replacement, upgrade/revert courts |
+| 11 | Boot/system courts | pending | real kernel mutations, reboot, residual comparison |
+| 12 | Hostile review | pending | security, fuzzing, race/mutation testing, dependency audit, unexplained residual hunt; production privilege replacement (D-001) |
+| 13 | Release evidence | pending | parity ledger, known divergences, signed/hashable evidence pack (evidence/releases), reproducible release instructions |
 
-Nothing beyond its phase is claimed complete. The GUI lands in Phase 8; the
-current binaries are foundation diagnostics + court witness tools.
 
 ## Quick start
 
 ```sh
 cargo build            # builds the workspace (no GUI yet)
-cargo test --workspace # 106 unit/property tests over the reconstructed semantics
+cargo test --workspace # 112 unit/property tests over the reconstructed semantics
 cargo xtask oracle verify   # verifies the frozen source archive hash
 cargo xtask oracle info     # prints the frozen authority record
 cargo xtask court list      # lists court case directories

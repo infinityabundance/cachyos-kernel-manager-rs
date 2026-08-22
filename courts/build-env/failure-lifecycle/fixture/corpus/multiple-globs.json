@@ -1,0 +1,14 @@
+{
+  "events": [
+    {
+      "done_status_exists": true,
+      "exit_code": 0,
+      "user_choice": true,
+      "globs": [
+        "linux-cachyos-6.14.1-3-x86_64.pkg.tar.zst",
+        "linux-cachyos-headers-6.14.1-3-x86_64.pkg.tar.zst",
+        "linux-cachyos-6.14.1-3-x86_64.debug.pkg.tar.zst"
+      ]
+    }
+  ]
+}

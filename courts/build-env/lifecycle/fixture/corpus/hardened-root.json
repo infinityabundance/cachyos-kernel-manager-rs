@@ -1,0 +1,7 @@
+{
+ "variant": "hardened",
+ "cwd": "/root",
+ "globs": [
+  "linux-cachyos-lts-6.12.10-1-*.pkg.tar.zst"
+ ]
+}

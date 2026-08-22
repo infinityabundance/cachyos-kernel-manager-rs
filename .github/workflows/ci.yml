@@ -1,0 +1,58 @@
+name: ci
+
+# PR / normal-commit gate (directive §68 Fast): the pure layer. Heavy
+# differential runs live in forensic.yml (VM build + court matrix), which
+# must NOT fire on every typo.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: fmt
+        run: cargo fmt --all --check
+
+      - name: clippy (warnings are errors)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: test
+        run: cargo test --workspace
+
+      - name: oracle lock verification
+        run: cargo xtask oracle verify
+
+      - name: atlas/court/release schema validation
+        run: python3 tools/validate-atlas.py
+
+      - name: status tables derive from atlas/status.json
+        run: python3 tools/update-status-tables.py --check
+
+      - name: evidence records verify (when raw evidence is present)
+        run: cargo xtask evidence verify
+
+      - name: evidence release root-hash validation
+        run: |
+          if [ -d evidence/releases ]; then
+            for r in evidence/releases/*/; do
+              cargo run -q -p xtask -- evidence verify-release "$(basename "$r")"
+            done
+          fi
+
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain (MSRV 1.85)
+        uses: dtolnay/rust-toolchain@1.85.0
+      - name: MSRV check
+        run: cargo check --workspace --all-targets

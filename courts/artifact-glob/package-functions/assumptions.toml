@@ -1,0 +1,11 @@
+assumptions = [
+  "The probe scripts are the oracle's exact script texts (conf-window.cpp:218-298), executed via bash against the frozen fixture PKGBUILDs; bash is the contract (directive §18), so both sides run the identical probes.",
+  "The fixture PKGBUILDs are static and benign; the host-side probe execution is safe (no external commands are invoked by the fixture package functions).",
+  "The pkgext corpus field maps: 'probe' = run the real .testscriptpkgext (both sides read the same /etc/makepkg.conf), 'probe-empty' = simulate the empty-probe fallback, literals = fixed PKGEXT values.",
+  "The candidate's parse/glob models reproduce the oracle's algorithm; any divergence is a real residual this court must catch.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-artifact-corpus.sh", input_domain = "CLI stdout + exit code per (pkgbuild, pkgext) case", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the probe output + parse results + globs JSON IS the observable; error texts are implementation-specific", falsifier = "a byte in the JSON, or the exit code, differing between oracle and candidate" },
+]

@@ -1,0 +1,72 @@
+# CLAIM — option-transitions/variant-switch
+claim = "Given the 6-sequence corpus of variant switches starting from the Configure window's constructor state, the candidate's VariantSwitchState model reaches byte-identical control states to the oracle's main_combo_box change handler (conf-window.cpp:553-602) after every switch — lto/preempt combo item lists and selections (including the count-based Thin-dist and Voluntary/None add/remove), hz selection, cachy_config state, and the builtin_zfs enabled/checked state (including the rt force-uncheck)."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — the main_combo_box currentIndexChanged handler (conf-window.cpp:553-602) mutates the QComboBox/QCheckBox controls statefully: thin-dist present iff not lts/hardened (count 3<->4), lto default thin for cachyos/rc else none, Voluntary/None added iff lts/hardened (count 2<->4), preempt default lazy for server else full, hz 300 for server else 1000, cachy_config checked iff not server, builtin_zfs disabled for rt and force-unchecked when switching to rt (never re-checked on switching away). The constructor state is conf-window.cpp:475-546 (all four lto items + thin, two preempt items + full, hz=1000, cachy_config checked, builtin_zfs unchecked+enabled). Witnessed via tools/options-oracle-ref. Candidate: VariantSwitchState (crates/cachyos-kernel-manager-core/src/options.rs)."
+
+assumptions = [
+  "The transition handler is deterministic pure UI-state logic (no machine state), so the honest differential is the source-derived state machine vs the candidate's model over identical switch sequences (non-VM court).",
+  "The corpus sequences start from the constructor initial state; signal blockers in the oracle prevent cascading updates, which the model reproduces by construction (no cascading).",
+  "A switch away from rt does not re-check builtin_zfs — the user must re-check it; both sides preserve this statefulness.",
+]
+
+observables = [
+  "Per switch: lto item list and selected value",
+  "Per switch: preempt item list and selected value",
+  "Per switch: hz selected value",
+  "Per switch: cachy_config checked state",
+  "Per switch: builtin_zfs checked + enabled state",
+]
+
+witness = "tools/run-option-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run option-transitions/variant-switch."
+
+independence = "tools/options-oracle-ref reproduces the oracle's handler from the frozen C++ source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any difference in the state after any switch of any sequence."
+
+[[evidence]]
+artifact = "oracle/all-variants.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/round-trip-thin-dist.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/server-defaults.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/rt-zfs.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/preempt-extension.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/adjacent.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/all-variants.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/round-trip-thin-dist.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/server-defaults.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/rt-zfs.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/preempt-extension.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/adjacent.json"
+sha256 = "pending"

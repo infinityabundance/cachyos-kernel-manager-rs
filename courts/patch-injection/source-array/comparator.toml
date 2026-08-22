@@ -1,0 +1,11 @@
+version = "1.0.0"
+fixture = "build-mutation"
+
+[mutate]
+custom_name = ""
+patch_url = "https://example.invalid/custom.patch"
+
+ignore = ["oracle.stdout", "oracle.stderr", "candidate.stderr", "oracle-trace.log"]
+byte_exact = []
+json_semantic = ["oracle-state.json", "candidate-state.json", "residual.json", "candidate-residual.json"]
+volatile_prefixes = ["/tmp/", "/proc/", "/run/user/", "/var/log/", "/dev/", "/sys/", "/sys/fs/", "/sys/kernel/"]

@@ -1,0 +1,10 @@
+assumptions = [
+  "The variant-switch handler is deterministic UI-state logic (conf-window.cpp:553-602); there is no machine component, so a NON-VM differential against the source-derived state machine is the strongest witness.",
+  "tools/options-oracle-ref re-declares the exact handler (count-based add/remove, defaults, rt zfs force-uncheck); its output IS the oracle's output for this surface.",
+  "The candidate VariantSwitchState model reproduces the same statefulness; any divergence is a real residual this court must catch.",
+  "The corpus sequences are frozen inputs; the runner never rewrites them.",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-option-corpus.sh", input_domain = "CLI stdout + exit code per sequence file", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the post-switch state JSON IS the observable; error texts are implementation-specific", falsifier = "a byte in the state JSON, or the exit code, differing between oracle and candidate" },
+]

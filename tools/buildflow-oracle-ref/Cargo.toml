@@ -1,0 +1,14 @@
+[package]
+name = "buildflow-oracle-ref"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Reference implementation of the oracle's build flow decisions (conf-window.cpp:696-735 on_execute + 378-405 finished_proc + aur_kernel.cpp:53 @ 6b4a373e) for the build-env/lifecycle differential court. NOT part of the candidate; evidence infrastructure."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "buildflow-oracle-ref"
+path = "src/main.rs"

@@ -1,0 +1,7 @@
+{
+ "variant": "server",
+ "cwd": "/home/test",
+ "globs": [
+  "linux-cachyos-lts-6.12.10-1-*.pkg.tar.zst"
+ ]
+}

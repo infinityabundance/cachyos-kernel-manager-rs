@@ -1,0 +1,14 @@
+[package]
+name = "finish-oracle-ref"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Reference implementation of the oracle's finished_proc (conf-window.cpp:378-405 @ 6b4a373e) for the build-env/failure-lifecycle differential court. NOT part of the candidate; evidence infrastructure."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "finish-oracle-ref"
+path = "src/main.rs"

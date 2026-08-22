@@ -10,11 +10,15 @@
 //! 2. libalpm strings (`const char*`) are owned by libalpm and valid while
 //!    the handle lives; we copy them into Rust `String` right away.
 //! 3. `alpm_list_t` lists are traversed in place and never retained.
-//! 4. All FFI calls happen on one thread; libalpm handles are not
-//!    thread-safe. The inspect tool is single-threaded by construction.
+//! 4. Thread discipline: libalpm handles are NOT thread-safe. An
+//!    [`AlpmHandle`] is neither [`Send`] nor [`Sync`] (raw pointer field;
+//!    no unsafe impls) — the compiler proves it cannot leave the creating
+//!    thread. The inspect/plan tools are single-threaded by construction.
 //! 5. `ALPM_SIG_USE_DEFAULT` is `(1 << 30)` on every libalpm ≥ 13 (the
-//!    oracle requires `libalpm>=13.0.0`); the value is cross-checked against
-//!    the system header in `build.rs` at build time.
+//!    oracle requires `libalpm>=13.0.0`); the value, every `extern "C"`
+//!    signature, and the `alpm_list_t` layout are machine-verified against
+//!    the system headers at build time by `abi/probe.c` (compiled and run
+//!    from `build.rs`; court `alpm-ffi/abi-surface`).
 //!
 //! The adapter never calls into libalpm's transaction API: pacman remains
 //! the mutation authority (directive §16). This layer is read-only package
@@ -25,19 +29,30 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_void};
 
-/// `ALPM_SIG_USE_DEFAULT = (1 << 30)` (alpm.h:404). Cross-checked in build.rs.
-const ALPM_SIG_USE_DEFAULT: c_int = 1 << 30;
+/// `ALPM_SIG_USE_DEFAULT = (1 << 30)` (alpm.h:404). Machine-verified by
+/// abi/probe.c at build time + court alpm-ffi/abi-surface.
+pub const ALPM_SIG_USE_DEFAULT: c_int = 1 << 30;
 
 /// libalpm's linked list (`alpm_list_t`): data + prev + next.
 /// alpm_list.h: `struct _alpm_list_t { void *data; struct _alpm_list_t
 /// *prev; struct _alpm_list_t *next; }` — the PREV field must be present so
-/// `next` is read at the correct offset (16, not 8).
+/// `next` is read at the correct offset (16, not 8). Machine-verified by
+/// abi/probe.c at build time + court alpm-ffi/abi-surface.
 #[repr(C)]
 struct RawList {
     data: *mut c_void,
     prev: *mut RawList,
     next: *mut RawList,
 }
+
+/// The Rust-side ABI facts, printed by the `cachyos-kernel-manager-alpm-abi`
+/// witness (court `alpm-ffi/abi-surface`) in the exact `abi/probe.c` format.
+pub const RAW_LIST_SIZE: usize = std::mem::size_of::<RawList>();
+pub const RAW_LIST_OFFSET_DATA: usize = std::mem::offset_of!(RawList, data);
+pub const RAW_LIST_OFFSET_PREV: usize = std::mem::offset_of!(RawList, prev);
+pub const RAW_LIST_OFFSET_NEXT: usize = std::mem::offset_of!(RawList, next);
+pub const PTR_SIZE: usize = std::mem::size_of::<*const c_void>();
+pub const ENUM_SIZE: usize = std::mem::size_of::<c_int>();
 
 /// `alpm_handle_t` (opaque).
 #[repr(C)]
@@ -73,7 +88,10 @@ extern "C" {
     ) -> *mut RawDb;
     fn alpm_get_syncdbs(handle: *mut RawHandle) -> *mut RawList;
     fn alpm_get_localdb(handle: *mut RawHandle) -> *mut RawDb;
-    fn alpm_db_get_name(db: *mut RawDb) -> *const c_char;
+    // the header declares `const alpm_db_t *` (alpm.h:1291); the pointer
+    // constness is ABI-neutral but the signature check in abi/probe.c
+    // requires the declaration to match exactly
+    fn alpm_db_get_name(db: *const RawDb) -> *const c_char;
     fn alpm_db_get_pkg(db: *mut RawDb, name: *const c_char) -> *mut RawPkg;
     fn alpm_db_get_pkgcache(db: *mut RawDb) -> *mut RawList;
     fn alpm_pkg_get_name(pkg: *mut RawPkg) -> *const c_char;
@@ -119,13 +137,14 @@ impl std::fmt::Display for AlpmError {
 impl std::error::Error for AlpmError {}
 
 /// A RAII-guarded read-only libalpm handle.
+///
+/// Thread discipline: NOT [`Send`], NOT [`Sync`]. The raw pointer field
+/// makes this automatic — there is deliberately NO `unsafe impl` — so the
+/// compiler proves the handle never leaves the thread that created it
+/// (invariant 4 above).
 pub struct AlpmHandle {
     raw: *mut RawHandle,
 }
-
-// Raw pointer fields: the handle is used from a single thread and dropped
-// exactly once. This wrapper intentionally does not implement Send/Sync.
-unsafe impl Send for AlpmHandle {}
 
 impl AlpmHandle {
     /// `alpm_initialize(root, dbpath, &err)` — mirrors the oracle's

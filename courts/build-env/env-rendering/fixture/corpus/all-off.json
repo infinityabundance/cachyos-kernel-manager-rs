@@ -1,0 +1,20 @@
+{
+ "hardly": false,
+ "per_gov": false,
+ "tcp_bbr3": false,
+ "cachy_config": false,
+ "nconfig": false,
+ "xconfig": false,
+ "localmodcfg": false,
+ "use_current": false,
+ "builtin_zfs": false,
+ "builtin_nvidia_open": false,
+ "build_debug": false,
+ "hz_ticks": "100",
+ "tickrate": "periodic",
+ "preempt": "none",
+ "hugepage": "madvise",
+ "lto": "none",
+ "cpu_opt": "generic_v4",
+ "custom_name": ""
+}

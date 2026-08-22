@@ -1,0 +1,14 @@
+{
+ "switches": [
+  "rc",
+  "rt",
+  "server",
+  "hardened",
+  "lts",
+  "eevdf",
+  "bmq",
+  "bore",
+  "deckify",
+  "cachyos"
+ ]
+}

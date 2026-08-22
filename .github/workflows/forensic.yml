@@ -1,0 +1,63 @@
+name: forensic
+
+# Heavy forensic workflow (directive §68 Medium/Heavy): VM image build,
+# fixture baking, and the differential court matrix. These runs need
+# docker (privileged) + /dev/kvm + ~80 GiB free disk and take tens of
+# minutes — they fire manually or nightly, never on every typo.
+#
+# Runner requirements (documented in docs/RELEASE.md):
+#   - self-hosted runner with KVM ( /dev/kvm ) + docker
+#   - KM_BUILDER_MEM_LIMIT / KM_VM_MEM tunables for host safety
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *" # nightly
+
+jobs:
+  vm-courts:
+    runs-on: [self-hosted, linux, kvm, docker]
+    timeout-minutes: 180
+    env:
+      KM_BUILDER_MEM_LIMIT: 16g
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: oracle lock verification
+        run: cargo xtask oracle verify
+
+      - name: build the VM base image
+        run: cargo xtask vm build
+
+      - name: bake all fixture images
+        run: |
+          for f in vm/fixtures/*/spec.sh; do
+            name="$(basename "$(dirname "$f")")"
+            cargo xtask vm bake "$name"
+          done
+
+      - name: inspect/plan/gitcache/mutate witness tools (debug)
+        run: |
+          cargo build -p cachyos-kernel-manager-alpm --features libalpm \
+            --bin cachyos-kernel-manager-inspect --bin cachyos-kernel-manager-plan \
+            --bin cachyos-kernel-manager-alpm-abi
+          cargo build -p cachyos-kernel-manager-build \
+            --bin cachyos-kernel-manager-gitcache --bin cachyos-kernel-manager-mutate
+
+      - name: run the differential court matrix (--vm)
+        run: |
+          for c in $(cargo run -q -p xtask -- court list | grep -v "courts defined"); do
+            case "$c" in
+              # non-VM courts are gated by the pure CI job
+              */*) cargo run -q -p xtask -- court run "$c" --vm || echo "COURT FAILED: $c" ;;
+            esac
+          done
+
+      - name: evidence verification
+        run: cargo xtask evidence verify
+
+      - name: publish the evidence release (regenerable)
+        run: |
+          cargo run -q -p xtask -- evidence release ci-$(date -u +%Y%m%d)

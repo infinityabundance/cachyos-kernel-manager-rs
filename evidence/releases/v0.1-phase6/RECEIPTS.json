@@ -1,0 +1,261 @@
+[
+  {
+    "court": "alpm-ffi/abi-surface",
+    "claim_sha256": "2c9bfb87916c3a197c586c72ac80ebc737cc54ab163f3f397172996fee79dbeb",
+    "receipt_sha256": "069dec822b76187389697e43a76b5ee8820f51484a7ebd4e7d1f0cdf210f7308",
+    "result": "pass",
+    "artifact_count": 5
+  },
+  {
+    "court": "artifact-glob/package-functions",
+    "claim_sha256": "72938ee63c6df976461904d25c4e52aaccad2f5ac324b7c8c3b796f5504b88a2",
+    "receipt_sha256": "f54827bf502bf19f766dc499c4eeae1eedb988eb86c90b0953830ba091071fea",
+    "result": "pass",
+    "artifact_count": 129
+  },
+  {
+    "court": "build-env/env-rendering",
+    "claim_sha256": "80d5406a0a8e186c85f625382d3f86266e4e142044fb83c4e79f5d90bb57c5d3",
+    "receipt_sha256": "daf080102bf6ccc404a1c7fb88aded51f3e6a2e5f6c7ad72e656c8c1ad2733c4",
+    "result": "pass",
+    "artifact_count": 42
+  },
+  {
+    "court": "build-env/lifecycle",
+    "claim_sha256": "0b0997274fc128de0317132cbecf0c9f4415d9ee789ae418b69e719e116fbe6f",
+    "receipt_sha256": "ef66eab379eb02cd60c687abf29f2bb878c2d58b0a8c6f99900aeec5bd6b3314",
+    "result": "pass",
+    "artifact_count": 25
+  },
+  {
+    "court": "config-roundtrip/canonicalization",
+    "claim_sha256": "c7421a0c4fa1f077bdf4a63c74e634d95e28e1dc7f4e9c499e30956093783a46",
+    "receipt_sha256": "b91d8ba6596258cfa3eff190c39554c25d64fabc00354e2ed1a11fc978ed4bab",
+    "result": "pass",
+    "artifact_count": 41
+  },
+  {
+    "court": "custom-name/pkgbase-injection",
+    "claim_sha256": "ff4e2f6e0edac6122d08d0c8e7f02a9dd588e86ffe537ce96b1de60e505b5bcf",
+    "receipt_sha256": "67d41b8090cd6fab7d80b6f56b586d92b2c99094be82804a3e8f214a4cd90a0d",
+    "result": "pass",
+    "artifact_count": 15
+  },
+  {
+    "court": "git-cache/lifecycle",
+    "claim_sha256": "dd80befd7dd044ae58eb97611faa3cc760e08e958a1f877d85355642516d3118",
+    "receipt_sha256": "bc9b2d48734cd1cabd82652f23344ae52a9f463d8cf4fc7b66d29fd1d2fb1e39",
+    "result": "pass",
+    "artifact_count": 13
+  },
+  {
+    "court": "kernel-discovery/adversarial-names",
+    "claim_sha256": "af6ddf684d193d2f7ddc1b32e2e92ba9fe90d5239310a3e09d8b8ba22a2b52d8",
+    "receipt_sha256": "e8da18fb662fe1ff769f6e9b392ef493b2838ebebd4bd91976b4ac062c88aec5",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/companion-resolution",
+    "claim_sha256": "c33d5bdc6bf12f8ff8800e3158e81f6c4dc11c2c60ae09b1b559f0e37acc0d2c",
+    "receipt_sha256": "3c3ea20120b2502cd565bf49939a963339a3211b59e1ed7f656b5c7875dd73c1",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/cross-repo-installed",
+    "claim_sha256": "4473c420321f9003f3db8302d567424dec65a318369da31bab851c12536478ab",
+    "receipt_sha256": "8cb2d7023f9b26632213d30741a91d3c4f28bf09b289dd0ca060654d1998d3cf",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/custom-repo",
+    "claim_sha256": "5c52d4d440909483930771ef550833cf4fa50293d15704356ca18a9575308677",
+    "receipt_sha256": "f8e499e6686a9b8891de32dafa512d4c99a5b994f210496ffa53e36c376f86a5",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/downgrade-visible",
+    "claim_sha256": "3039921d334e7be19e00d58ce48a44b858c0122e788c8e41ac0151525b285b63",
+    "receipt_sha256": "404ca020256f59ddc2727b64a2b7fe2837e3c76eb90f770bbc6dd6e0a177c318",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/duplicate-across-repos",
+    "claim_sha256": "b7d0921979157ff2ef116e18e81c50780c885d4bf6ee6d44772035e8ef579458",
+    "receipt_sha256": "15a8afb4832076456feafad71f1d0a99dbd6b99c4223a6f243cd1893b31b5889",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/empty-all-dbs",
+    "claim_sha256": "a1632db779567aa7263959fa6578c75221bae8401401ca1e9f8bffc7f8504513",
+    "receipt_sha256": "b6783139d67018119557fdc71a4c272e97822664728d3fce7511b4694c11886a",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/empty-sync-db",
+    "claim_sha256": "a06a4f9f55368525af0f771537ce908e8ec8cc35946f8a1cd779e24c18a8ce30",
+    "receipt_sha256": "889ce026b6a25b168dc67f54ca49ed9c51b72a8c322e14717779abfc533582b4",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/epoch-versions",
+    "claim_sha256": "99388d3fb31174fcc79c2880ce0386906f082562c8cf4ffa714cbfd4c0a87f61",
+    "receipt_sha256": "aaae27a96d4ad693a1c0a45392fc81dcd500468ce342702b68b71048c9877f9a",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/minimal",
+    "claim_sha256": "69b14773e664da682814c2a66bce197e7b598a909ce058082c082eac64270af2",
+    "receipt_sha256": "cbe23e6be5b68934eac0fcfd9cdf0916f8fcf067a203940629e409b4fa3c3414",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/several-kernels",
+    "claim_sha256": "b404eccc3d972325f693df3291fbc7ba3729225c898700258100ee60b05470f3",
+    "receipt_sha256": "02438350f0a7cd2621d10ad0c4fc3eb12265347c7ae9067837f8bd5cd30963d2",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/stale-db",
+    "claim_sha256": "79cfec1f390d85ecb8ee3d2e4c0722021b9e853bdfb7d304137f6dc00660a921",
+    "receipt_sha256": "41a32dda2b1f656448646b3c77d4c1e00483a5044df8e54ba6d4a8b7f014caf4",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-discovery/upgrade-available",
+    "claim_sha256": "7eaa4faa14e9652e0d08d9e7f871fb68a790ef16f6aeb0e65c0c19ea8afd64f3",
+    "receipt_sha256": "02ab6aa4277d793f21ad23eb9dbe71252588ac2abab37085dd1b706e511c331c",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "kernel-removal/plan",
+    "claim_sha256": "affd260ef4ae40c6cd82a53b28fd52d9b56b0c567a43865f9557c8675c0eb93e",
+    "receipt_sha256": "21263a1b3e7fa9b8e18d99acdeef11f4ec5324c4259c23761a57fca36ff5db46",
+    "result": "pass",
+    "artifact_count": 13
+  },
+  {
+    "court": "kernel-removal/update-available-execute",
+    "claim_sha256": "8ef400183c0d7b6736297ccb12642c6fb6ac6606f55e705dcd0a0f8ee343a411",
+    "receipt_sha256": "9fb39a44ecfdf6202e35cf5186d314db6293a0d0e204e2b075f4e0dca451093b",
+    "result": "pass",
+    "artifact_count": 13
+  },
+  {
+    "court": "nvidia-companion/dkms-installed",
+    "claim_sha256": "996a45211921b4e30181029bd199a1aa2e8935a964edce9c02b2b168d9caa4d5",
+    "receipt_sha256": "6d3aef58ef72696abbd2e297eeaebe24363112af167e37e2882f20d7aae8752b",
+    "result": "pass",
+    "artifact_count": 13
+  },
+  {
+    "court": "nvidia-companion/dkms-profile",
+    "claim_sha256": "4ead7a89c967ef3aafd688cfdf39da5a406a569eec97ae7e3ce306b2252ce8d8",
+    "receipt_sha256": "06f67f86f22a9a74e73da5a4eca27613bcd506f5f7142dd77da396e5b354faf4",
+    "result": "pass",
+    "artifact_count": 13
+  },
+  {
+    "court": "nvidia-companion/modules-installed",
+    "claim_sha256": "91fe9a00143d02212a4194209f55be1b9050da1aeb9e0994fec2708a28b85029",
+    "receipt_sha256": "2c5f03178816b635a27182bac3a857c32848ef5e4b72e30404f8c5390f88b4ff",
+    "result": "pass",
+    "artifact_count": 13
+  },
+  {
+    "court": "nvidia-companion/open-profile",
+    "claim_sha256": "00e080f48a1462fb6eca0777edb2cc93f335e10f8834fb4f47569674ab263faf",
+    "receipt_sha256": "9aeb50d439b978dbca7bd13be3a79078456d878c68fa51c9f48fabc7fee33140",
+    "result": "pass",
+    "artifact_count": 13
+  },
+  {
+    "court": "option-transitions/variant-switch",
+    "claim_sha256": "56ee670d89896f01042bf53dde81f7a8de03ed544d4c1aa1f6f6a299b069b2a8",
+    "receipt_sha256": "371965c357d3c4b9255fd4fc838c63a7e4225de62d7545b35850c01584a5dc2b",
+    "result": "pass",
+    "artifact_count": 25
+  },
+  {
+    "court": "pacman-config/case-sensitivity",
+    "claim_sha256": "40c830343ce7c9cdbaee2b59e539ef53f7cda1880c328b556ed93531fd6d39b4",
+    "receipt_sha256": "48052a0df0226634754a45b1532bad7c34d84651708ee18b6dc7560a27a26fc3",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "pacman-config/duplicated-sections",
+    "claim_sha256": "4e2e1784179eabf8b2c3358b528c63f5484270041cbc7ef26e3afd6236adfb2c",
+    "receipt_sha256": "ee91dec019a288fa1f7faa61f3e701107257a4bb262e759d72102893ba211500",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "pacman-config/malformed",
+    "claim_sha256": "38310f0771255104e89aa569f0f20e453be5fd6ea08810f999772ce85c2e5e8c",
+    "receipt_sha256": "42ed5bf5491b9d42f4ab8e4beab85118a9bbaad05f41e483989a61eb616ab068",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "pacman-config/missing-conf",
+    "claim_sha256": "b3ba71cf77626446c3c24b8f3d1ede532c5f9334371b19205a76ab0315a74749",
+    "receipt_sha256": "4c5291c4c29bd6e813545731f9340f399a2d760039294f4f3d3012ac7673e87a",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "pacman-config/testing-and-disabled",
+    "claim_sha256": "bc6d0b6a7beeb38c714bf6f137feadbfd0d9d4b047738137354b8c590048dc0c",
+    "receipt_sha256": "d62343ba6d2d51744d8816acb8c33a93755ff5f3a34565e7a9a69dc1cd179ec8",
+    "result": "pass",
+    "artifact_count": 11
+  },
+  {
+    "court": "patch-injection/source-array",
+    "claim_sha256": "60b5a7349cfc1c7f7b0d9d365b43f26091d1f38fe86916d49f54c455419453bb",
+    "receipt_sha256": "ec10c078bfe56c73507aa8454b4104bd4c8103170e3303ddad2536f6b63e80fe",
+    "result": "pass",
+    "artifact_count": 15
+  },
+  {
+    "court": "privilege/helper-scripts",
+    "claim_sha256": "a544729093cc0c4f497e23d47d07d174310f5108cc970b6c83a3bbf77d7130f2",
+    "receipt_sha256": "874be3aa8fc6d8477fff3be394d4737e8f30e1cdb00f1ce4f04dd78847195f08",
+    "result": "pass",
+    "artifact_count": 5
+  },
+  {
+    "court": "privilege/polkit-identity",
+    "claim_sha256": "363ef06d624298f806149175157dfe8c5f202eef383c5b29db0f564d0a8c3c10",
+    "receipt_sha256": "3a03c0f579bc9830d596dac582ff7c5b16bac1b61333d010229dd21ae77d899a",
+    "result": "pass",
+    "artifact_count": 3
+  },
+  {
+    "court": "terminal-helper/emulator-matrix",
+    "claim_sha256": "971609e2a19edb606766c562541c24578d9ce35949e847cf9abc0716d24dbff2",
+    "receipt_sha256": "d030ab6bd5dd6b8a60d3828040c83cc1d578f3ad13602435aae4f678d769bf78",
+    "result": "pass",
+    "artifact_count": 4
+  },
+  {
+    "court": "zfs-companion/root-on-zfs",
+    "claim_sha256": "13d1fe3bc1479fad076580a90d6d7ac4ab4c54e61561d5da98a581789e020ce5",
+    "receipt_sha256": "d125d2d62c63f5eec4be47c141616cd3a5aaffed281b9808054a32a265a9094e",
+    "result": "pass",
+    "artifact_count": 13
+  }
+]

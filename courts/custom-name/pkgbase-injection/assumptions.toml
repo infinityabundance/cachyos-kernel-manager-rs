@@ -1,0 +1,12 @@
+assumptions = [
+  "The fixture seeds /root/.cache/cachyos-km/pkgbuilds as a git checkout (branch master, clean tree) whose origin is the local bare remote AT the same commit (refresh = no-op; the pre-mutation PKGBUILD is stable).",
+  "The oracle is launched with cwd = /root/.cache/cachyos-km/pkgbuilds (D-004: the oracle's build logic resolves the relative linux-cachyos/* paths against the pkgbuilds cache).",
+  "The custom name entry is replaced with 'my-kernel' via the a11y editable-text interface (XTEST fallback).",
+  "The patches list at Build time = the probe's .patch entries only (patches/foo.patch), since no remote patch is added.",
+  "The mutation happens in on_execute BEFORE the build command; the build itself is not part of this claim (it fails fast as root).",
+]
+
+normalizers = [
+  { name = "pkgbuild-snapshot", version = "1.0.0", source_hash = "vm/in-vm/oracle-mutate.py", input_domain = "the checkout PKGBUILD at the Build click", transformation = "capture the file text before and after the Build click into pkgbuild-before.txt / pkgbuild-after.txt", justification = "the mutated PKGBUILD text IS the observable residual of the pkgbase insertion", falsifier = "a byte difference between the oracle's post-mutation text and the candidate's modeled text" },
+  { name = "machine-residual", version = "1.0.0", source_hash = "vm/in-vm/residual.sh", input_domain = "machine state before each run", transformation = "hash the installed package list + db hashes", justification = "fixture-integrity check", falsifier = "any drift between the two runs" },
+]

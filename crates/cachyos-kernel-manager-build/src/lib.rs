@@ -287,13 +287,11 @@ pub fn env_assignments(all_set_values: &str) -> Vec<(String, String)> {
             continue;
         }
         let mut parts = line.split('=').filter(|s| !s.is_empty());
-        match (parts.next(), parts.next()) {
-            (Some(var), Some(value)) => {
-                out.push((var.to_string(), value.to_string()));
-            }
-            // Oracle UB (`expr_split[1]` on a single-element vector).
-            _ => {}
+        if let (Some(var), Some(value)) = (parts.next(), parts.next()) {
+            out.push((var.to_string(), value.to_string()));
         }
+        // Oracle UB (`expr_split[1]` on a single-element vector): the
+        // candidate skips instead (D-005).
     }
     out
 }

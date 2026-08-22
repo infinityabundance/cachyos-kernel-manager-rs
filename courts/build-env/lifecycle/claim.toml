@@ -1,0 +1,74 @@
+# CLAIM — build-env/lifecycle
+claim = "Given the 6-case corpus of (variant, cwd, artifact globs), the candidate's BuildFlowPlan renders byte-identical build-flow decisions to the oracle's on_execute (conf-window.cpp:696-735) + finished_proc (378-405) + aur_kernel.cpp:53: the cpusched_path, the working_path (cwd + path quirk), the repo build command `makepkg -scf --cleanbuild --skipchecksums && touch .done-status`, the run_cmd_async terminal-helper argv (with the read-p pause, no -s), the done-status path, the AUR build command `makepkg -sicf --cleanbuild --skipchecksums` (gap-006: -s vs -sicf), and the artifact-install command `sudo pacman -U <globs>`."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — on_execute computes cpusched_path = get_kernel_name_path (conf-window.cpp:124-148), working_path = fs::current_path()/cpusched_path, runs `makepkg -scf --cleanbuild --skipchecksums && touch .done-status` through run_cmd_async (terminal-helper + `; read -p 'Press enter to exit'`, no -s); finished_proc keys success on <working_path>/.done-status presence and installs via `sudo pacman -U <globs joined by ' '>`; the AUR build uses `makepkg -sicf --cleanbuild --skipchecksums` (aur_kernel.cpp:53). Witnessed via tools/buildflow-oracle-ref. Candidate: BuildFlowPlan (crates/cachyos-kernel-manager-exec)."
+
+assumptions = [
+  "The build-flow decisions are deterministic string/path logic (the machine effects — git refresh, probes, makepkg — are courted elsewhere: git-cache/lifecycle, artifact-glob, patch-injection), so the honest differential is the source-derived decisions vs the candidate's model (non-VM court).",
+  "The globs are the pkgfuncs-probe outputs (courted in artifact-glob/package-functions); this court fixes them as inputs.",
+  "The oracle's process cwd is a court input (the oracle is launched from /tmp in the VM); the working_path quirk (cwd-relative, D-004) is part of the contract.",
+]
+
+observables = [
+  "cpusched_path (variant -> PKGBUILD dir name)",
+  "working_path (cwd + path, the mutable-cwd quirk)",
+  "The repo build command (gap-006: -scf, no -i)",
+  "The terminal-helper argv (pause suffix, no -s)",
+  "The done-status path (success marker, not exit code)",
+  "The AUR build command (gap-006: -sicf)",
+  "The artifact-install command (sudo pacman -U)",
+]
+
+witness = "tools/run-buildflow-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run build-env/lifecycle."
+
+independence = "tools/buildflow-oracle-ref reproduces the oracle's decisions from the frozen C++ source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in any field of the plan JSON on any corpus case."
+
+[[evidence]]
+artifact = "oracle/cachyos-tmp.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/server-home.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/rt-vm.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/hardened-root.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/empty-globs.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/lts-odd-cwd.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/cachyos-tmp.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/server-home.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/rt-vm.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/hardened-root.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/empty-globs.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/lts-odd-cwd.json"
+sha256 = "pending"

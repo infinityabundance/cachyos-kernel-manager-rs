@@ -133,6 +133,18 @@
    "resolution": "alpm FFI gains local_packages() (full local-db enumeration); the plan tool builds installed_set from it.",
    "commit": "pending (Phase 5)",
    "regression_witness": "court nvidia-companion/dkms-installed passes after the fix"
+  },
+  {
+   "id": "RES-2026-012",
+   "court": "build-env/env-rendering",
+   "first_observed": "2026-08-22",
+   "oracle_fingerprint": "_use_llvm_lto=thin (option_map: 'lto' -> '_use_llvm_lto', compile_options.json)",
+   "candidate_fingerprint": "_lto=thin (wrong var name on every corpus case)",
+   "classification": "deterministic_mismatch",
+   "root_cause": "The candidate's env_pairs emitted the lto value under the literal var name _lto; the oracle's detail::option_map (generated verbatim from compile_options.json by mkoptions.py) maps 'lto' -> '_use_llvm_lto', and get_all_set_values renders option_map names (conf-window.cpp:421-451). The PKGBUILD consumes _use_llvm_lto, so the candidate's env would not reach the oracle's build scripts.",
+   "resolution": "env_pairs emits _use_llvm_lto (core/src/options.rs); unit tests updated to the oracle var name; court re-run PASS.",
+   "commit": "pending (Phase 6)",
+   "regression_witness": "court build-env/env-rendering passes (10/10 corpus cases byte-identical)"
   }
  ]
 }

@@ -1,0 +1,37 @@
+# CLAIM — custom-name/pkgbase-injection
+claim = "Given the 'build-mutation' fixture, driving the real oracle Configure window (set the custom package name to 'my-kernel', add no remote patch, click Build kernel) mutates the checkout PKGBUILD with a '\\n\\npkgbase=\"my-kernel\"' insertion at the last newline before _major= (plus the source=(...) splice with the fixture's own patches/foo.patch list) — and the candidate's insert_custom_pkgbase + insert_patch_source_array models produce byte-identical mutated PKGBUILD text from the same pre-mutation PKGBUILD."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — on_execute (conf-window.cpp:696-735): insert_new_source_array_into_pkgbuild (300-326) then set_custom_name_in_pkgbuild (328-339: find '_major=', insert '\\n\\npkgbase=\"<custom>\"' at the last newline at-or-before it; silent no-op when _major= absent or at file start). Candidate: insert_custom_pkgbase + insert_patch_source_array (build crate)."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked fixture image; the checkout is stable (refresh is a no-op), so the pre-mutation PKGBUILD is byte-identical on both sides (witnessed by the before comparison).",
+  "The oracle runs as root under Xvfb with AT-SPI enabled, launched with cwd = /root/.cache/cachyos-km/pkgbuilds so its relative linux-cachyos/* paths resolve (D-004).",
+  "The custom name is set through the accessibility tree (editable-text/XTEST); the window default ($pkgbase-custom) is replaced by 'my-kernel'.",
+  "No remote patch is added: the patches list is exactly the fixture's own .patch entries from the probe (patches/foo.patch), so the splice carries it through.",
+  "The build itself fails fast (makepkg refuses as root); the mutation happens BEFORE the build command and is what this court compares.",
+]
+
+observables = [
+  "The pre-mutation PKGBUILD (byte-identical on both sides — fixture-integrity)",
+  "The post-mutation PKGBUILD, byte-for-byte (pkgbase insertion + splice)",
+  "Kernel rows of the SAME run (discovery parity still holds)",
+  "Machine residual identity between the two runs (fixture-integrity)",
+]
+
+witness = "cargo xtask court run custom-name/pkgbase-injection --vm against fixture 'build-mutation'."
+
+independence = "The oracle is the real upstream binary driven through its real GUI in a disposable VM; the candidate is a separate Rust model mutating the identical fixture text. Neither generates the other's output."
+
+falsifier = "Any byte difference in the mutated PKGBUILD or the pre-mutation text, any discovery row difference, or machine residual drift."
+
+[[evidence]]
+artifact = "oracle/pkgbuild-after.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/pkgbuild-before.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/candidate-pkgbuild-after.txt"
+sha256 = "pending"

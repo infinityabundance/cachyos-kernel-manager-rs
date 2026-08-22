@@ -95,47 +95,57 @@
   {
    "surface": "build.variants",
    "court": "option-transitions/variant-switch",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "build.option_values",
    "court": "option-transitions/variant-switch",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "build.env_vars",
    "court": "build-env/env-rendering",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "build.dynamic_options",
    "court": "option-transitions/variant-switch",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "build.pkgbuild_mutation.source_array",
    "court": "patch-injection/source-array",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "build.pkgbuild_mutation.pkgbase",
    "court": "custom-name/pkgbase-injection",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "build.command",
    "court": "build-env/lifecycle",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "build.artifact_install",
    "court": "artifact-glob/package-functions",
-   "status": "defined"
+   "status": "passing"
+  },
+  {
+   "surface": "build.failure_lifecycle",
+   "court": "build-env/failure-lifecycle",
+   "status": "passing"
+  },
+  {
+   "surface": "build.cancellation",
+   "court": "build-env/cancellation",
+   "status": "passing"
   },
   {
    "surface": "aur.enablement",
    "court": "aur/enablement-matrix",
-   "status": "defined"
+   "status": "passing"
   },
   {
    "surface": "scx.button_visibility",

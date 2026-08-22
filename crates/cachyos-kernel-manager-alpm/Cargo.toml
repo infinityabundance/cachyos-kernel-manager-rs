@@ -32,3 +32,8 @@ required-features = ["libalpm"]
 name = "cachyos-kernel-manager-plan"
 path = "src/bin/plan.rs"
 required-features = ["libalpm"]
+
+[[bin]]
+name = "cachyos-kernel-manager-alpm-abi"
+path = "src/bin/abi.rs"
+required-features = ["libalpm"]

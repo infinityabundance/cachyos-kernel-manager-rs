@@ -16,3 +16,19 @@ serde_json = { workspace = true }
 [[bin]]
 name = "cachyos-kernel-manager-gitcache"
 path = "src/bin/git-cache-plan.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-env"
+path = "src/bin/env-render.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-variant-switch"
+path = "src/bin/variant-switch.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-artifact-glob"
+path = "src/bin/artifact-glob.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-mutate"
+path = "src/bin/mutate.rs"

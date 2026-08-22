@@ -1,0 +1,70 @@
+# CLAIM — build-env/cancellation
+claim = "Given the 6-case corpus of Configure-window action sequences (OK/Execute, Cancel, window Close), the candidate's configure_trace model (exec crate) renders byte-identical lifecycle traces to the oracle's on_execute + closeEvent + on_cancel (conf-window.cpp:549-550,688-701): a second Execute while a build/install runs is a complete NO-OP (the m_running guard, no command, no probe, m_running unchanged); Cancel (on_cancel -> close()) and the WM Close (default closeEvent, accepted unconditionally) close the window and terminate the in-flight QProcess child; after a close/cancel the window is gone (further actions are unreachable and emit nothing); the final m_running state."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — on_execute (conf-window.cpp:696-701) returns immediately when m_running is set; on_cancel (692-694) closes the window; closeEvent (688-690) calls the base (accepted unconditionally); the QProcess m_cmd member is destroyed with the window and its destructor terminates the in-flight child — that destruction IS the oracle's build cancellation. Witnessed via tools/cancel-oracle-ref. Candidate: configure_trace (crates/cachyos-kernel-manager-exec)."
+
+assumptions = [
+  "The lifecycle decisions (guard, close acceptance, m_running transitions) are deterministic state logic over the action sequence; the process-kill mechanics (QProcess destructor) are Qt semantics documented here and not re-executed in the differential — the trace records the close as terminal.",
+  "After a close/cancel the window is destroyed and cannot receive further actions; corpus cases never place actions after a close except to prove the model stops emitting (close-is-terminal case is the cancel/close semantics themselves).",
+  "The m_running flag is per-window state; finished_proc resets it when a build completes (courted by build-env/failure-lifecycle) — this court fixes the user-action side.",
+]
+
+observables = [
+  "The per-action outcome: start | ignored (m_running guard) | closed",
+  "The final m_running state",
+  "The trace stops at the first close/cancel (window destroyed)",
+]
+
+witness = "tools/run-cancel-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run build-env/cancellation."
+
+independence = "tools/cancel-oracle-ref re-declares the lifecycle from the frozen C++ source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in the trace or the final running state on any corpus case."
+
+[[evidence]]
+artifact = "oracle/double-execute-then-cancel.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/cancel-during-build.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/close-during-build.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/cancel-idle.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/execute-twice-no-close.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/empty.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/double-execute-then-cancel.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/cancel-during-build.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/close-during-build.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/cancel-idle.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/execute-twice-no-close.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/empty.json"
+sha256 = "pending"

@@ -228,6 +228,62 @@ pub fn compare_vm_transactions(
     Ok(compare_transaction_observations(court_id, &o_obs, &c_obs))
 }
 
+/// Compare the mutation-court PKGBUILD evidence (`patch-injection/*`,
+/// `custom-name/*`):
+///   1. the oracle's pre-mutation PKGBUILD must equal the candidate's
+///      pre-mutation PKGBUILD (both from fresh overlays of the same fixture;
+///      proves the git refresh was a no-op and both sides mutated identical
+///      input text),
+///   2. the oracle's post-mutation PKGBUILD must equal the candidate's
+///      modeled mutation byte-for-byte.
+pub fn compare_mutation(case_dir: &Path, court_id: &str) -> Result<Vec<Residual>, CaseError> {
+    let oracle_dir = case_dir.join("oracle");
+    let candidate_dir = case_dir.join("candidate");
+    let mut residuals = Vec::new();
+
+    let ob = std::fs::read_to_string(oracle_dir.join("pkgbuild-before.txt"))?;
+    let cb = std::fs::read_to_string(candidate_dir.join("candidate-pkgbuild-before.txt"))?;
+    if ob != cb {
+        residuals.push(Residual {
+            id: format!("{court_id}-pkgbuild-before"),
+            court: court_id.into(),
+            layer: "pkgbuild-mutation".into(),
+            oracle_fingerprint: sha256_of(&ob),
+            candidate_fingerprint: sha256_of(&cb),
+            classification: "deterministic_mismatch".into(),
+            root_cause: Some("the pre-mutation PKGBUILDs differ — the git refresh was not a no-op or the fixture overlays diverge".into()),
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+
+    let oa = std::fs::read_to_string(oracle_dir.join("pkgbuild-after.txt"))?;
+    let ca = std::fs::read_to_string(candidate_dir.join("candidate-pkgbuild-after.txt"))?;
+    if oa != ca {
+        residuals.push(Residual {
+            id: format!("{court_id}-pkgbuild-after"),
+            court: court_id.into(),
+            layer: "pkgbuild-mutation".into(),
+            oracle_fingerprint: sha256_of(&oa),
+            candidate_fingerprint: sha256_of(&ca),
+            classification: "deterministic_mismatch".into(),
+            root_cause: None,
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+    Ok(residuals)
+}
+
+fn sha256_of(s: &str) -> String {
+    use sha2::Digest;
+    let mut hasher = sha2::Sha256::new();
+    hasher.update(s.as_bytes());
+    hex::encode(hasher.finalize())
+}
+
 /// Compare the terminal-matrix observations (schema
 /// `cachyos-km-terminal-matrix-v1`): every scenario's exit code, stdout
 /// (temp paths normalized), stderr, and tmp-file-leftover count must match.

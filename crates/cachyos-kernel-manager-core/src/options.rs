@@ -411,6 +411,116 @@ impl KernelVariant {
     }
 }
 
+/// The stateful observable state of the Configure window's option controls
+/// after variant switches (`conf-window.cpp:553-602`).
+///
+/// The oracle's transition handler is STATEFUL: combo item add/remove is
+/// count-based (3<->4 lto items, 2<->4 preempt items), and builtin_zfs is
+/// force-unchecked when switching TO rt but never re-checked when switching
+/// away. This model reproduces that statefulness so the option-transitions
+/// court can compare the full control state after arbitrary switch
+/// sequences.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VariantSwitchState {
+    /// The lto combo items (values), in combo order.
+    pub lto_items: Vec<LtoMode>,
+    /// The selected lto value.
+    pub lto_selected: LtoMode,
+    /// The preempt combo items (values), in combo order.
+    pub preempt_items: Vec<PreemptMode>,
+    /// The selected preempt value.
+    pub preempt_selected: PreemptMode,
+    /// The selected hz value.
+    pub hz_selected: HzTick,
+    /// The cachy_config checkbox state.
+    pub cachy_config_checked: bool,
+    /// The builtin_zfs checkbox VALUE (checked or not).
+    pub zfs_checked: bool,
+    /// The builtin_zfs checkbox ENABLED state (clickable or not).
+    pub zfs_enabled: bool,
+}
+
+impl Default for VariantSwitchState {
+    /// The initial window state (`conf-window.cpp:475-546`): the ctor adds
+    /// all four lto items (selected thin), the two preempt items (selected
+    /// full), and checks only hardly + cachy_config.
+    fn default() -> Self {
+        VariantSwitchState {
+            lto_items: vec![
+                LtoMode::None,
+                LtoMode::Full,
+                LtoMode::Thin,
+                LtoMode::ThinDist,
+            ],
+            lto_selected: LtoMode::Thin,
+            preempt_items: vec![PreemptMode::Full, PreemptMode::Lazy],
+            preempt_selected: PreemptMode::Full,
+            hz_selected: HzTick::Hz1000,
+            cachy_config_checked: true,
+            zfs_checked: false,
+            zfs_enabled: true,
+        }
+    }
+}
+
+impl VariantSwitchState {
+    /// Apply the oracle's `main_combo_box` change handler
+    /// (`conf-window.cpp:553-602`) for `variant`. Count-based add/remove and
+    /// the rt zfs force-uncheck are reproduced exactly; signal blockers are
+    /// irrelevant (no cascading updates happen on the candidate side).
+    pub fn switch_to(&mut self, variant: KernelVariant) {
+        // thin-dist is not available for lts and hardened
+        let has_thin_dist = variant != KernelVariant::Lts && variant != KernelVariant::Hardened;
+        if has_thin_dist && self.lto_items.len() == 3 {
+            self.lto_items.push(LtoMode::ThinDist);
+        } else if !has_thin_dist && self.lto_items.len() == 4 {
+            self.lto_items.pop();
+        }
+
+        // thin for cachyos/rc, none for others
+        self.lto_selected = if variant == KernelVariant::Cachyos || variant == KernelVariant::Rc {
+            LtoMode::Thin
+        } else {
+            LtoMode::None
+        };
+
+        // voluntary/none only available for hardened and lts
+        let has_extended_preempt =
+            variant == KernelVariant::Hardened || variant == KernelVariant::Lts;
+        if has_extended_preempt && self.preempt_items.len() == 2 {
+            self.preempt_items.push(PreemptMode::Voluntary);
+            self.preempt_items.push(PreemptMode::None);
+        } else if !has_extended_preempt && self.preempt_items.len() == 4 {
+            self.preempt_items.pop();
+            self.preempt_items.pop();
+        }
+
+        // lazy for server, full for others
+        self.preempt_selected = if variant == KernelVariant::Server {
+            PreemptMode::Lazy
+        } else {
+            PreemptMode::Full
+        };
+
+        // 300 for server, 1000 for others
+        self.hz_selected = if variant == KernelVariant::Server {
+            HzTick::Hz300
+        } else {
+            HzTick::Hz1000
+        };
+
+        // unchecked for server, checked for others
+        self.cachy_config_checked = variant != KernelVariant::Server;
+
+        // incompatible with realtime kernels: rt disables the checkbox and
+        // force-unchecks it; switching away does NOT re-check it
+        self.zfs_enabled = variant != KernelVariant::Rt;
+        if variant == KernelVariant::Rt {
+            self.zfs_checked = false;
+        }
+    }
+}
+
 /// The default custom package name field value
 /// (`conf-options-page.ui:53`).
 pub const DEFAULT_CUSTOM_NAME: &str = "$pkgbase-custom";
@@ -463,7 +573,9 @@ impl Default for BuildOptions {
             xconfig: false,
             localmodcfg: false,
             use_current: false,
-            builtin_zfs: true, // enabled by default; disabled only for rt
+            // the .ui has no default checked state for builtin_zfs_check, and
+            // the ctor sets only hardly + cachy_config (conf-window.cpp:500-501)
+            builtin_zfs: false,
             builtin_nvidia_open: false,
             build_debug: false,
             hz_ticks: t.hz_default,
@@ -513,7 +625,8 @@ impl BuildOptions {
         out.push(("_tickrate", self.tickless.value().to_string()));
         out.push(("_preempt", self.preempt.value().to_string()));
         out.push(("_hugepage", self.hugepage.value().to_string()));
-        out.push(("_lto", self.lto.value().to_string()));
+        // option_map: "lto" -> "_use_llvm_lto" (compile_options.json)
+        out.push(("_use_llvm_lto", self.lto.value().to_string()));
         if self.cpu_opt != CpuOptMode::Manual {
             out.push(("_processor_opt", self.cpu_opt.value().to_string()));
         }
@@ -612,7 +725,7 @@ mod tests {
                 "_tickrate",
                 "_preempt",
                 "_hugepage",
-                "_lto",
+                "_use_llvm_lto",
                 "_use_lto_suffix"
             ]
         );
@@ -625,7 +738,7 @@ mod tests {
         assert_eq!(get("_tickrate"), "full");
         assert_eq!(get("_preempt"), "full");
         assert_eq!(get("_hugepage"), "always");
-        assert_eq!(get("_lto"), "thin");
+        assert_eq!(get("_use_llvm_lto"), "thin");
         // cpu_opt manual -> omitted
         assert!(pairs.iter().all(|(v, _)| *v != "_processor_opt"));
         // lto != none && custom name != $pkgbase -> _use_lto_suffix=n
@@ -660,7 +773,7 @@ mod tests {
         let s = BuildOptions::default().env_string();
         assert!(s.ends_with('\n'));
         assert!(s.starts_with("_cc_harder=yes\n"));
-        assert!(s.contains("_lto=thin\n"));
+        assert!(s.contains("_use_llvm_lto=thin\n"));
     }
 
     #[test]
