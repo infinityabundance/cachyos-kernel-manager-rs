@@ -120,7 +120,7 @@
    "surface": "worker-thread close-race during transaction",
    "evidence": "km-window.cpp:327-338 releases alpm without joining the worker",
    "court_needed": "ui/main-window-semantics (close-during-transaction)",
-   "note": "The oracle's closeEvent releases the alpm handle while the worker may still be mid-transaction (a latent use-after-free race in the ORACLE). The candidate does NOT reproduce it: the worker work runs as runtime-owned tasks and close simply exits the app (Effect::Close -> iced::exit; the per-task alpm handles are dropped on their own threads). Characterized, not differentially witnessed; a VM court for the oracle's actual crash behavior is future work."
+   "note": "The oracle's closeEvent releases the alpm handle while the worker may still be mid-transaction (a latent use-after-free race in the ORACLE). The candidate does NOT reproduce it: the worker work runs as runtime-owned tasks and close simply exits the app (Effect::Close -> iced::exit; the per-task alpm handles are dropped on their own threads). Characterized, not differentially witnessed; witnessing the oracle's actual crash behavior is race-hunting — Phase 12 (hostile review: race/mutation testing) owns it."
   },
   {
    "id": "gap-011",
