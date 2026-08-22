@@ -1,0 +1,4 @@
+{
+  "config_path": "/etc/scx_loader.toml",
+  "config_toml": "default_sched = \"scx_bpfland\"\ndefault_mode = \"Auto\"\n"
+}

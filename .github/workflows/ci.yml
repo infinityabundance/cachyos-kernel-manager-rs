@@ -31,6 +31,9 @@ jobs:
       - name: oracle lock verification
         run: cargo xtask oracle verify
 
+      - name: scx authority verification
+        run: cargo xtask scx verify
+
       - name: atlas/court/release schema validation
         run: python3 tools/validate-atlas.py
 

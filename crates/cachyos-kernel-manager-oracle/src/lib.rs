@@ -13,6 +13,10 @@ use std::path::Path;
 pub struct UpstreamLock {
     pub oracle: OracleSection,
     pub identity: IdentitySurface,
+    /// The `[scx]` section: the sched-ext surface authority (the
+    /// pre-extraction scx-manager UI + the scx_loader crate pin).
+    #[serde(default)]
+    pub scx: Option<ScxSection>,
     /// Free-form archaeology notes (e.g. `[quirks.inventory]`); informational.
     #[serde(default)]
     pub quirks: Option<toml::Value>,
@@ -37,6 +41,18 @@ pub struct OracleSection {
     pub package_hashes: BTreeMap<String, String>,
     #[serde(default)]
     pub reference_image_hash: String,
+}
+
+/// The `[scx]` section of the lock (Phase 7).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScxSection {
+    pub scx_ui_commit: String,
+    pub scx_ui_tree: String,
+    pub scx_ui_archive: String,
+    pub scx_ui_archive_hash: String,
+    pub scx_loader_version: String,
+    pub scx_loader_crate: String,
+    pub scx_loader_crate_hash: String,
 }
 
 /// Externally visible identity surfaces (directive §5).
@@ -85,6 +101,26 @@ impl UpstreamLock {
     /// `git rev-parse` in xtask).
     pub fn tree(&self) -> &str {
         &self.oracle.tree
+    }
+
+    /// Verify both SCX authority archives against the lock (Phase 7).
+    pub fn verify_scx_archives(&self, repo_root: &Path) -> Result<Vec<(&str, bool)>, OracleError> {
+        let Some(scx) = &self.scx else {
+            return Ok(Vec::new());
+        };
+        let mut out = Vec::new();
+        for (path, expected) in [
+            (&scx.scx_ui_archive, &scx.scx_ui_archive_hash),
+            (&scx.scx_loader_crate, &scx.scx_loader_crate_hash),
+        ] {
+            let bytes = std::fs::read(repo_root.join(path))?;
+            let mut hasher = Sha256::new();
+            hasher.update(&bytes);
+            let actual = hex::encode(hasher.finalize());
+            let expected = expected.strip_prefix("sha256:").unwrap_or(expected);
+            out.push((path.as_str(), actual == expected));
+        }
+        Ok(out)
     }
 }
 

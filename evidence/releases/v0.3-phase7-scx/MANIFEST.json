@@ -1,0 +1,14 @@
+{
+  "release": "v0.3-phase7-scx",
+  "created_at": "2026-08-22T08:15:06Z",
+  "git_commit": "0dd58ad2ecc8331382df88ceca751e0fd58e5b2d",
+  "oracle_revision": "6b4a373e6a4e7295a0803034e597c4f2a055a411",
+  "candidate_revision": "0.1.0",
+  "base_image_hash": "sha256:62f1fca70ee19321f7ac896d03a45b3b9291b32019b2aeb1919bf052d5ef494c",
+  "root_hash": "e485334b42580d8faba55458f5d8122a1ca2b0de37da23747b384aee73eefa84",
+  "courts": 48,
+  "pass": 48,
+  "fail": 0,
+  "unrecorded": 0,
+  "schema": "cachyos-km-evidence-release-v1"
+}

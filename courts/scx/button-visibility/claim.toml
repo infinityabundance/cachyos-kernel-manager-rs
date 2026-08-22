@@ -1,0 +1,36 @@
+# CLAIM — scx/button-visibility
+claim = "Given the 2-case corpus (the /sys/kernel/sched_ext/state existence), the candidate's main_window_schedext_visible model (scx crate) renders byte-identical visibility decisions to the oracle's main window (km-window.cpp:185-188): the sched-ext scheduler-config button is HIDDEN unless the state file exists — `if (!fs::exists(\"/sys/kernel/sched_ext/state\")) m_ui->schedext->setHidden(true)`. The VM witness for the file-present direction already exists in the kernel-discovery VM evidence (the a11y tree shows the 'sched-ext scheduler config' button with the 'visible' state on the sched-ext kernel); the file-absent direction cannot be VM-witnessed (CachyOS kernels ship sched-ext), so this court pins the decision itself."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — km-window.cpp:185-188 hides the `schedext` button when /sys/kernel/sched_ext/state is absent (witnessed in kernel-discovery/minimal oracle evidence: the button is visible on the VM's sched-ext kernel). Witnessed via tools/scx-oracle-ref. Candidate: main_window_schedext_visible (crates/cachyos-kernel-manager-scx)."
+
+assumptions = [
+  "The visibility decision is the deterministic one-liner `!fs::exists(path) -> hidden`; the file-absent direction is source-derived (the CachyOS VM kernel always ships the state file), the file-present direction is additionally witnessed by the existing kernel-discovery VM evidence.",
+  "The a11y observable (button 'showing'+'visible' states) is the VM witness for the present direction; this court pins the DECISION for both directions.",
+]
+
+observables = [
+  "visible (the button is shown when the file exists)",
+  "hidden (the button is hidden when the file is absent)",
+]
+
+witness = "tools/run-scx-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run scx/button-visibility."
+
+independence = "tools/scx-oracle-ref re-declares km-window.cpp:185-188 from the frozen source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in the visibility JSON on any corpus case."
+
+[[evidence]]
+artifact = "oracle/present.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/absent.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/present.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/absent.json"
+sha256 = "pending"

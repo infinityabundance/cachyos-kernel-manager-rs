@@ -99,6 +99,13 @@ pub struct Comparator {
     /// comparing the mutated PKGBUILD byte-for-byte.
     #[serde(default)]
     pub mutate: Option<MutationSpec>,
+    /// Phase 7 scx court (scx/loader-interface --vm): when true, the runner
+    /// starts the REAL scx_loader on the system bus in the VM (oracle side)
+    /// and runs the candidate's typed client against the same bus (candidate
+    /// side), comparing the candidate's declared interface as a SUBSET of the
+    /// real loader's interface + the property readback values.
+    #[serde(default)]
+    pub scx: bool,
 }
 
 /// The `[mutate]` comparator section: the Configure-window actions the

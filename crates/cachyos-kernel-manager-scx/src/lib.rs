@@ -1,46 +1,44 @@
-//! sched-ext / scx_loader integration.
+//! sched-ext / scx_loader integration (Phase 7).
 //!
-//! Phase 7. What is *known* from the frozen oracle (revision `6b4a373e`):
+//! The frozen oracle embeds the external `scxctl-ui` library
+//! (`km-window.hpp:47,144`); that library was extracted FROM this
+//! repository, and its final in-repo state (commit `f3eeaf6`) plus the
+//! pinned `scx_loader 1.0.9` crate are the recoverable SCX authority
+//! (`oracle/scx-authority/SCX-AUTHORITY.md`, `oracle/UPSTREAM.lock [scx]`).
 //!
-//! - The main window embeds `scxctl::SchedExtWindow` from the external
-//!   `scxctl-ui` library (`km-window.hpp:47,144`, CMake
-//!   `find_package(scxctl-ui 1 REQUIRED)`).
-//! - The sched-ext button is hidden unless `/sys/kernel/sched_ext/state`
-//!   exists (`km-window.cpp:185-188`).
-//! - History: the scx-manager UI was extracted from this repository; its
-//!   D-Bus apply/disable logic was moved into Rust (commits `425681d`,
-//!   `c866d99`). The D-Bus surface is `org.scx.Loader` (scx_loader).
-//!
-//! The preferred architecture (directive §29):
+//! Architecture:
 //! ```text
-//! Iced UI → typed Rust SCX client → D-Bus → scx_loader
+//! Iced UI → typed Rust SCX client → D-Bus (org.scx.Loader) → scx_loader
 //! ```
-//! Parity must be proven in VMs (`courts/scx/*`): button visibility, state
-//! readback, apply/disable, loader restart, BMQ restrictions.
 //!
-//! This crate currently records the interface facts and the configuration
-//! model; the D-Bus client is implemented in Phase 7.
+//! The crate is layered so the courts can pin every decision without the
+//! D-Bus transport:
+//! - [`config`] — `SupportedSched`/`SchedMode`, the default per-mode flag
+//!   matrix, the `scx_loader.toml` shape;
+//! - [`interface`] — the typed `org.scx.Loader` surface as a pure,
+//!   inspectable declaration (the single source the zbus proxy and the
+//!   `scx-introspect` witness are generated from);
+//! - [`state`] — the sysfs current-scheduler readback;
+//! - [`apply`] — the apply/disable decision traces (service disable,
+//!   args-vs-mode, loader enable, pkexec copy);
+//! - [`window`] — the main-window button visibility + SchedExtWindow
+//!   init/profile/apply/disable UI decisions;
+//! - [`client`] (`dbus` feature) — the zbus client implementing the
+//!   declared interface.
+//!
+//! Courts: `scx/*` (button visibility, current scheduler, mode flags,
+//! window init, apply, disable, loader interface).
 
 #![forbid(unsafe_code)]
 
-use serde::{Deserialize, Serialize};
+pub mod apply;
+pub mod config;
+pub mod interface;
+pub mod state;
+pub mod window;
 
-/// The D-Bus service name of scx_loader.
-pub const SCX_LOADER_DBUS_NAME: &str = "org.scx.Loader";
+#[cfg(feature = "dbus")]
+pub mod client;
 
-/// sysfs state file governing main-window button visibility
-/// (`km-window.cpp:186`).
-pub const SCHED_EXT_STATE_FILE: &str = "/sys/kernel/sched_ext/state";
-
-/// Scheduler configuration as modeled by the candidate (Phase 7 refines
-/// this against the real `org.scx.Loader` interface and scxctl-ui behavior).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SchedulerConfiguration {
-    /// Selected scheduler (e.g. `scx_bpfland`).
-    pub scheduler: String,
-    /// Selected mode (e.g. `auto`).
-    pub mode: String,
-    /// Extra arguments, only passed when they differ from the scheduler
-    /// defaults (commit `b70b01b`).
-    pub args: Vec<String>,
-}
+pub use config::{SchedConfig, SchedFlags, SchedMode, SupportedSched};
+pub use interface::{loader_interface, InterfaceDesc, MethodDesc, PropertyDesc};

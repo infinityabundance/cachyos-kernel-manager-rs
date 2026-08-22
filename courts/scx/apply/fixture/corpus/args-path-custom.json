@@ -1,0 +1,12 @@
+{
+  "scx_name": "scx_bpfland",
+  "scx_mode": "Gaming",
+  "extra_flags": "-m powersave",
+  "config_toml": null,
+  "scx_service_enabled": false,
+  "scx_service_active": false,
+  "scx_loader_service_enabled": true,
+  "config_path": "/etc/scx_loader.toml",
+  "db_ok": true,
+  "db_error": ""
+}

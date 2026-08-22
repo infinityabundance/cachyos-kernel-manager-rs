@@ -169,6 +169,39 @@ second `=` boundary, D-005 skip of the oracle's out-of-bounds read),
 AUR model (`discover_aur` / `expand_aur_install` / `commit_commands` with
 `aur_enabled` gating, plan crate).
 
+## Phase 7 status (SCX) — SEALED
+
+The SCX authority was recovered: the external scxctl-ui library was
+extracted FROM this repo at `cc79698`, and its final in-repo state
+(`f3eeaf6`) plus the pinned `scx_loader` 1.0.9 crate (checksum = the
+frozen `config-option-lib/Cargo.lock`) are archived in
+`oracle/scx-authority/` (`cargo xtask scx verify` checks them). 8 courts
+PASS (all with verified evidence):
+
+- `scx/button-visibility` — the sched-ext button hide decision
+  (`km-window.cpp:185-188`); the present direction is VM-witnessed by the
+  kernel-discovery evidence (the button is `visible` in the a11y tree).
+- `scx/current-scheduler` — the sysfs state/ops readback (`unknown` for
+  enabled + empty ops, the state text otherwise).
+- `scx/mode-flags` — the scx_loader per-(sched, mode) flag matrix + the
+  config override/fallback.
+- `scx/window-init` — the SchedExtWindow init sequence (config-init stop,
+  no-loader stop + widget hiding, the population trace).
+- `scx/profile` — the bpfland/lavd-only profile visibility + flags render.
+- `scx/apply` — `apply_scheduler_change`: service disable, the
+  args-vs-mode decision (b70b01b), the `Stoping scx service` typo, loader
+  enable, the pkexec copy.
+- `scx/disable` — `disable_scheduler`: stop_scheduler + pkexec copy,
+  default_sched cleared.
+- `scx/loader-interface` — the typed org.scx.Loader surface: non-VM
+  source-derived comparison AND the VM real-loader witness: the candidate
+  interface is a faithful SUBSET of the shipped loader's (scx-manager
+  1.15.12-1), the readback values match (CurrentScheduler
+  `unknown`, SchedulerMode `0`, the 13 supported schedulers).
+
+The typed client (`crates/cachyos-kernel-manager-scx`, feature `dbus`)
+uses zbus 5.5.0 / zvariant 5.4.0 — the frozen authority's exact versions.
+
 Before running courts, `vm-ctl.sh cleanup` removes stale qemu processes
 (they survive process-tree kills because they run in their own systemd
 scopes); the court runner calls it automatically before each side.

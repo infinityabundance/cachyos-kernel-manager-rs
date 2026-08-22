@@ -1,0 +1,10 @@
+assumptions = [
+  "The init sequence is deterministic pure logic over the corpus inputs; a NON-VM differential against the source-derived reference is the strongest witness (the D-Bus + Qt layers are fixed inputs or courted elsewhere).",
+  "tools/scx-oracle-ref re-declares the exact sequence from schedext-window-internal.cpp:120-190; its output IS the oracle's output for this surface.",
+  "The candidate window_init model reproduces the same sequence; any divergence is a real residual this court must catch.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-scx-corpus.sh", input_domain = "CLI stdout + exit code per corpus file", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the init trace JSON IS the observable; error texts are implementation-specific", falsifier = "a byte in the init trace, or the exit code, differing between oracle and candidate" },
+]

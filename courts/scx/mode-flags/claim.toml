@@ -1,0 +1,119 @@
+# CLAIM — scx/mode-flags
+claim = "Given the 12-case corpus of (scheduler, mode, optional config TOML), the candidate's flags_for_mode model (scx crate) renders byte-identical flag lists to the oracle's get_scx_flags_for_mode (scx_loader 1.0.9 src/config.rs:101-116 + get_default_scx_flags_for_mode 169-189): the config entry's per-mode field first (extract_scx_flags_from_config), else the hardcoded defaults — bpfland Gaming ['-m','performance'], LowLatency ['-s','5000','-S','500','-l','5000','-m','performance'], PowerSave ['-m','powersave'], Server ['-p'], Auto []; lavd Gaming/LowLatency ['--performance'], PowerSave ['--powersave'], Server/Auto []; rusty and flash [] for every mode."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — the flags come from the pinned scx_loader 1.0.9 crate (oracle/scx-authority/scx_loader-1.0.9.crate, checksum = the frozen config-option-lib/Cargo.lock). Witnessed via tools/scx-oracle-ref. Candidate: flags_for_mode (crates/cachyos-kernel-manager-scx)."
+
+assumptions = [
+  "The flag matrix + config-override/fallback is deterministic pure logic over (sched, mode, config); the config TOML is the authority's serde shape (default_sched/default_mode strings, [scheds.<name>] per-mode fields).",
+  "tools/scx-oracle-ref re-declares the exact matrix from scx_loader/src/config.rs; its output IS the oracle's output for this surface.",
+  "The candidate flags_for_mode model reproduces the same matrix; any divergence is a real residual this court must catch.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+observables = [
+  "The flag list per (sched, mode) for the hardcoded defaults (all 4 schedulers x the modes that matter)",
+  "The config-entry override when the field is present",
+  "The hardcoded fallback when the config entry's field is absent",
+]
+
+witness = "tools/run-scx-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run scx/mode-flags."
+
+independence = "tools/scx-oracle-ref re-declares the matrix from the pinned scx_loader source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in the flags JSON on any corpus case."
+
+[[evidence]]
+artifact = "oracle/bpfland-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/bpfland-lowlatency.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/bpfland-powersave.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/bpfland-server.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/bpfland-auto.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/lavd-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/lavd-powersave.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/lavd-server.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/rusty-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/flash-server.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/config-override.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/config-absent-field.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/bpfland-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/bpfland-lowlatency.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/bpfland-powersave.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/bpfland-server.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/bpfland-auto.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/lavd-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/lavd-powersave.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/lavd-server.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/rusty-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/flash-server.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/config-override.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/config-absent-field.json"
+sha256 = "pending"

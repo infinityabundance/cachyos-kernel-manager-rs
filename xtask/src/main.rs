@@ -82,8 +82,10 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        ["scx", "verify"] => scx_verify(),
         ["upstream", "diff", reference] => upstream_diff(reference),
         ["court", "list"] => court_list(),
+        ["court", "list", "--vm-capable"] => court_list(),
         ["court", "run", "--all"] => court_run_all(),
         ["court", "run", case, "--vm"] => court_run_vm(case),
         ["court", "run", case] => court_run(case),
@@ -94,8 +96,44 @@ fn main() -> ExitCode {
         ["evidence", "verify-release", name] => evidence_verify_release(name),
         _ => {
             eprintln!(
-                "usage: cargo xtask <oracle verify|info|archive|pkg-hash> | upstream diff <ref> | court list | court run <case> [--vm] | court run --all | vm build | vm bake <fixture> | evidence verify | evidence release <name> | evidence verify-release <name>"
+                "usage: cargo xtask <oracle verify|info|archive|pkg-hash> | scx verify | upstream diff <ref> | court list | court run <case> [--vm] | court run --all | vm build | vm bake <fixture> | evidence verify | evidence release <name> | evidence verify-release <name>"
             );
+            ExitCode::FAILURE
+        }
+    }
+}
+
+/// `scx verify` — verify both SCX authority archives (the pre-extraction
+/// scx-manager UI archive + the scx_loader crate) against the lock (Phase 7).
+fn scx_verify() -> ExitCode {
+    let lock = match cachyos_kernel_manager_oracle::UpstreamLock::load(&lock_path()) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("cannot load lock: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    match lock.verify_scx_archives(repo_root()) {
+        Ok(results) if !results.is_empty() && results.iter().all(|(_, ok)| *ok) => {
+            for (path, _) in &results {
+                println!("scx authority OK: {path}");
+            }
+            ExitCode::SUCCESS
+        }
+        Ok(results) if results.is_empty() => {
+            eprintln!("lock has no [scx] section");
+            ExitCode::FAILURE
+        }
+        Ok(results) => {
+            for (path, ok) in &results {
+                if !ok {
+                    eprintln!("scx authority MISMATCH: {path}");
+                }
+            }
+            ExitCode::FAILURE
+        }
+        Err(e) => {
+            eprintln!("scx verify error: {e}");
             ExitCode::FAILURE
         }
     }
@@ -243,6 +281,10 @@ fn upstream_diff(reference: &str) -> ExitCode {
 fn court_list() -> ExitCode {
     let courts_root = repo_root().join("courts");
     let mut found = 0;
+    let mut vm_only = false;
+    if std::env::args().any(|a| a == "--vm-capable") {
+        vm_only = true;
+    }
     let Ok(domains) = std::fs::read_dir(&courts_root) else {
         eprintln!("cannot read courts/: {}", courts_root.display());
         return ExitCode::FAILURE;
@@ -257,17 +299,45 @@ fn court_list() -> ExitCode {
         };
         for case in cases {
             let Ok(case) = case else { continue };
-            if case.path().join("claim.toml").exists() {
-                println!(
-                    "{}/{}",
-                    domain.file_name().to_string_lossy(),
-                    case.file_name().to_string_lossy()
-                );
-                found += 1;
+            if !case.path().join("claim.toml").exists() {
+                continue;
             }
+            let id = format!(
+                "{}/{}",
+                domain.file_name().to_string_lossy(),
+                case.file_name().to_string_lossy()
+            );
+            if vm_only {
+                // a court is VM-capable iff its comparator declares a VM
+                // mode via the actual TOML KEYS (fixture/transaction/
+                // terminal_matrix/configure/mutate/scx) — comments like
+                // "no baked fixture image" must NOT count.
+                let Ok(comparator) = std::fs::read_to_string(case.path().join("comparator.toml"))
+                else {
+                    continue;
+                };
+                let vm_marker = [
+                    "fixture = ",
+                    "[transaction]",
+                    "terminal_matrix = ",
+                    "configure = ",
+                    "[mutate]",
+                    "scx = ",
+                ]
+                .iter()
+                .any(|m| comparator.contains(m));
+                if !vm_marker {
+                    continue;
+                }
+            }
+            println!("{id}");
+            found += 1;
         }
     }
-    println!("{found} courts defined");
+    println!(
+        "{found} courts {}",
+        if vm_only { "VM-capable" } else { "defined" }
+    );
     ExitCode::SUCCESS
 }
 
@@ -565,6 +635,23 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         share.join("inspect/cachyos-kernel-manager-mutate"),
     )
     .expect("copy mutate");
+    // Phase 7: the scx client + interface tools (scx/loader-interface --vm)
+    let scx_state_src = repo_root().join("target/debug/cachyos-kernel-manager-scx-state");
+    let scx_iface_src = repo_root().join("target/debug/cachyos-kernel-manager-scx-introspect");
+    if !scx_state_src.exists() || !scx_iface_src.exists() {
+        eprintln!("build the scx tools first: cargo build -p cachyos-kernel-manager-scx --features dbus --bins");
+        return ExitCode::FAILURE;
+    }
+    std::fs::copy(
+        &scx_state_src,
+        share.join("inspect/cachyos-kernel-manager-scx-state"),
+    )
+    .expect("copy scx-state");
+    std::fs::copy(
+        &scx_iface_src,
+        share.join("inspect/cachyos-kernel-manager-scx-introspect"),
+    )
+    .expect("copy scx-introspect");
     // iterate without rebaking: fresh in-VM scripts via the 9p share
     let scripts_dst = share.join("scripts");
     let _ = std::fs::remove_dir_all(&scripts_dst);
@@ -583,6 +670,7 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     let is_terminal_matrix = case.comparator.terminal_matrix.is_some();
     let is_configure = case.comparator.configure;
     let is_mutation = case.comparator.mutate.is_some();
+    let is_scx = case.comparator.scx;
     let tx_select: Vec<String> = case
         .comparator
         .transaction
@@ -655,7 +743,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             }
             match side {
                 "oracle" => {
-                    let script = if is_mutation {
+                    let script = if is_scx {
+                        "scx-loader-observe.sh"
+                    } else if is_mutation {
                         "oracle-mutate.sh"
                     } else if is_configure {
                         "oracle-configure.sh"
@@ -679,7 +769,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                     run("bash", &[ctl, "exec", &cmd])?;
                 }
                 "candidate" => {
-                    let script = if is_mutation {
+                    let script = if is_scx {
+                        "scx-loader-candidate.sh"
+                    } else if is_mutation {
                         "candidate-mutate.sh"
                     } else if is_configure {
                         "candidate-gitcache.sh"
@@ -734,7 +826,15 @@ fn court_run_vm(case_id: &str) -> ExitCode {
 
     // compare
     let mut residuals: Vec<Residual> = Vec::new();
-    if !is_terminal_matrix {
+    if is_scx {
+        match cachyos_kernel_manager_casefile::vm_court::compare_scx_interface(&case.dir, case_id) {
+            Ok(mut r) => residuals.append(&mut r),
+            Err(e) => {
+                eprintln!("scx comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else if !is_terminal_matrix {
         residuals = match cachyos_kernel_manager_casefile::vm_court::compare_vm_observations(
             &case.dir,
             case_id,

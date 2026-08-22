@@ -67,6 +67,10 @@ members = [
     # Configure-window lifecycle (conf-window.cpp:688-701) for the
     # build-env/cancellation court.
     "tools/cancel-oracle-ref",
+    # Court evidence infrastructure, never shipped. Reproduces the oracle's
+    # sched-ext surface (pre-extraction scx-manager at f3eeaf6 + scx_loader
+    # 1.0.9) for the scx/* courts (Phase 7).
+    "tools/scx-oracle-ref",
 ]
 default-members = [".", "xtask"]
 

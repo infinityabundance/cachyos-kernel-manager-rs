@@ -1,0 +1,106 @@
+# CLAIM — scx/apply
+claim = "Given the 10-case corpus (scheduler name, mode label, extra flags, config, scx/scx_loader service states, D-Bus outcome), the candidate's apply_trace model (scx crate) renders byte-identical decision traces to the oracle's apply_scheduler_change (config-option-lib/src/scx_loader_config.rs at f3eeaf6): disable_scx_service first (scx enabled -> `systemctl disable --now -f scx` + stdout 'Disabling scx service'; else scx active -> `systemctl stop -f scx` + the oracle's 'Stoping scx service' typo); then the args-vs-mode decision (commit b70b01b: extra flags split on ' '; sched_args == the mode's default args -> switch_scheduler(sched, mode) with stdout 'Applying scx '<name>' with mode <Mode>', else switch_scheduler_with_args(sched, args) with 'Applying scx '<name>' with args: <joined>'); the D-Bus failure stdout lines; then 'Enabling scx_loader service' + `systemctl enable -f scx_loader` when not enabled; then the config defaults mutation + /tmp/scx_loader.toml write + `pkexec /usr/bin/cp /tmp/scx_loader.toml <config_path>`."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — the Rust apply layer (config-option-lib/src/scx_loader_config.rs at the pre-extraction commit f3eeaf6) over the pinned scx_loader 1.0.9. Witnessed via tools/scx-oracle-ref. Candidate: apply_trace (crates/cachyos-kernel-manager-scx)."
+
+assumptions = [
+  "apply_scheduler_change is deterministic logic over (name, mode, extra flags, config, service states, D-Bus outcome); the process spawns (systemctl/pkexec), the D-Bus transport, and the config file I/O are fixed inputs or courted elsewhere.",
+  "The D-Bus failure text is implementation-specific (anyhow Debug), so the corpus fixes the error string; the FAILURE BRANCH (the stdout line + the persist steps still running) is what this court pins.",
+  "The SchedMode Debug rendering in the stdout lines uses the Rust variant names (Gaming/PowerSave/LowLatency/Server/Auto) and the Vec Debug for the args list.",
+  "tools/scx-oracle-ref re-declares the exact decisions from scx_loader_config.rs; its output IS the oracle's output for this surface.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+observables = [
+  "The service-disable branch (enabled -> disable --now; active -> stop) + the stdout lines (incl. the 'Stoping' typo)",
+  "The args-vs-mode branch + the D-Bus call + the stdout lines",
+  "The failure stdout lines (mode and args paths)",
+  "The loader-enable branch",
+  "The final pkexec copy (the persist step runs even on D-Bus failure)",
+]
+
+witness = "tools/run-scx-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run scx/apply."
+
+independence = "tools/scx-oracle-ref re-declares apply_scheduler_change from the recovered source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in any step of the apply trace on any corpus case."
+
+[[evidence]]
+artifact = "oracle/mode-path-default-flags.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/args-path-custom.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/args-path-empty.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/auto-mode.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/scx-service-enabled.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/scx-service-active.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/loader-not-enabled.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/db-fail-mode.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/db-fail-args.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/full-combo.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/mode-path-default-flags.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/args-path-custom.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/args-path-empty.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/auto-mode.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/scx-service-enabled.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/scx-service-active.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/loader-not-enabled.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/db-fail-mode.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/db-fail-args.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/full-combo.json"
+sha256 = "pending"

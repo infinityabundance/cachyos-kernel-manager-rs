@@ -1,0 +1,11 @@
+assumptions = [
+  "apply_scheduler_change is deterministic logic over the corpus inputs; a NON-VM differential against the source-derived reference is the strongest witness (the process spawns + D-Bus transport are fixed inputs or courted elsewhere).",
+  "tools/scx-oracle-ref re-declares the exact decisions from scx_loader_config.rs (f3eeaf6); its output IS the oracle's output for this surface.",
+  "The candidate apply_trace model reproduces the same decisions; any divergence is a real residual this court must catch.",
+  "The D-Bus failure error text is corpus-fixed (implementation-specific in the oracle); the failure BRANCH is what the court pins.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-scx-corpus.sh", input_domain = "CLI stdout + exit code per corpus file", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the apply trace JSON IS the observable; error texts are implementation-specific", falsifier = "a byte in the apply trace, or the exit code, differing between oracle and candidate" },
+]

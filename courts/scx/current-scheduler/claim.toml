@@ -1,0 +1,63 @@
+# CLAIM — scx/current-scheduler
+claim = "Given the 5-case corpus of sysfs file contents (the state file first line + the root/ops first line), the candidate's current_scheduler model (scx crate) renders byte-identical labels to the oracle's get_current_scheduler (schedext-window-internal.cpp:57-72): state != \"enabled\" → the state text itself (e.g. \"disabled\"); state == \"enabled\" with an empty ops read → \"unknown\"; otherwise the ops text. The 1s timer refresh (update_current_sched) keeps this label live even without scx_loader — this surface is the kernel's own reporting."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — the SchedExtWindow's get_current_scheduler (pre-extraction scx-manager at f3eeaf6, archived in oracle/scx-authority/): read_kernel_file(\"/sys/kernel/sched_ext/state\") then read_kernel_file(\"/sys/kernel/sched_ext/root/ops\"), with the enabled/empty/ops branching. Witnessed via tools/scx-oracle-ref. Candidate: current_scheduler (crates/cachyos-kernel-manager-scx)."
+
+assumptions = [
+  "get_current_scheduler is deterministic pure logic over (state_contents, ops_contents); the file-READ mechanics (open/getline, the 'Failed to read :=' stderr line) are modeled by read_kernel_file and fixed as inputs here.",
+  "tools/scx-oracle-ref re-declares the exact branching from schedext-window-internal.cpp:57-72; its output IS the oracle's output for this surface.",
+  "The candidate current_scheduler model reproduces the same branching; any divergence is a real residual this court must catch.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+observables = [
+  "The label for state != \"enabled\" (the state text verbatim)",
+  "The label for enabled + empty ops (\"unknown\")",
+  "The label for enabled + ops (the ops text)",
+]
+
+witness = "tools/run-scx-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run scx/current-scheduler."
+
+independence = "tools/scx-oracle-ref re-declares get_current_scheduler from the recovered source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in the label JSON on any corpus case."
+
+[[evidence]]
+artifact = "oracle/disabled.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/enabled-bpfland.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/enabled-empty-ops.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/empty-state.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/weird-state.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/disabled.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/enabled-bpfland.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/enabled-empty-ops.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/empty-state.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/weird-state.json"
+sha256 = "pending"

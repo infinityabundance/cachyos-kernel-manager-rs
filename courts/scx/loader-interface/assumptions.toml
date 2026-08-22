@@ -1,0 +1,10 @@
+assumptions = [
+  "The org.scx.Loader interface is a fixed contract; the court compares the candidate's typed declaration against the source-derived re-declaration of the pinned scx_loader 1.0.9 dbus.rs (and, in the VM variant, against the real running loader's introspection).",
+  "The wire signatures follow zbus/zvariant's encodings of the authority's Rust types; the signatures here are documented in oracle/scx-authority/SCX-AUTHORITY.md.",
+  "The candidate's zbus proxy (feature dbus) is derived from the same declaration the introspect witness renders, so the runtime client cannot drift from the courted surface.",
+  "The interface JSON is rendered identically by both sides (serde_json pretty, BTreeMap key order).",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-scx-corpus.sh", input_domain = "CLI stdout + exit code (fixed interface, no corpus)", transformation = "capture stdout verbatim into interface.json and the exit code into interface.exit; stderr is dropped", justification = "the interface descriptor JSON IS the observable", falsifier = "a byte in the interface descriptor, or the exit code, differing between oracle and candidate" },
+]

@@ -63,8 +63,8 @@
   {
    "phase": 7,
    "name": "SCX",
-   "status": "pending",
-   "wording": "typed org.scx.Loader client + sched-ext courts (button visibility, state readback, apply/disable)"
+   "status": "sealed",
+   "wording": "typed org.scx.Loader client (zbus 5.5.0/zvariant 5.4.0 = the frozen authority's exact versions) + 8 scx courts PASS: button-visibility, current-scheduler, mode-flags, window-init, profile, apply, disable, loader-interface (non-VM source-derived from the recovered pre-extraction scx-manager f3eeaf6 + pinned scx_loader 1.0.9, AND the VM real-loader witness: the candidate's interface is a faithful subset of the shipped loader's, readback values match)"
   },
   {
    "phase": 8,

@@ -1,0 +1,5 @@
+{
+  "scheduler": "scx_bpfland",
+  "profile_label": "Gaming",
+  "config_toml": "default_sched = \"scx_bpfland\"\ndefault_mode = \"Auto\"\n\n[scheds.scx_bpfland]\ngaming_mode = [\"--custom\"]\n"
+}

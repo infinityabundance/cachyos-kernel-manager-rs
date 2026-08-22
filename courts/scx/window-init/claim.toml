@@ -1,0 +1,69 @@
+# CLAIM — scx/window-init
+claim = "Given the 5-case corpus (config-init failure, supported-schedulers D-Bus outcome, the config, the sysfs label), the candidate's window_init model (scx crate) renders byte-identical init traces to the oracle's SchedExtWindow constructor (schedext-window-internal.cpp:120-190): a config-init failure -> critical dialog 'Cannot initialize scx_loader configuration' and the window STOPS; a supported-schedulers failure -> critical 'Cannot get information from scx_loader!\\nIs it working?\\nThis is needed for the app to work properly' + the scheduler-management widgets are hidden and the init STOPS; on success the steps populate the scheduler combo (D-Bus list), the initial scheduler (config.default_sched), the 5 profile items, the initial profile (config.default_mode index), the running-scheduler label, the profile-visibility decision for the initial scheduler, and the initial flags text (the mode's flags for the initial scheduler)."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — the SchedExtWindow constructor (pre-extraction scx-manager at f3eeaf6): Config::init_config / get_supported_scheds / get_current_sched / get_current_mode / get_current_scheduler wiring. Witnessed via tools/scx-oracle-ref. Candidate: window_init (crates/cachyos-kernel-manager-scx)."
+
+assumptions = [
+  "The init sequence is deterministic pure logic over (config-init failure, supported-scheds outcome, config, sysfs label); the D-Bus transport and the Qt dialog rendering are courted elsewhere (loader-interface, ui/*) and fixed as inputs here.",
+  "A MISSING config file is Ok(default config) in the oracle (init_config returns the default); only a parse failure stops the window — modeled by the config_init_failed flag.",
+  "The profile index note (indexes of profiles and SchedMode values MUST match) is exercised via initial-profile (the mode's raw value).",
+  "tools/scx-oracle-ref re-declares the exact sequence from schedext-window-internal.cpp:120-190; its output IS the oracle's output for this surface.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+observables = [
+  "critical-config-init (the config-init failure dialog + stop)",
+  "critical-no-loader (the loader-unavailable dialog + widget hiding + stop)",
+  "scheduler-combo items (the D-Bus supported list, in order)",
+  "initial-scheduler / initial-profile (from the config defaults)",
+  "profile-combo (the fixed 5 items)",
+  "current-scheduler-label (the sysfs readback)",
+  "profile-visibility for the initial scheduler",
+  "initial-flags (the mode's flags for the initial scheduler)",
+]
+
+witness = "tools/run-scx-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run scx/window-init."
+
+independence = "tools/scx-oracle-ref re-declares the init sequence from the recovered source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in any step of the init trace on any corpus case."
+
+[[evidence]]
+artifact = "oracle/loader-ok-default.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/loader-ok-configured.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/no-loader.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/bad-config.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/loader-ok-empty-scheds.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/loader-ok-default.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/loader-ok-configured.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/no-loader.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/bad-config.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/loader-ok-empty-scheds.json"
+sha256 = "pending"

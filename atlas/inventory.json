@@ -263,7 +263,63 @@
       "authority": "src/km-window.cpp:185-188",
       "value": "sched-ext button hidden unless /sys/kernel/sched_ext/state exists",
       "classification": "REQUIRED_PARITY",
-      "notes": "Button opens scxctl::SchedExtWindow from scxctl-ui (external lib; org.scx.Loader D-Bus)."
+      "notes": "Button opens scxctl::SchedExtWindow from scxctl-ui (external lib; org.scx.Loader D-Bus). Courted by scx/button-visibility."
+    },
+    {
+      "id": "scx.current_scheduler",
+      "authority": "scx-manager (pre-extraction f3eeaf6) schedext-window-internal.cpp:57-72",
+      "value": "get_current_scheduler: state != 'enabled' -> the state text; enabled + empty ops -> 'unknown'; else the ops text (1s timer refresh)",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by scx/current-scheduler."
+    },
+    {
+      "id": "scx.mode_flags",
+      "authority": "scx_loader 1.0.9 src/config.rs:101-116,169-189",
+      "value": "per-(sched,mode) flags from the config entry or the hardcoded defaults (bpfland/lavd/rusty/flash x 5 modes)",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by scx/mode-flags."
+    },
+    {
+      "id": "scx.window_init",
+      "authority": "scx-manager (pre-extraction f3eeaf6) schedext-window-internal.cpp:120-190",
+      "value": "SchedExtWindow init: config-init failure critical + stop; supported-scheds failure critical + widget hiding + stop; else combo/profile/initial/label population",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by scx/window-init."
+    },
+    {
+      "id": "scx.profile_visibility",
+      "authority": "scx-manager (pre-extraction f3eeaf6) schedext-window-internal.cpp:250-264",
+      "value": "profile UI visible ONLY for scx_bpfland and scx_lavd; flags text = the mode's flags space-joined",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by scx/profile."
+    },
+    {
+      "id": "scx.apply",
+      "authority": "config-option-lib/src/scx_loader_config.rs (pre-extraction f3eeaf6)",
+      "value": "apply_scheduler_change: disable_scx_service, args-vs-mode decision (b70b01b), systemctl enable scx_loader, config defaults + /tmp/scx_loader.toml + pkexec cp",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by scx/apply."
+    },
+    {
+      "id": "scx.disable",
+      "authority": "config-option-lib/src/scx_loader_config.rs (pre-extraction f3eeaf6)",
+      "value": "disable_scheduler: default_sched=None, /tmp/scx_loader.toml write, stop_scheduler D-Bus, pkexec cp",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by scx/disable."
+    },
+    {
+      "id": "scx.loader_interface",
+      "authority": "scx_loader 1.0.9 src/dbus.rs + src/main.rs (PascalCase zbus names)",
+      "value": "org.scx.Loader on the SYSTEM bus at /org/scx/Loader: StartScheduler(s,u), StartSchedulerWithArgs(s,as), StopScheduler(), SwitchScheduler(s,u), SwitchSchedulerWithArgs(s,as); read props CurrentScheduler:s, SchedulerMode:u, SupportedSchedulers:as",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by scx/loader-interface (non-VM source-derived + VM real-loader witness: the shipped loader is a superset; the frozen surface is a faithful subset)."
+    },
+    {
+      "id": "scx.state_readback",
+      "authority": "scx_loader 1.0.9 dbus.rs properties + the real loader",
+      "value": "the loader's property values (CurrentScheduler/SchedulerMode/SupportedSchedulers) read via the typed client equal the real loader's",
+      "classification": "REQUIRED_PARITY",
+      "notes": "Courted by scx/loader-interface --vm (the readback comparison)."
     },
     {
       "id": "ui.main_window",

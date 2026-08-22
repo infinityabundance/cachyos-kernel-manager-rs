@@ -150,7 +150,47 @@
   {
    "surface": "scx.button_visibility",
    "court": "scx/button-visibility",
-   "status": "defined"
+   "status": "passing"
+  },
+  {
+   "surface": "scx.current_scheduler",
+   "court": "scx/current-scheduler",
+   "status": "passing"
+  },
+  {
+   "surface": "scx.mode_flags",
+   "court": "scx/mode-flags",
+   "status": "passing"
+  },
+  {
+   "surface": "scx.window_init",
+   "court": "scx/window-init",
+   "status": "passing"
+  },
+  {
+   "surface": "scx.profile_visibility",
+   "court": "scx/profile",
+   "status": "passing"
+  },
+  {
+   "surface": "scx.apply",
+   "court": "scx/apply",
+   "status": "passing"
+  },
+  {
+   "surface": "scx.disable",
+   "court": "scx/disable",
+   "status": "passing"
+  },
+  {
+   "surface": "scx.loader_interface",
+   "court": "scx/loader-interface",
+   "status": "passing"
+  },
+  {
+   "surface": "scx.state_readback",
+   "court": "scx/loader-interface",
+   "status": "passing"
   },
   {
    "surface": "ui.main_window",

@@ -326,6 +326,190 @@ pub fn compare_terminal_matrix(
     Ok(residuals)
 }
 
+/// The Phase 7 scx court comparison: the candidate's typed org.scx.Loader
+/// surface must be a FAITHFUL SUBSET of the REAL loader's interface (the
+/// reference image's scx_loader is a LATER version than the frozen 1.0.9,
+/// so it may expose MORE methods/properties — the frozen oracle only calls
+/// its own surface), and the candidate's property readback must equal the
+/// real loader's property values.
+///
+/// Reads:
+/// - oracle/introspect.txt      — raw `busctl introspect org.scx.Loader`
+/// - oracle/oracle-properties.json — every loader property value
+/// - candidate/candidate-interface.json — the candidate's declared interface
+/// - candidate/candidate-readback.json  — the candidate's property readback
+pub fn compare_scx_interface(case_dir: &Path, court_id: &str) -> Result<Vec<Residual>, CaseError> {
+    let mut residuals = Vec::new();
+    let oracle_dir = case_dir.join("oracle");
+    let candidate_dir = case_dir.join("candidate");
+
+    let introspect = std::fs::read_to_string(oracle_dir.join("introspect.txt"))?;
+    let oracle_props: Value = read_json(&oracle_dir.join("oracle-properties.json"))?;
+    let candidate_iface: Value = read_json(&candidate_dir.join("candidate-interface.json"))?;
+    let candidate_readback: Value = read_json(&candidate_dir.join("candidate-readback.json"))?;
+
+    // 1. parse the real interface from the introspect text: for every
+    //    org.scx.Loader member, (name, kind, signature, access).
+    let mut real_methods: Vec<(String, String)> = Vec::new(); // (name, in-sig)
+    let mut real_props: Vec<(String, String, bool)> = Vec::new(); // (name, sig, writable)
+    for line in introspect.lines() {
+        let fields: Vec<&str> = line.split_whitespace().collect();
+        if fields.len() < 3 || !fields[0].starts_with('.') {
+            continue;
+        }
+        let name = fields[0][1..].to_string();
+        match fields[1] {
+            "method" => {
+                let sig = if fields[2] == "-" {
+                    "".to_string()
+                } else {
+                    fields[2].to_string()
+                };
+                real_methods.push((name, sig));
+            }
+            "property" => {
+                let sig = fields[2].to_string();
+                let flags = fields.get(3..).unwrap_or(&[]).join(" ");
+                let writable = flags.contains("readwrite") || flags.contains("writable");
+                real_props.push((name, sig, writable));
+            }
+            _ => {}
+        }
+    }
+
+    // 2. every candidate method must exist on the real loader with the
+    //    same input signature.
+    if let Some(methods) = candidate_iface.get("methods").and_then(|m| m.as_array()) {
+        for m in methods {
+            let name = m.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            let sig: String = m
+                .get("in_args")
+                .and_then(|a| a.as_array())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|x| x.get("type").and_then(|t| t.as_str()))
+                        .collect()
+                })
+                .unwrap_or_default();
+            if !real_methods.iter().any(|(n, s)| n == name && s == &sig) {
+                residuals.push(Residual {
+                    id: format!("{court_id}-method-{name}"),
+                    court: court_id.into(),
+                    layer: "scx-interface".into(),
+                    oracle_fingerprint: "absent on the real loader".into(),
+                    candidate_fingerprint: format!("{name}({sig})"),
+                    classification: "deterministic_mismatch".into(),
+                    root_cause: None,
+                    resolution: None,
+                    commit: None,
+                    regression_witness: None,
+                });
+            }
+        }
+    }
+
+    // 3. every candidate property must exist on the real loader with the
+    //    same signature and the same access (the frozen surface is read-only;
+    //    a writable real property with the same name/sig is still compatible,
+    //    but a signature or access difference is a real residual).
+    if let Some(props) = candidate_iface.get("properties").and_then(|p| p.as_array()) {
+        for p in props {
+            let name = p.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            let sig = p.get("type").and_then(|v| v.as_str()).unwrap_or("");
+            let access = p.get("access").and_then(|v| v.as_str()).unwrap_or("");
+            let candidate_writable = access == "readwrite" || access == "write";
+            match real_props.iter().find(|(n, _, _)| n == name) {
+                Some((_, real_sig, real_writable)) => {
+                    if real_sig != sig || *real_writable != candidate_writable {
+                        residuals.push(Residual {
+                            id: format!("{court_id}-property-{name}"),
+                            court: court_id.into(),
+                            layer: "scx-interface".into(),
+                            oracle_fingerprint: format!(
+                                "{name}:{real_sig} writable={real_writable}"
+                            ),
+                            candidate_fingerprint: format!(
+                                "{name}:{sig} writable={candidate_writable}"
+                            ),
+                            classification: "deterministic_mismatch".into(),
+                            root_cause: None,
+                            resolution: None,
+                            commit: None,
+                            regression_witness: None,
+                        });
+                    }
+                }
+                None => residuals.push(Residual {
+                    id: format!("{court_id}-property-{name}"),
+                    court: court_id.into(),
+                    layer: "scx-interface".into(),
+                    oracle_fingerprint: "absent on the real loader".into(),
+                    candidate_fingerprint: format!("{name}:{sig}"),
+                    classification: "deterministic_mismatch".into(),
+                    root_cause: None,
+                    resolution: None,
+                    commit: None,
+                    regression_witness: None,
+                }),
+            }
+        }
+    }
+
+    // 4. the state readback: the candidate's property values must equal the
+    //    real loader's (both read the same bus).
+    let pairs = [
+        ("current_scheduler", "CurrentScheduler"),
+        ("scheduler_mode", "SchedulerMode"),
+        ("supported_schedulers", "SupportedSchedulers"),
+    ];
+    for (candidate_key, oracle_key) in pairs {
+        let o = oracle_props.get(oracle_key);
+        let c = candidate_readback.get(candidate_key);
+        match (o, c) {
+            (Some(o), Some(c)) if o != c => residuals.push(Residual {
+                id: format!("{court_id}-readback-{candidate_key}"),
+                court: court_id.into(),
+                layer: "scx-readback".into(),
+                oracle_fingerprint: o.to_string(),
+                candidate_fingerprint: c.to_string(),
+                classification: "deterministic_mismatch".into(),
+                root_cause: None,
+                resolution: None,
+                commit: None,
+                regression_witness: None,
+            }),
+            (Some(_), Some(_)) => {}
+            (None, Some(c)) => residuals.push(Residual {
+                id: format!("{court_id}-readback-{candidate_key}"),
+                court: court_id.into(),
+                layer: "scx-readback".into(),
+                oracle_fingerprint: "property missing from the real loader".into(),
+                candidate_fingerprint: c.to_string(),
+                classification: "deterministic_mismatch".into(),
+                root_cause: None,
+                resolution: None,
+                commit: None,
+                regression_witness: None,
+            }),
+            (Some(o), None) => residuals.push(Residual {
+                id: format!("{court_id}-readback-{candidate_key}"),
+                court: court_id.into(),
+                layer: "scx-readback".into(),
+                oracle_fingerprint: o.to_string(),
+                candidate_fingerprint: "missing from the candidate readback".into(),
+                classification: "deterministic_mismatch".into(),
+                root_cause: None,
+                resolution: None,
+                commit: None,
+                regression_witness: None,
+            }),
+            (None, None) => {}
+        }
+    }
+
+    Ok(residuals)
+}
+
 /// Run the full observation comparison for a court case directory:
 /// `oracle/` and `candidate/` subdirectories each contain the observation
 /// outputs (oracle-state.json / candidate-state.json / residual.json).

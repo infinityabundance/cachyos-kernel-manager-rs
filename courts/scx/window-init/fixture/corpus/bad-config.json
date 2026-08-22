@@ -1,0 +1,7 @@
+{
+  "config_init_failed": true,
+  "supported_scheds_ok": true,
+  "supported_scheds": ["scx_bpfland"],
+  "config_toml": null,
+  "current_scheduler_label": "unknown"
+}

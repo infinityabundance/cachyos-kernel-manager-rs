@@ -1,0 +1,6 @@
+{
+  "supported_scheds_ok": true,
+  "supported_scheds": ["scx_bpfland", "scx_rusty", "scx_lavd", "scx_flash"],
+  "config_toml": "default_sched = \"scx_bpfland\"\ndefault_mode = \"Gaming\"\n\n[scheds.scx_bpfland]\nauto_mode = []\ngaming_mode = [\"-m\", \"performance\"]\n",
+  "current_scheduler_label": "scx_bpfland"
+}

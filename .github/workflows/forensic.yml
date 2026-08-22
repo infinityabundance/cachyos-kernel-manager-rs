@@ -38,21 +38,20 @@ jobs:
             cargo xtask vm bake "$name"
           done
 
-      - name: inspect/plan/gitcache/mutate witness tools (debug)
+      - name: inspect/plan/gitcache/mutate/scx witness tools (debug)
         run: |
           cargo build -p cachyos-kernel-manager-alpm --features libalpm \
             --bin cachyos-kernel-manager-inspect --bin cachyos-kernel-manager-plan \
             --bin cachyos-kernel-manager-alpm-abi
           cargo build -p cachyos-kernel-manager-build \
             --bin cachyos-kernel-manager-gitcache --bin cachyos-kernel-manager-mutate
+          cargo build -p cachyos-kernel-manager-scx --features dbus \
+            --bin cachyos-kernel-manager-scx-state --bin cachyos-kernel-manager-scx-introspect
 
       - name: run the differential court matrix (--vm)
         run: |
-          for c in $(cargo run -q -p xtask -- court list | grep -v "courts defined"); do
-            case "$c" in
-              # non-VM courts are gated by the pure CI job
-              */*) cargo run -q -p xtask -- court run "$c" --vm || echo "COURT FAILED: $c" ;;
-            esac
+          for c in $(cargo run -q -p xtask -- court list --vm-capable | grep -v "courts VM-capable"); do
+            cargo run -q -p xtask -- court run "$c" --vm || echo "COURT FAILED: $c"
           done
 
       - name: evidence verification

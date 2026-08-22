@@ -1,0 +1,5 @@
+{
+  "sched": "scx_bpfland",
+  "mode": "Gaming",
+  "config_toml": "default_sched = \"scx_bpfland\"\ndefault_mode = \"Auto\"\n\n[scheds.scx_bpfland]\nauto_mode = []\ngaming_mode = [\"--custom\"]\n"
+}

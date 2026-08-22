@@ -1,0 +1,31 @@
+# CLAIM — scx/loader-interface
+claim = "The candidate's typed org.scx.Loader D-Bus client (scx crate, interface descriptor rendered by cachyos-kernel-manager-scx-introspect) is a FAITHFUL SUBSET of the real loader's org.scx.Loader interface, byte-identical in service, path, method names + input signatures, and property names + signatures + access to the frozen authority (scx_loader 1.0.9 src/dbus.rs + src/main.rs, checksum-pinned by the frozen config-option-lib/Cargo.lock) — PROVEN against the reference image's running loader via busctl introspect + the candidate's own D-Bus readback: service org.scx.Loader, path /org/scx/Loader; methods StartScheduler(s,u), StartSchedulerWithArgs(s,as), StopScheduler(), SwitchScheduler(s,u), SwitchSchedulerWithArgs(s,as) (all returning ()); read-only properties CurrentScheduler: s, SchedulerMode: u, SupportedSchedulers: as. The D-Bus NAMES are the PascalCase forms zbus derives from the snake_case Rust names (zbus_macros 5.5.0 utils.rs::pascal_case); the wire signatures follow the zbus/zvariant encodings of the authority's Rust types: SupportedSched (#[zvariant(signature = \"s\")]) -> s; SchedMode (repr-less fieldless enum) -> u (u32); Vec<String> -> as. The readback values match the real loader's (CurrentScheduler, SchedulerMode, SupportedSchedulers). The shipped loader (scx-manager 1.15.12-1 in the reference image) is a later version exposing MORE surface (RestartScheduler/RestoreDefault, CurrentSchedulerArgs/DefaultMode/DefaultScheduler) — the frozen oracle never calls those; the subset relationship is the parity claim."
+
+model = "Oracle: the org.scx.Loader interface of scx_loader 1.0.9 (oracle/scx-authority/scx_loader-1.0.9.crate, src/dbus.rs; the exact crate version pinned by the frozen config-option-lib/Cargo.lock checksum 1fb76102...). Witnessed via tools/scx-oracle-ref (source-derived) and, in the VM variant, via `busctl introspect org.scx.Loader` against the real running loader. Candidate: loader_interface (crates/cachyos-kernel-manager-scx) + the zbus proxy (client.rs, feature dbus) generated from the same declaration."
+
+assumptions = [
+  "The interface is a fixed contract (no corpus); both sides render it from their own source (the candidate from its type system + the zbus proxy derive, the reference from the authority's dbus.rs + main.rs).",
+  "The D-Bus method/property NAMES are the PascalCase forms zbus derives from the snake_case Rust names (zbus_macros 5.5.0 utils.rs::pascal_case), and the wire signatures are the zbus/zvariant encodings of the authority's Rust types: a fieldless enum without repr encodes as u32 (zvariant's default), a Vec<String> as 'as', a String as 's'.",
+  "The shipped binary's scxctl-ui may have evolved since the extraction; the D-Bus interface itself is pinned by the frozen crate version, so the WIRE contract cannot drift.",
+  "The VM witness (busctl introspect against the real scx_loader from the scx-manager package in the reference image) is the strongest form; the non-VM source-derived comparison is the CI mirror.",
+]
+
+observables = [
+  "interface / service / path",
+  "The five methods with their in/out arg signatures",
+  "The three read-only properties with their signatures",
+]
+
+witness = "tools/run-scx-corpus.sh (renders both interfaces once), then cargo xtask court run scx/loader-interface."
+
+independence = "tools/scx-oracle-ref re-declares the interface from the pinned scx_loader source; the candidate declares it from its own types + the zbus proxy derive. Neither generates the other's output."
+
+falsifier = "Any byte difference in the interface descriptor."
+
+[[evidence]]
+artifact = "oracle/interface.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/interface.json"
+sha256 = "pending"

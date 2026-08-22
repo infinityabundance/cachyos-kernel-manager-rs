@@ -1,0 +1,23 @@
+version = "1.0.0"
+
+# Phase 7 VM court: `cargo xtask court run scx/loader-interface --vm` boots
+# the minimal fixture (the reference image ships the scx-manager package
+# with scx_loader), starts the REAL loader on the system bus, and compares
+# the candidate's declared interface as a subset of the real loader's
+# interface + the property readback. Without --vm the runner performs the
+# source-derived comparison (see the README).
+fixture = "minimal"
+scx = true
+
+# The two modes share the case dir; each mode's artifacts are the OTHER
+# mode's noise, so they are ignored by the byte-exact comparison (the VM
+# comparison reads only its own files).
+ignore = [
+  "candidate.stderr", "oracle.stderr",
+  # VM-mode artifacts (ignored by the pure comparison)
+  "introspect.txt", "oracle-properties.json", "scx-manager-version.txt",
+  "candidate-interface.json", "candidate-readback.json",
+]
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

@@ -1,0 +1,10 @@
+assumptions = [
+  "The button-visibility decision is deterministic pure logic over the state-file existence; a NON-VM differential against the source-derived decision is the strongest witness for the file-absent direction, and the file-present direction is VM-witnessed by the existing kernel-discovery evidence (the button is 'showing'+'visible' in the a11y tree).",
+  "tools/scx-oracle-ref re-declares the decision from km-window.cpp:185-188; its output IS the oracle's output for this surface.",
+  "The candidate main_window_schedext_visible model reproduces the same decision; any divergence is a real residual this court must catch.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+normalizers = [
+  { name = "stdout-capture", version = "1.0.0", source_hash = "tools/run-scx-corpus.sh", input_domain = "CLI stdout + exit code per corpus file", transformation = "capture stdout verbatim into <name>.json and the exit code into <name>.exit; stderr is dropped", justification = "the visibility JSON IS the observable; error texts are implementation-specific", falsifier = "a byte in the visibility JSON, or the exit code, differing between oracle and candidate" },
+]

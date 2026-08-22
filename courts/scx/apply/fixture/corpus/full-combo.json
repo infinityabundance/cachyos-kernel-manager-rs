@@ -1,0 +1,12 @@
+{
+  "scx_name": "scx_lavd",
+  "scx_mode": "Powersave",
+  "extra_flags": "--powersave",
+  "config_toml": "default_sched = \"scx_lavd\"\ndefault_mode = \"PowerSave\"\n\n[scheds.scx_lavd]\npowersave_mode = [\"--powersave\"]\n",
+  "scx_service_enabled": true,
+  "scx_service_active": true,
+  "scx_loader_service_enabled": false,
+  "config_path": "/etc/scx_loader.toml",
+  "db_ok": false,
+  "db_error": "permission denied"
+}

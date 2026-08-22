@@ -38,6 +38,22 @@ package_hashes = { "cachyos-kernel-manager-1.19.0-1" = "sha256:3dd688c687014eb5b
 # differential courts. Populated by `cargo xtask vm build`.
 reference_image_hash = "sha256:62f1fca70ee19321f7ac896d03a45b3b9291b32019b2aeb1919bf052d5ef494c"
 
+[scx]
+# The sched-ext surface: the frozen binary embeds the EXTERNAL scxctl-ui
+# library (km-window.hpp:47,144). That library was extracted from this repo at
+# cc79698; its final in-repo state (the parent f3eeaf6) is the recoverable UI
+# authority (oracle/scx-authority/scx-manager-f3eeaf6.tar.gz). The org.scx.Loader
+# wire interface is pinned by the frozen config-option-lib/Cargo.lock checksum of
+# the scx_loader crate (oracle/scx-authority/scx_loader-1.0.9.crate).
+# See oracle/scx-authority/SCX-AUTHORITY.md for the full recovered facts.
+scx_ui_commit = "f3eeaf6"
+scx_ui_tree = "1f1829b2134fe83871ffb1682a3d294c05d603f9"
+scx_ui_archive = "oracle/scx-authority/scx-manager-f3eeaf6.tar.gz"
+scx_ui_archive_hash = "sha256:03086b2312e424d1ec90b5b1cfbe3211174c3938d5b07d8194119ae356a25260"
+scx_loader_version = "1.0.9"
+scx_loader_crate = "oracle/scx-authority/scx_loader-1.0.9.crate"
+scx_loader_crate_hash = "sha256:1fb76102d4c18759eef97da4cb4a7450f968efcf711c006c0595f29f105429f0"
+
 [identity]
 # Externally visible application identity, recorded from upstream source at freeze time.
 binary = "cachyos-kernel-manager"

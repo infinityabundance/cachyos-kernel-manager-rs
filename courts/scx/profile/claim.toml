@@ -1,0 +1,70 @@
+# CLAIM — scx/profile
+claim = "Given the 6-case corpus of (scheduler, profile label, optional config), the candidate's profile_ui_visible + flags_text models (scx crate) render byte-identical decisions to the oracle's on_sched_changed + on_sched_profile_changed (schedext-window-internal.cpp:250-264,199-214): the profile-selection UI is VISIBLE only for scx_bpfland and scx_lavd ('only scx_bpfland and scx_lavd support different preset profiles at the moment' — the BMQ/profile restriction); the flags edit shows the mode's flags for the selected scheduler, space-joined, from the config entry or the hardcoded defaults."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — the SchedExtWindow's scheduler-change handling (pre-extraction scx-manager at f3eeaf6): the bpfland/lavd visibility rule + get_scx_flags_for_mode rendering (scx_loader 1.0.9). Witnessed via tools/scx-oracle-ref. Candidate: profile_ui_visible + flags_text (crates/cachyos-kernel-manager-scx)."
+
+assumptions = [
+  "The profile-visibility rule + flags rendering is deterministic pure logic over (scheduler, profile label, config); a NON-VM differential against the source-derived reference is the strongest witness.",
+  "tools/scx-oracle-ref re-declares the exact decisions from schedext-window-internal.cpp:250-264,199-214 + scx_loader config; its output IS the oracle's output for this surface.",
+  "The candidate models reproduce the same decisions; any divergence is a real residual this court must catch.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+observables = [
+  "profile_ui_visible (bpfland/lavd only)",
+  "flags_text (the mode's flags, space-joined, config override or defaults)",
+]
+
+witness = "tools/run-scx-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run scx/profile."
+
+independence = "tools/scx-oracle-ref re-declares the decisions from the recovered source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in the profile JSON on any corpus case."
+
+[[evidence]]
+artifact = "oracle/bpfland-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/bpfland-lowlatency.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/lavd-powersave.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/rusty-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/flash-server.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/config-override.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/bpfland-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/bpfland-lowlatency.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/lavd-powersave.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/rusty-gaming.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/flash-server.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/config-override.json"
+sha256 = "pending"

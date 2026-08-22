@@ -1,0 +1,5 @@
+{
+  "sched": "scx_bpfland",
+  "mode": "Powersave",
+  "config_toml": "default_sched = \"scx_bpfland\"\n\n[scheds.scx_bpfland]\nauto_mode = [\"-x\"]\n"
+}

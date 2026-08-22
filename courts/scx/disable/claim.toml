@@ -1,0 +1,48 @@
+# CLAIM — scx/disable
+claim = "Given the 3-case corpus (config path + config), the candidate's disable_trace + disable_config_mutation models (scx crate) render byte-identical traces to the oracle's disable_scheduler (config-option-lib/src/scx_loader_config.rs at f3eeaf6): clear default_sched (None), write the temp config to /tmp/scx_loader.toml, `stop_scheduler()` D-Bus call, then `pkexec /usr/bin/cp /tmp/scx_loader.toml <config_path>`; the config AFTER disable has default_sched = None regardless of the before-state."
+
+model = "Oracle: real cachyos-kernel-manager v1.19.0 — the Rust disable layer (scx_loader_config.rs disable_scheduler + disable_scx_sched at f3eeaf6): set default_sched=None, write the temp file, stop_scheduler, pkexec-copy. Witnessed via tools/scx-oracle-ref. Candidate: disable_trace + disable_config_mutation (crates/cachyos-kernel-manager-scx)."
+
+assumptions = [
+  "disable_scheduler is deterministic logic over the config; the D-Bus transport and the pkexec spawn are fixed inputs (the call ORDER is what this court pins).",
+  "The disable config mutation clears default_sched and LEAVES default_mode unchanged (the oracle only sets default_sched = None).",
+  "tools/scx-oracle-ref re-declares the exact decisions from scx_loader_config.rs; its output IS the oracle's output for this surface.",
+  "The corpus files are frozen inputs; the runner never rewrites them.",
+]
+
+observables = [
+  "The stop_scheduler D-Bus call",
+  "The pkexec copy (the temp config written before the copy)",
+  "default_sched_before (from the config)",
+  "default_sched_after (always None — the mutation)",
+]
+
+witness = "tools/run-scx-corpus.sh (runs both CLIs over the corpus), then cargo xtask court run scx/disable."
+
+independence = "tools/scx-oracle-ref re-declares disable_scheduler from the recovered source; the candidate is a separate Rust model. Neither generates the other's output."
+
+falsifier = "Any byte difference in the disable trace or the config mutation on any corpus case."
+
+[[evidence]]
+artifact = "oracle/with-default-sched.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/no-default-sched.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/empty-config.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/with-default-sched.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/no-default-sched.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/empty-config.json"
+sha256 = "pending"
