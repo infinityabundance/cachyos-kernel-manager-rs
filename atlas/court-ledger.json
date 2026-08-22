@@ -258,6 +258,11 @@
    "status": "passing"
   },
   {
+   "surface": "regression_suite.pure",
+   "court": "regression-suite/pure-regressions",
+   "status": "passing"
+  },
+  {
    "surface": "kernel.rows_flat_layout",
    "court": "kernel-discovery/minimal",
    "status": "passing"

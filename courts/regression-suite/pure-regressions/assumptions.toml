@@ -1,0 +1,11 @@
+assumptions = [
+  "The residual ledger (atlas/residual-ledger.json) is the frozen authority for what each fix must produce.",
+  "RES-2026-012: the default env-rendering corpus case has lto=thin; the oracle's option_map renders _use_llvm_lto=thin.",
+  "RES-2026-004: the cross-repo-installed main-window corpus row must be present, unchecked, and not immutable.",
+  "RES-2026-002/003: the ABI witness runs only where libalpm is available; the skip note is recorded on both sides otherwise.",
+  "The oracle side files are the declared expectations; the candidate side files are the live witness outputs; the comparator is byte-exact.",
+]
+
+normalizers = [
+  { name = "assertion-extraction", version = "1.0.0", source_hash = "tools/run-regression-corpus.sh", input_domain = "witness stdout (env/main-window/abi)", transformation = "extract the specific regression assertion lines (the lto var, the cross-repo row fields, the ABI constants); drop everything else", justification = "the regression assertions ARE the observable; the full witness outputs are courted by their own courts", falsifier = "a regression of the asserted line (wrong var name, missing/mutable/checked row, ABI drift)" },
+]

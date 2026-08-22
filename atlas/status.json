@@ -76,7 +76,7 @@
    "phase": 9,
    "name": "Full differential court matrix",
    "status": "in-progress",
-   "wording": "failure paths, historical regressions, repeated executions, drift/slew. Done: single-instance/stale-lock PASS (gap-001 covered), drift-slew/pure-determinism PASS (all pure witnesses x3 fresh-process runs byte-identical), kernel-discovery/needle-order PASS (gap-002 covered: the adversarial needle db row set + ORDER witnessed), build-env/makepkg-runtime PASS (gap-006 covered: real makepkg runtime witness — -scf resolves repo deps via pacman -S --asdeps + touch .done-status without installing; -sicf adds the pacman -U install; an AUR-only dep fails -s identically; the candidate's model-rendered commands == the frozen literals). Remaining: historical-regression courts and the close-during-transaction race witness (gap-010)."
+   "wording": "failure paths, historical regressions, repeated executions, drift/slew. Done: single-instance/stale-lock PASS (gap-001 covered), drift-slew/pure-determinism PASS (all pure witnesses x3 fresh-process runs byte-identical), kernel-discovery/needle-order PASS (gap-002 covered), build-env/makepkg-runtime PASS (gap-006 covered: real makepkg runtime witness of -s dep resolution vs the -i install vs the AUR-only failure), regression-suite/pure-regressions PASS (RES-2026-002/003/004/012 re-verified live, wired into CI). Remaining: the close-during-transaction race witness (gap-010) — the oracle's latent use-after-free is characterized and NOT reproduced (runtime-owned tasks); a VM court for the oracle's actual crash behavior is the last Phase 9 item."
   },
   {
    "phase": 10,

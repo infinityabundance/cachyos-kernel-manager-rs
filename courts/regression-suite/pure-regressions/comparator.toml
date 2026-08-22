@@ -1,0 +1,10 @@
+version = "1.0.0"
+
+# Pure non-VM court: the oracle/ side is the declared expectations (from the
+# residual ledger + the frozen source), the candidate/ side is the live
+# witness outputs; compared byte-for-byte. No baked fixture image (the
+# VM-capability marker key is deliberately ABSENT).
+ignore = []
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

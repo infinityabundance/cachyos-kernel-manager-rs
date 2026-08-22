@@ -1,0 +1,32 @@
+# CLAIM — regression-suite/pure-regressions
+claim = "The RES-2026-002/003/004/012 resolutions (atlas/residual-ledger.json) still HOLD — the regression witnesses' specific assertions, re-verified live: (RES-2026-012) the env rendering emits the oracle's `_use_llvm_lto=<mode>` variable name (NOT the candidate's former `_lto`) on a lto=thin corpus case; (RES-2026-004) a kernel installed from a DIFFERENT repo remains in the tree — present, unchecked, NOT immutable (km-window.cpp:97-104: the `continue` fires after the row insert); (RES-2026-002/003) the libalpm ABI facts (alpm_list_t = 3 pointers: data/prev/next; alpm_pkg_get_installed_db returns a `const char*`) are machine-verified by the ABI probe + the Rust-side constants agree. The oracle side is the FROZEN regression record (the ledger's fingerprints + the frozen source); the candidate side is the LIVE witness execution. Each regression's full court remains its own witness (alpm-ffi/abi-surface, ui/main-window-semantics, build-env/env-rendering); THIS court pins the specific regressions in one re-runnable place."
+
+model = "Oracle: the expected assertion outputs, declared from the ledger's oracle_fingerprints + the frozen source (km-window.cpp:97-104, conf-window.cpp:421-451/option_map, the ABI probe's C-side constants). Candidate: the live witness executions (cachyos-kernel-manager-env on the default corpus, cachyos-kernel-manager-mainwindow on cross-repo-installed, cachyos-kernel-manager-alpm-abi)."
+
+assumptions = [
+  "The residual ledger (atlas/residual-ledger.json) is the frozen authority for what each fix must produce.",
+  "RES-2026-012: the default env-rendering corpus case has lto=thin; the oracle's option_map renders `_use_llvm_lto=thin` (conf-window.cpp:421-451); the suffix workaround line `_use_lto_suffix=n` may follow (not asserted here).",
+  "RES-2026-004: the main-window cross-repo-installed corpus: the row `cachyos/linux-cachyos` installed from `other-repo` must be PRESENT, unchecked, and not immutable.",
+  "RES-2026-002/003: the ABI probe + witness run only where libalpm is available (pkg-config libalpm); on CI without it the assertion file records 'skipped (no libalpm)' on BOTH sides.",
+  "The candidate side files are the LIVE witness outputs; the oracle side files are the declared expectations — the comparator is byte-exact.",
+]
+
+observables = [
+  "env-lto.txt (the lto var line of the env rendering)",
+  "cross-repo-row.txt (the cross-repo row's presence/checked/immutable)",
+  "abi-probe.txt (the ABI witness output or the no-libalpm skip note)",
+]
+
+witness = "tools/run-regression-corpus.sh, then cargo xtask court run regression-suite/pure-regressions."
+
+independence = "The expected values are declared from the ledger + the frozen source (two different authorities than the candidate's implementation); the candidate side is the live execution of the courted witnesses. Neither generates the other's file."
+
+falsifier = "Any byte difference in any assertion file (a regression of RES-2026-002/003/004/012)."
+
+[[evidence]]
+artifact = "oracle/<assertion>.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/<assertion>.txt"
+sha256 = "pending"

@@ -40,6 +40,11 @@ jobs:
       - name: ts2json catalogs derive from the frozen .ts files
         run: python3 tools/ts2json.py --check
 
+      - name: historical-regression assertions (RES-2026-002/003/004/012)
+        run: |
+          tools/run-regression-corpus.sh
+          cargo xtask court run regression-suite/pure-regressions
+
       - name: status tables derive from atlas/status.json
         run: python3 tools/update-status-tables.py --check
 

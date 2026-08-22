@@ -296,6 +296,14 @@ Witness adaptations (identical on both sides, documented in the claim):
 `yes |` answers pacman's prompts (no tty); makepkg's epoch file timestamps
 normalized. `cargo xtask court run build-env/makepkg-runtime --vm`.
 
+`regression-suite/pure-regressions` — PASS (non-VM historical-regression
+court, wired into CI). The RES-2026-002/003/004/012 resolutions re-verified
+LIVE: the `_use_llvm_lto=` var (RES-2026-012), the cross-repo row present/
+unchecked/not-immutable (RES-2026-004), and the libalpm ABI witness
+(RES-2026-002/003; environment-adaptive — the skip note without libalpm).
+Witness: `tools/run-regression-corpus.sh` → `cargo xtask court run
+regression-suite/pure-regressions`.
+
 ## Case format
 
 ```
