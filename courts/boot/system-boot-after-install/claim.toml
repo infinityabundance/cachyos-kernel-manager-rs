@@ -1,0 +1,35 @@
+# CLAIM — boot/system-boot-after-install
+claim = "Installing a REAL second kernel (linux-cachyos-lts + headers) with the courted install command on the 'kernel-install' fixture, then REBOOTING, produces a BOOTABLE system whose post-mutation state is identical on both sides: (install) the exec chain pins the install command `pacman -S --needed linux-cachyos-lts linux-cachyos-lts-headers --noconfirm` (the oracle's literal commit_transaction command, kernel.cpp:288-304, == the candidate's pacman_install_argv render — install-command.txt identical; the strace captures the command + the signature checks; the post-install HOOKS are witnessed by their output — hook-output.txt shows the mkinitcpio preset run — and their EFFECT: /boot is regenerated with the new initramfs-linux-cachyos-lts.img); (REBOOT) the same overlay re-boots (the qemu direct-kernel boot of the base kernel), the system comes up (`boot-complete: running`), the mutation PERSISTED (linux-cachyos-lts installed, its initramfs in /boot — hard-asserted by boot-check.sh), and the boot journal is clean. The two boots' surfaces (pre/post kernels, /boot states, hook output, boot status, running kernel, machine residual) are byte-identical."
+
+model = "Oracle: the frozen source's literal install command + the REAL post-install hooks on the fixture. Candidate: the exec crate's modeled command (cachyos-kernel-manager-installcmd) + the SAME hooks. Both run the identical install + reboot sequence (vm/in-vm/oracle|candidate-boot-install.sh + boot-check.sh)."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'kernel-install' fixture (the base kernel running; the real lts packages CACHED, not installed — the court VMs are offline).",
+  "The install command is `pacman -S --needed linux-cachyos-lts linux-cachyos-lts-headers` + `--noconfirm` (a witness adaptation replacing the interactive confirmation); the oracle's literal and the candidate's model render are byte-identical (courted by transaction-plan/*).",
+  "The post-install hooks (mkinitcpio + the bootloader update) are pacman's own — they regenerate /boot and the bootloader entries; the qemu DIRECT-KERNEL boot (vm/images/boot/) still uses the base vmlinuz/initramfs, so the reboot boots the base kernel with the NEW kernel installed and bootable alongside.",
+  "The REBOOT re-uses the SAME overlay (the install persists); boot-check.sh hard-fails if the lts kernel or its initramfs is missing after the reboot.",
+  "The execve extraction drops PIDs/env; the hook output is grepped from pacman's log; every written surface must match byte-for-byte between the boots.",
+]
+
+observables = [
+  "install-command.txt (the literal vs the model render — must be identical)",
+  "install-execs.txt (the exec chain)",
+  "pre/post-kernels.txt, pre/post-boot.txt (the /boot regeneration)",
+  "hook-output.txt (the mkinitcpio run)",
+  "boot-status.txt, running-kernel.txt, kernels.txt, boot-files.txt, journal-tail.txt (the reboot phase)",
+  "packages.txt (the machine residual)",
+]
+
+witness = "cargo xtask court run boot/system-boot-after-install --vm (bake: cargo xtask vm bake kernel-install)."
+
+independence = "The oracle side runs the frozen source's literal command; the candidate side runs its MODEL's render. The hooks and the reboot are the real system's own behavior. Neither side generates the other's surface."
+
+falsifier = "Any install-command difference, any exec-chain difference, any /boot or kernel-state difference, any boot-check failure, or any byte difference between the two boots' surfaces."
+
+[[evidence]]
+artifact = "oracle/install-execs.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/boot-status.txt"
+sha256 = "pending"

@@ -685,6 +685,7 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     let is_scx = case.comparator.scx;
     let is_makepkg = case.comparator.makepkg;
     let is_packaging = case.comparator.packaging;
+    let is_boot = case.comparator.boot;
     let tx_select: Vec<String> = case
         .comparator
         .transaction
@@ -727,6 +728,20 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             share.join("packaging/cachyos-kernel-manager-1.19.0-1-x86_64.pkg.tar.zst"),
         )
         .expect("copy oracle pkg");
+    }
+
+    // Phase 11: the install-command model witness (boot courts)
+    let installcmd_src = repo_root().join("target/debug/cachyos-kernel-manager-installcmd");
+    if is_boot {
+        if !installcmd_src.exists() {
+            eprintln!("build the installcmd tool first: cargo build -p cachyos-kernel-manager-exec --bin cachyos-kernel-manager-installcmd");
+            return ExitCode::FAILURE;
+        }
+        std::fs::copy(
+            &installcmd_src,
+            share.join("inspect/cachyos-kernel-manager-installcmd"),
+        )
+        .expect("copy installcmd");
     }
 
     let run_side = |side: &str, out_dir: &std::path::Path| -> Result<(), String> {
@@ -782,6 +797,8 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                 "oracle" => {
                     let script = if is_scx {
                         "scx-loader-observe.sh"
+                    } else if is_boot {
+                        "oracle-boot-install.sh"
                     } else if is_makepkg {
                         "oracle-makepkg.sh"
                     } else if is_packaging {
@@ -812,6 +829,8 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                 "candidate" => {
                     let script = if is_scx {
                         "scx-loader-candidate.sh"
+                    } else if is_boot {
+                        "candidate-boot-install.sh"
                     } else if is_makepkg {
                         "candidate-makepkg.sh"
                     } else if is_packaging {
@@ -845,6 +864,25 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         })();
         let _ = run("bash", &[ctl, "stop"]);
         res?;
+        // Phase 11 boot courts: REBOOT the SAME overlay (the kernel install
+        // persisted) and run the boot-check phase.
+        if is_boot {
+            let _ = run("bash", &[ctl, "cleanup"]);
+            run("bash", &[ctl, "start", overlay.to_str().expect("path")])?;
+            let res2 = (|| -> Result<(), String> {
+                run(
+                    "bash",
+                    &[
+                        ctl,
+                        "exec",
+                        "bash /mnt/host/scripts/boot-check.sh /mnt/host/out",
+                    ],
+                )?;
+                Ok(())
+            })();
+            let _ = run("bash", &[ctl, "stop"]);
+            res2?;
+        }
         // pull observations out of the share into the case dir
         for entry in std::fs::read_dir(&share_out).map_err(|e| e.to_string())? {
             let entry = entry.map_err(|e| e.to_string())?;
@@ -884,6 +922,14 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             Ok(mut r) => residuals.append(&mut r),
             Err(e) => {
                 eprintln!("packaging comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else if is_boot {
+        match cachyos_kernel_manager_casefile::vm_court::compare_boot(&case.dir, case_id) {
+            Ok(mut r) => residuals.append(&mut r),
+            Err(e) => {
+                eprintln!("boot comparison error: {e}");
                 return ExitCode::FAILURE;
             }
         }

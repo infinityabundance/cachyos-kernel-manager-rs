@@ -24,3 +24,7 @@ path = "src/bin/finish-render.rs"
 [[bin]]
 name = "cachyos-kernel-manager-cancel"
 path = "src/bin/cancel-render.rs"
+
+[[bin]]
+name = "cachyos-kernel-manager-installcmd"
+path = "src/bin/installcmd.rs"

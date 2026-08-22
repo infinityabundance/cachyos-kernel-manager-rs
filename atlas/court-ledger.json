@@ -273,6 +273,11 @@
    "status": "passing"
   },
   {
+   "surface": "boot.system_boot_after_install",
+   "court": "boot/system-boot-after-install",
+   "status": "passing"
+  },
+  {
    "surface": "kernel.rows_flat_layout",
    "court": "kernel-discovery/minimal",
    "status": "passing"

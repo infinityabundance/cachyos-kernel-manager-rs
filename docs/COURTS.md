@@ -322,6 +322,20 @@ The PKGBUILD (`packaging/PKGBUILD`) builds the Rust GUI with
 `--features gui-alpm` and installs the drop-in files; the forensic
 workflow's packaging matrix runs the file-layout + upgrade courts.
 
+## Phase 11 status (boot/system courts) — IN PROGRESS
+
+- `boot/system-boot-after-install` — PASS (differential VM court on
+  fixture `kernel-install`, which caches the REAL linux-cachyos-lts
+  packages offline). The court installs a REAL second kernel with the
+  courted command (the oracle's literal == the candidate's
+  `pacman_install_argv` render), the REAL post-install hooks run
+  (mkinitcpio regenerates /boot with the new initramfs — witnessed by
+  hook-output.txt + the /boot state), the SAME overlay REBOOTS, the
+  system comes up `boot-complete: running`, and the mutation persisted
+  (the lts kernel + its initramfs hard-asserted by boot-check.sh). The
+  two boots' surfaces are byte-identical. The runner gained a REBOOT
+  phase (re-boots the same overlay).
+
 ## Case format
 
 ```

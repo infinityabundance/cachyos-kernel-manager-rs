@@ -117,6 +117,11 @@ pub struct Comparator {
     /// both sides (identical scripts) and compares the surfaces.
     #[serde(default)]
     pub packaging: bool,
+    /// Phase 11 boot court (boot/system-boot-after-install --vm): when
+    /// true, the runner runs the install phase, REBOOTS the same overlay,
+    /// and runs the boot-check phase.
+    #[serde(default)]
+    pub boot: bool,
 }
 
 /// The `[mutate]` comparator section: the Configure-window actions the

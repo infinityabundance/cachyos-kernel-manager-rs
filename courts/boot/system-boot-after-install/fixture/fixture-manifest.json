@@ -1,0 +1,7 @@
+{
+ "fixture": "kernel-install",
+ "raw_image_hash": "sha256:1aa55067df1547a4e62ea96c06a8d4dd7fd2008a34c791729928b3c66865e3ce",
+ "baked_at": "2026-08-22T12:52:41Z",
+ "fixture_digest": "sha256:3d06ff1a94bc3818193f71fe4b48ebeadce277fa004d4dddd03f5a6e5c6cf260",
+ "spec_sha256": "sha256:dec365b51b634e950900178a65513cf247de1e56016b0f859fcdcc48a07eca70"
+}

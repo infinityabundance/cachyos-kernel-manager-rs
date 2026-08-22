@@ -1,0 +1,16 @@
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'kernel-install' fixture (the base kernel running; the real lts packages CACHED, not installed — offline).",
+  "The install command is the courted `pacman -S --needed ...` + --noconfirm (a witness adaptation); the oracle literal == the candidate model render.",
+  "The post-install hooks regenerate /boot; the qemu direct-kernel boot uses the base vmlinuz/initramfs, so the reboot boots the base kernel with the new kernel installed alongside.",
+  "The REBOOT re-uses the SAME overlay (the install persists); boot-check.sh hard-fails on a missing lts kernel/initramfs.",
+  "The execve extraction drops PIDs/env; every written surface must match byte-for-byte between the boots.",
+]
+
+[[normalizers]]
+name = "boot-surface-extraction"
+version = "1.0.0"
+source_hash = "vm/in-vm/oracle-boot-install.sh + vm/in-vm/candidate-boot-install.sh + vm/in-vm/boot-check.sh"
+input_domain = "the install exec chain, the /boot + kernel states, the hook output, the post-reboot boot status"
+transformation = "the surfaces are written as sorted text files per phase (install/reboot); the exec chains drop PIDs/env; boot-check hard-fails on a missing kernel/initramfs"
+justification = "the install + reboot surfaces ARE the boot-court contract; determinism across the two boots is the court's second claim"
+falsifier = "a byte difference in any surface between the two boots, or a boot-check failure"
