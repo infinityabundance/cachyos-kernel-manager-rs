@@ -1,0 +1,33 @@
+# CLAIM — packaging/upgrade
+claim = "The oracle-package -> candidate-package -> oracle-package transition is REVERSIBLE and preserves the drop-in surface, witnessed on the real system: (BASELINE) the frozen oracle package (cachyos-kernel-manager 1.19.0-1, sha256:3dd688c6...) is installed and operates; (UPGRADE) `pacman -U` of the candidate package (0.1.0-1, built from packaging/PKGBUILD with --features gui-alpm) REPLACES it (same pkgname): the package version becomes 0.1.0-1, the INSTALLED FILE LIST is BYTE-IDENTICAL to the baseline (the drop-in surface), the binary's --version reports the Rust 0.1.0, and the DISCOVERY ROW NAMES (the operation) are identical before and after the transition (the oracle GUI's AT-SPI rows == the candidate's inspect rows on the same dbs); (REVERT) `pacman -U` of the frozen oracle package restores 1.19.0-1 and the Qt binary. Both VM boots run the IDENTICAL script (hard-failing on any broken assertion); every written surface file must match byte-for-byte between the boots (determinism + transition stability)."
+
+model = "Oracle: the frozen CachyOS package's surfaces (version/file-list/--version/discovery rows) at baseline AND after the revert. Candidate: the candidate package's surfaces after the upgrade. Both boots run the same sequence (vm/in-vm/upgrade.sh); the comparison pins the transition's stability + the drop-in equivalence."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME fixture image (the base image has the frozen oracle package installed).",
+  "The candidate package (target/cachyos-kernel-manager-0.1.0-1-x86_64.pkg.tar.zst) is built from the local tree exactly as packaging/PKGBUILD installs it (tools/build-candidate-package.sh); the frozen oracle package (oracle/packages/) is the revert target.",
+  "pacman -U with the same pkgname replaces the installed package (the drop-in transition); the file surface (pacman -Ql content files) must be unchanged.",
+  "The discovery-row comparison: the oracle GUI's AT-SPI rows (baseline) vs the inspect tool's rows on the same databases (post-upgrade) — the same discovery semantics (courted by kernel-discovery/*).",
+  "The version strings differ by design (1.19.0 vs 0.1.0) — the version FILES are evidence of the replacement (recorded per file name, not cross-compared as equality); every OTHER surface file must match byte-for-byte.",
+]
+
+observables = [
+  "baseline/upgraded/reverted package versions",
+  "baseline/upgraded file lists (must be identical)",
+  "baseline/upgraded discovery row names (must be identical)",
+  "the --version flags (the Qt vs the Rust binary)",
+]
+
+witness = "tools/build-candidate-package.sh (the candidate package), then cargo xtask court run packaging/upgrade --vm."
+
+independence = "The oracle side is the REAL shipped package + the REAL Qt GUI (AT-SPI); the candidate side is the REAL Rust binary + the inspect tool. The transition is driven by pacman itself. Neither side generates the other's surface."
+
+falsifier = "Any file-surface change across the transition, any discovery-row change, any broken transition assertion (the script hard-fails), or any byte difference between the two boots' surfaces."
+
+[[evidence]]
+artifact = "oracle/baseline-filelist.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/upgraded-filelist.txt"
+sha256 = "pending"

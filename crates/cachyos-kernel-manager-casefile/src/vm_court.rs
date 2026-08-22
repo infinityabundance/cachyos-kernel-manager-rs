@@ -119,6 +119,65 @@ pub fn compare_makepkg(case_dir: &Path, court_id: &str) -> Result<Vec<Residual>,
     Ok(residuals)
 }
 
+/// Phase 10 packaging court (packaging/upgrade --vm): compare the two
+/// boots' package-transition surfaces byte-for-byte. Both boots run the
+/// IDENTICAL oracle->candidate->oracle transition script; every written
+/// file must match (determinism + the transition's stability):
+/// baseline/upgraded/reverted versions, the file lists, the `--version`
+/// flags, the discovery row names, and the machine residual.
+pub fn compare_packaging(case_dir: &Path, court_id: &str) -> Result<Vec<Residual>, CaseError> {
+    let oracle_dir = case_dir.join("oracle");
+    let candidate_dir = case_dir.join("candidate");
+    let mut residuals = Vec::new();
+
+    // the machine residual (fixture-integrity)
+    let o_pkgs = std::fs::read(oracle_dir.join("packages.txt"))?;
+    let c_pkgs = std::fs::read(candidate_dir.join("packages.txt"))?;
+    if o_pkgs != c_pkgs {
+        residuals.push(Residual {
+            id: format!("{court_id}-machine-residual-drift"),
+            court: court_id.into(),
+            layer: "machine-residual".into(),
+            oracle_fingerprint: sha256_bytes(&o_pkgs),
+            candidate_fingerprint: sha256_bytes(&c_pkgs),
+            classification: "fixture_drift".into(),
+            root_cause: None,
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+
+    // every other file (the transition surfaces) byte-exact
+    let mut names: Vec<String> = std::fs::read_dir(&oracle_dir)?
+        .map(|e| e.map(|e| e.file_name().to_string_lossy().to_string()))
+        .collect::<Result<_, _>>()?;
+    names.sort();
+    for name in names {
+        if name == "packages.txt" {
+            continue;
+        }
+        let o = std::fs::read(oracle_dir.join(&name))?;
+        let c = std::fs::read(candidate_dir.join(&name))?;
+        if o != c {
+            residuals.push(Residual {
+                id: format!("{court_id}-{name}"),
+                court: court_id.into(),
+                layer: "packaging-surface".into(),
+                oracle_fingerprint: sha256_bytes(&o),
+                candidate_fingerprint: sha256_bytes(&c),
+                classification: "deterministic_mismatch".into(),
+                root_cause: None,
+                resolution: None,
+                commit: None,
+                regression_witness: None,
+            });
+        }
+    }
+
+    Ok(residuals)
+}
+
 /// Compare two observations field-by-field; returns residuals.
 pub fn compare_observations(
     court: &str,

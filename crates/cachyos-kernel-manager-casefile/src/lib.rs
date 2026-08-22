@@ -112,6 +112,11 @@ pub struct Comparator {
     /// side) under strace, comparing the extracted execve chains.
     #[serde(default)]
     pub makepkg: bool,
+    /// Phase 10 packaging court (packaging/upgrade --vm): when true, the
+    /// runner drives the oracle->candidate->oracle package transition on
+    /// both sides (identical scripts) and compares the surfaces.
+    #[serde(default)]
+    pub packaging: bool,
 }
 
 /// The `[mutate]` comparator section: the Configure-window actions the

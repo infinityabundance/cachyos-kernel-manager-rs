@@ -40,3 +40,10 @@ witnessed.
 See docs/HISTORICAL_LORE.md §"Known quirks inventory" — terminal-helper exit
 code, uk-not-in-qrc, mINI pacman.conf parsing, `$TERMINAL` ignored,
 version-marker glyphs, `Waiting... ` stderr spam, etc.
+
+The oracle binary has NO `--version` handling: launching it with
+`--version` aborts (Qt abort without a display — witnessed by
+packaging/upgrade, baseline/reverted `--version` core dumps). The candidate
+ADDS a `--version` flag (prints `cachyos-kernel-manager 0.1.0`) — an
+additive CLI convenience, no user-visible effect on the GUI drop-in
+surface (the oracle's abort is not a contract).

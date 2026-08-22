@@ -263,6 +263,16 @@
    "status": "passing"
   },
   {
+   "surface": "packaging.file_layout",
+   "court": "packaging/file-layout",
+   "status": "passing"
+  },
+  {
+   "surface": "packaging.upgrade_revert",
+   "court": "packaging/upgrade",
+   "status": "passing"
+  },
+  {
    "surface": "kernel.rows_flat_layout",
    "court": "kernel-discovery/minimal",
    "status": "passing"

@@ -304,6 +304,24 @@ unchecked/not-immutable (RES-2026-004), and the libalpm ABI witness
 Witness: `tools/run-regression-corpus.sh` → `cargo xtask court run
 regression-suite/pure-regressions`.
 
+## Phase 10 status (packaging and migration) — IN PROGRESS
+
+- `packaging/file-layout` — PASS (non-VM). The candidate package's
+  installed file set == the frozen oracle package's 15-file surface
+  (`oracle/packages/cachyos-kernel-manager-1.19.0-1-x86_64.pkg.tar.zst`,
+  sha256:3dd688c6..., hash-verified by UPSTREAM.lock); the 14 shared
+  drop-in files byte-identical. Witness: `tools/run-packaging-corpus.sh`.
+- `packaging/upgrade` — PASS (differential VM court). The oracle →
+  candidate → oracle transition driven by real pacman: 1.19.0-1 → 0.1.0-1
+  → 1.19.0-1; the file surface and the discovery rows preserved across the
+  transition; the candidate's `--version` works while the oracle's aborts
+  (a quirk, documented). Witness: `tools/build-candidate-package.sh` +
+  `cargo xtask court run packaging/upgrade --vm`.
+
+The PKGBUILD (`packaging/PKGBUILD`) builds the Rust GUI with
+`--features gui-alpm` and installs the drop-in files; the forensic
+workflow's packaging matrix runs the file-layout + upgrade courts.
+
 ## Case format
 
 ```

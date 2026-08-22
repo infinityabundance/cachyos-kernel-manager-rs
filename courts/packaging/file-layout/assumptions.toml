@@ -1,0 +1,11 @@
+assumptions = [
+  "The frozen oracle package (oracle/packages/, sha256:3dd688c6..., matching UPSTREAM.lock) is the authoritative installed surface.",
+  "The candidate's binary REPLACES the oracle's binary (same path + pkgname); the byte-identity claim covers the SHARED files only.",
+  "The installed icons live under usr/share/icons/hicolor/<size>/apps/; the packaging source tree carries them without the apps/ dir and the PKGBUILD installs them into it.",
+  "The file lists are sorted content files (no directories, no metadata entries).",
+  "The runner materializes the candidate's install layout exactly as the PKGBUILD installs it.",
+]
+
+normalizers = [
+  { name = "install-layout-extraction", version = "1.0.0", source_hash = "tools/run-packaging-corpus.sh", input_domain = "the oracle .pkg.tar.zst (bsdtar) + the packaging/ tree + the PKGBUILD install paths", transformation = "extract the sorted content-file list + the 14 shared files' sha256 from each side; the candidate's icons are materialized into the apps/ install dirs", justification = "the installed file surface IS the drop-in contract; the binary is the replacement (excluded from the byte-identity claim)", falsifier = "a file in one list missing from the other, or a shared-file hash difference" },
+]

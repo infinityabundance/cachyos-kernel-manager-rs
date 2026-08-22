@@ -684,6 +684,7 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     let is_mutation = case.comparator.mutate.is_some();
     let is_scx = case.comparator.scx;
     let is_makepkg = case.comparator.makepkg;
+    let is_packaging = case.comparator.packaging;
     let tx_select: Vec<String> = case
         .comparator
         .transaction
@@ -703,6 +704,29 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         std::fs::create_dir_all(share.join("packaging")).expect("share/packaging");
         std::fs::copy(&packaged_helper, share.join("packaging/terminal-helper"))
             .expect("copy packaged terminal-helper");
+    }
+
+    // Phase 10: the packaging courts need the candidate + frozen oracle
+    // packages in the share
+    if is_packaging {
+        let cand_pkg = repo_root().join("target/cachyos-kernel-manager-0.1.0-1-x86_64.pkg.tar.zst");
+        let oracle_pkg =
+            repo_root().join("oracle/packages/cachyos-kernel-manager-1.19.0-1-x86_64.pkg.tar.zst");
+        if !cand_pkg.exists() || !oracle_pkg.exists() {
+            eprintln!("packaging court requires the packages: build with tools/build-candidate-package.sh; the oracle pkg at oracle/packages/");
+            return ExitCode::FAILURE;
+        }
+        std::fs::create_dir_all(share.join("packaging")).expect("share/packaging");
+        std::fs::copy(
+            &cand_pkg,
+            share.join("packaging/cachyos-kernel-manager-0.1.0-1-x86_64.pkg.tar.zst"),
+        )
+        .expect("copy candidate pkg");
+        std::fs::copy(
+            &oracle_pkg,
+            share.join("packaging/cachyos-kernel-manager-1.19.0-1-x86_64.pkg.tar.zst"),
+        )
+        .expect("copy oracle pkg");
     }
 
     let run_side = |side: &str, out_dir: &std::path::Path| -> Result<(), String> {
@@ -760,6 +784,8 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                         "scx-loader-observe.sh"
                     } else if is_makepkg {
                         "oracle-makepkg.sh"
+                    } else if is_packaging {
+                        "upgrade.sh"
                     } else if is_mutation {
                         "oracle-mutate.sh"
                     } else if is_configure {
@@ -788,6 +814,8 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                         "scx-loader-candidate.sh"
                     } else if is_makepkg {
                         "candidate-makepkg.sh"
+                    } else if is_packaging {
+                        "upgrade.sh"
                     } else if is_mutation {
                         "candidate-mutate.sh"
                     } else if is_configure {
@@ -848,6 +876,14 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             Ok(mut r) => residuals.append(&mut r),
             Err(e) => {
                 eprintln!("scx comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else if is_packaging {
+        match cachyos_kernel_manager_casefile::vm_court::compare_packaging(&case.dir, case_id) {
+            Ok(mut r) => residuals.append(&mut r),
+            Err(e) => {
+                eprintln!("packaging comparison error: {e}");
                 return ExitCode::FAILURE;
             }
         }

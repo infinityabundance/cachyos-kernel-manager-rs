@@ -1,0 +1,31 @@
+# CLAIM — packaging/file-layout
+claim = "The candidate package's INSTALLED file layout (the PKGBUILD install paths + the packaging/ tree) matches the frozen oracle package's installed file set BYTE-FOR-BYTE: the file LISTS are identical (usr/bin/cachyos-kernel-manager + the two helpers under usr/lib/cachyos-kernel-manager + the desktop entry + the polkit policy + the ten hicolor icons) and the FOURTEEN shared drop-in files (terminal-helper, rootshell.sh, the desktop entry, the polkit policy, the ten icons) are BYTE-IDENTICAL to the oracle package's (sha256-equal). The BINARY is the replacement (the Rust GUI instead of the Qt one) — its hash intentionally differs; the drop-in contract (docs/COMPATIBILITY.md) is the FILE SURFACE + the identity surfaces (org names, the single-instance lock key, the cache paths). The oracle package file (cachyos-kernel-manager-1.19.0-1-x86_64.pkg.tar.zst, sha256:3dd688c6..., hash-verified by oracle/UPSTREAM.lock) is the frozen authority."
+
+model = "Oracle: the frozen CachyOS package's installed file list + the shared files' sha256 (bsdtar extraction of oracle/packages/cachyos-kernel-manager-1.19.0-1-x86_64.pkg.tar.zst). Candidate: the PKGBUILD's install paths + the packaging/ tree's sha256."
+
+assumptions = [
+  "The frozen oracle package (oracle/packages/, sha256:3dd688c6..., matching oracle/UPSTREAM.lock package_hashes) is the authoritative installed surface.",
+  "The candidate's binary REPLACES the oracle's binary (same /usr/bin path, same pkgname — a drop-in replacement, not a side-by-side install); the byte-identity claim covers the SHARED files only.",
+  "The icons live under usr/share/icons/hicolor/<size>/apps/ in the INSTALLED layout (the oracle's CMakeLists.txt destination); the packaging/ source tree carries them without the apps/ dir and the PKGBUILD installs them into it.",
+  "The file lists are sorted content files (no directories, no .PKGINFO/.MTREE/.BUILDINFO).",
+  "The runner materializes the candidate's install layout from the packaging tree exactly as the PKGBUILD installs it; the hashes are sha256 of the installed-layout files.",
+]
+
+observables = [
+  "files.txt (the 15-file installed list on each side)",
+  "shared-files.sha256 (the 14 shared files' hashes on each side)",
+]
+
+witness = "tools/run-packaging-corpus.sh, then cargo xtask court run packaging/file-layout."
+
+independence = "The oracle side is extracted from the shipped CachyOS binary package; the candidate side is the packaging tree + the PKGBUILD's install paths. Neither generates the other's file."
+
+falsifier = "Any file in one list missing from the other, or any shared-file hash difference."
+
+[[evidence]]
+artifact = "oracle/files.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/files.txt"
+sha256 = "pending"

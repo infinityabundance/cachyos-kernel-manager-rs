@@ -1,0 +1,16 @@
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME fixture image (the base image has the frozen oracle package installed).",
+  "The candidate package is built from the local tree exactly as packaging/PKGBUILD installs it; the frozen oracle package is the revert target.",
+  "pacman -U with the same pkgname replaces the installed package; the file surface must be unchanged.",
+  "The discovery rows: the oracle GUI's AT-SPI rows vs the inspect tool's rows on the same databases.",
+  "The version strings differ by design; the version FILES are evidence of the replacement, every other surface file must match byte-for-byte.",
+]
+
+[[normalizers]]
+name = "packaging-surface-extraction"
+version = "1.0.0"
+source_hash = "vm/in-vm/upgrade.sh"
+input_domain = "pacman -Q/-Ql outputs, --version flags, the AT-SPI rows, the inspect rows"
+transformation = "the surfaces are written as sorted text files per phase (baseline/upgraded/reverted); the file lists and row names are sorted; the transition assertions hard-fail the script on any break"
+justification = "the drop-in surface (files + discovery) IS the contract; determinism across the two boots is the court's second claim"
+falsifier = "a file-surface change across the transition, a discovery-row change, or a byte difference between the two boots' surfaces"

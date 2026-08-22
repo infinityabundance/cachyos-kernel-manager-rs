@@ -1,0 +1,10 @@
+version = "1.0.0"
+fixture = "minimal"
+packaging = true
+
+# The VM comparison path uses the normalizers; these lists document the
+# raw-evidence comparison policy.
+ignore = []
+byte_exact = []
+json_semantic = []
+volatile_prefixes = []

@@ -1,0 +1,61 @@
+# Maintainer: cachyos-kernel-manager-rs contributors
+# Phase 10: drop-in package for cachyos-kernel-manager (the frozen oracle's
+# install layout: /usr/bin binary + /usr/lib/cachyos-kernel-manager helpers
+# + desktop + 10 icons + the polkit policy — all byte-identical to the
+# 1.19.0 package, courted by packaging/file-layout).
+#
+# The package REPLACES the Qt original (provides/conflicts with the same
+# pkgname) so `pacman -S cachyos-kernel-manager` installs the Rust
+# implementation; the reverse (the C++ package) reinstalls the oracle.
+#
+pkgname=cachyos-kernel-manager
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Native Rust custodial reimplementation of CachyOS Kernel Manager (drop-in for the Qt original)"
+arch=('x86_64')
+url="https://github.com/infinityabundance/cachyos-kernel-manager-rs"
+license=('GPL-2.0-or-later')
+depends=(
+    'polkit'        # the pkexec rootshell chain (privilege/helper-scripts)
+    'scx-manager'   # the org.scx.Loader D-Bus service (scx/* courts)
+    'pacman'        # the transaction authority (never reimplemented)
+    'bash'          # terminal-helper + rootshell.sh are bash scripts
+)
+makedepends=(
+    'cargo' 'rust' 'git' 'pkg-config'
+    'libalpm'       # the FFI's link target (abi/probe.c is verified at build)
+    'libxcb' 'wayland' 'libxkbcommon'  # iced/wgpu system bindings
+)
+provides=('cachyos-kernel-manager')
+conflicts=('cachyos-kernel-manager')
+source=("$pkgname-rs::git+https://github.com/infinityabundance/$pkgname-rs.git")
+md5sums=('SKIP')
+
+build() {
+    cd "$srcdir/$pkgname-rs"
+    # the full Phase 8 GUI with the real libalpm + the scx D-Bus client
+    cargo build --release --features gui-alpm --locked
+}
+
+package() {
+    cd "$srcdir/$pkgname-rs"
+    # the binary (drop-in: /usr/bin/cachyos-kernel-manager)
+    install -Dm755 target/release/cachyos-kernel-manager \
+        "$pkgdir/usr/bin/cachyos-kernel-manager"
+    # the privileged helpers (byte-identical to the frozen originals)
+    install -Dm755 packaging/usr/lib/cachyos-kernel-manager/terminal-helper \
+        "$pkgdir/usr/lib/cachyos-kernel-manager/terminal-helper"
+    install -Dm755 packaging/usr/lib/cachyos-kernel-manager/rootshell.sh \
+        "$pkgdir/usr/lib/cachyos-kernel-manager/rootshell.sh"
+    # the polkit policy (byte-identical)
+    install -Dm644 packaging/usr/share/polkit-1/actions/org.cachyos.KernelManager.pkexec.policy \
+        "$pkgdir/usr/share/polkit-1/actions/org.cachyos.KernelManager.pkexec.policy"
+    # the desktop entry (byte-identical)
+    install -Dm644 packaging/usr/share/applications/org.cachyos.KernelManager.desktop \
+        "$pkgdir/usr/share/applications/org.cachyos.KernelManager.desktop"
+    # the icons (byte-identical, into the hicolor apps/ dirs)
+    for d in 16x16 22x22 32x32 44x44 48x48 64x64 128x128 150x150 256x256 310x310; do
+        install -Dm644 "packaging/usr/share/icons/hicolor/$d/org.cachyos.KernelManager.png" \
+            "$pkgdir/usr/share/icons/hicolor/$d/apps/org.cachyos.KernelManager.png"
+    done
+}

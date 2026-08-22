@@ -54,6 +54,13 @@ jobs:
           cargo build -p cachyos-kernel-manager-ui --features rendering,alpm,scx-dbus \
             --bin cachyos-kernel-manager-gui
 
+      - name: build the candidate package + the packaging matrix
+        run: |
+          tools/build-candidate-package.sh
+          tools/run-packaging-corpus.sh
+          cargo run -q -p xtask -- court run packaging/file-layout
+          cargo run -q -p xtask -- court run packaging/upgrade --vm
+
       - name: run the differential court matrix (--vm)
         run: |
           for c in $(cargo run -q -p xtask -- court list --vm-capable | grep -v "courts VM-capable"); do
