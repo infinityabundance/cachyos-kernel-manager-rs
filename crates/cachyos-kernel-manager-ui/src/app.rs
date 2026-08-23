@@ -1,20 +1,16 @@
-//! The Iced application — the Phase 8 rendering layer.
+//! The Slint application — the Phase 8 rendering layer (the Slint port).
 //!
 //! Layering discipline (docs/ARCHITECTURE.md): this module ONLY translates
-//! Iced messages into the courted semantic substrate (core `AppState`
+//! Slint callbacks into the courted semantic substrate (core `AppState`
 //! transitions, the plan/exec/build/config/scx models) and renders it. No
 //! domain semantics live here; a UI bug must be attributable to this layer,
 //! never to the models.
 //!
 //! Window strategy: the oracle has three native windows (Main/Configure/
-//! SchedExt). The candidate renders them as a single-window view stack —
-//! the Configure window replaces the main view while `ConfigurationState`
-//! is `Editing`, the sched-ext window overlays while `ScxState` is
-//! `Visible`, and the dialogs (progress/error/confirm) render on top of
-//! whatever is active. The *semantics* are courted; the window choreography
-//! is a rendering choice. Likewise the file dialogs: iced has no native
-//! picker, so Load/Save/Add-patch use a small inline path editor (the
-//! config crate owns what gets written/read).
+//! SchedExt). The candidate renders them as separate Slint windows, with the
+//! dialogs (progress/error/confirm) as separate windows too. The *semantics*
+//! are courted; the window choreography is a rendering choice. The Configure
+//! + SchedExt windows are ported; the main window shows no placeholder.
 
 use crate::configure_window::ConfigureWindowModel;
 use crate::i18n::{resolve, ResolvedLocale};
@@ -24,18 +20,143 @@ use crate::strings;
 use crate::{KernelRowView, Message};
 use cachyos_kernel_manager_config::KernelManagerConfig;
 use cachyos_kernel_manager_core::discovery::DiscoveredKernel;
-use cachyos_kernel_manager_core::options::{CpuOptMode, HugepageMode, HzTick, KernelVariant};
+use cachyos_kernel_manager_core::options::{
+    CpuOptMode, HugepageMode, HzTick, KernelVariant, LtoMode, PreemptMode, TicklessMode,
+};
 use cachyos_kernel_manager_core::selection::KernelRow;
 use cachyos_kernel_manager_core::state::{
     transition, AppEvent, AppState, ConfigurationState, DialogsState, Effect, ScxState,
 };
 use cachyos_kernel_manager_plan::HardwareProfile;
-use iced::widget::{
-    button, center, checkbox, column, container, horizontal_space, pick_list, progress_bar, row,
-    scrollable, stack, text, text_input,
-};
-use iced::{Element, Task};
+use slint::ModelRc;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
+
+// The Slint-generated glue. `include_modules!()` includes only ONE generated
+// file (each `slint_build::compile` overwrites `SLINT_INCLUDE_GENERATED`),
+// so each window file is included into its own submodule and re-exported
+// (the generated files collide on private const names if merged).
+#[allow(clippy::all)]
+mod slint_main_window {
+    include!(concat!(env!("OUT_DIR"), "/main_window.rs"));
+}
+#[allow(clippy::all)]
+mod slint_configure_window {
+    include!(concat!(env!("OUT_DIR"), "/configure_window.rs"));
+}
+#[allow(clippy::all)]
+mod slint_scx_window {
+    include!(concat!(env!("OUT_DIR"), "/scx_window.rs"));
+}
+pub use slint_main_window::{MainWindow, TreeRow};
+pub use slint_configure_window::{ConfCheckRow, ConfigureWindow};
+pub use slint_scx_window::SchedExtWindow;
+// the generated glue imports ComponentHandle with an underscore alias INSIDE
+// each submodule; re-export it here so `show/hide/as_weak/run/window` work
+// on the re-exported component types.
+pub use slint::ComponentHandle;
+
+// ---------------------------------------------------------------------------
+// Verbose logging
+// ---------------------------------------------------------------------------
+
+/// Whether verbose mode is on (`KM_VERBOSE=1` env or `--verbose` arg). The
+/// probes + background tasks run on worker threads, so this is process-global.
+static VERBOSE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// The process start instant (the `[km]` trace timestamps are elapsed since
+/// start — `Instant::now().elapsed()` on a fresh instant would always be ~0).
+static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
+/// The optional trace log file (`KM_LOG_FILE=/path`): the `[km]` lines AND
+/// the important diagnostics (probe timeouts, panics, git failures) are
+/// appended there, so a GUI launched from a desktop launcher still leaves a
+/// log on disk (stderr alone is invisible for a launcher-started app).
+static LOG_FILE: std::sync::OnceLock<Option<Mutex<std::fs::File>>> = std::sync::OnceLock::new();
+
+/// Append one line to the trace log file, if configured.
+fn log_file_append(line: &str) {
+    if let Some(Some(file)) = LOG_FILE.get() {
+        if let Ok(mut file) = file.lock() {
+            use std::io::Write;
+            let _ = file.write_all(line.as_bytes());
+            let _ = file.flush();
+        }
+    }
+}
+
+/// Open the `KM_LOG_FILE` (once); the parent directory is created so a
+/// fresh path like `~/km/km.log` works on first run.
+fn log_file_init() {
+    LOG_FILE.get_or_init(|| {
+        std::env::var("KM_LOG_FILE").ok().and_then(|path| {
+            if let Some(parent) = std::path::Path::new(&path).parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&path)
+                .map(Mutex::new)
+                .map_err(|e| eprintln!("cachyos-kernel-manager: cannot open KM_LOG_FILE {path:?}: {e}"))
+                .ok()
+        })
+    });
+}
+
+/// A trace line (stderr + the log file): what the app is DOING — every
+/// semantic message, state transition, effect, background-task lifecycle,
+/// probe command + result, and pipeline step. This is how we find out what
+/// the app is doing in the VM instead of guessing (the user's requirement).
+macro_rules! vlog {
+    ($($arg:tt)*) => {
+        if crate::app::VERBOSE.load(std::sync::atomic::Ordering::Relaxed) {
+            let line = format!(
+                "[km] {:?}: {}\n",
+                crate::app::START.get_or_init(std::time::Instant::now).elapsed(),
+                format!($($arg)*)
+            );
+            eprint!("{line}");
+            crate::app::log_file_append(&line);
+        }
+    };
+}
+
+/// An important diagnostic (stderr + the log file) that is emitted even
+/// WITHOUT verbose mode — probe timeouts, background-task panics, git
+/// failures, artifact-install skips. `KM_LOG_FILE` captures them on disk.
+macro_rules! km_eprintln {
+    ($($arg:tt)*) => {
+        let line = format!($($arg)*);
+        eprintln!("{line}");
+        let line = format!("{line}\n");
+        crate::app::log_file_append(&line);
+    };
+}
+
+/// The CachyOS green accent (#00a88f) for EVERY fluent widget (combo
+/// selections, focus lines, checkboxes): the fluent style derives its accent
+/// from `SlintContext.accent_color` via `accentify()`. Without this, the
+/// accent is either the BLUE fallback (no XDG portal) or the VM's KDE accent
+/// (the portal's settings watcher overwrites the startup value), both of
+/// which render the widgets light blue.
+///
+/// Called at startup AND on every UI sync (the XDG settings watcher can set
+/// the accent asynchronously after startup; re-applying on sync keeps the
+/// CachyOS green in control).
+fn set_cachyos_accent() {
+    let result = i_slint_core::context::with_global_context(
+        || Err(i_slint_core::platform::PlatformError::NoPlatform),
+        |ctx| {
+            ctx.set_accent_color(i_slint_core::graphics::Color::from_rgb_u8(0x00, 0xa8, 0x8f));
+            ctx.accent_color()
+        },
+    );
+    if let Ok(color) = result {
+        vlog!("accent color = {color:?}");
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Flags + environment
@@ -54,6 +175,10 @@ pub struct Flags {
     /// Whether the AUR kernel feature is compiled in (the meson
     /// `aur_kernels` flag; the shipped oracle has it OFF).
     pub aur_enabled: bool,
+    /// Verbose tracing on stderr (`KM_VERBOSE=1` env or `--verbose` arg).
+    /// `-v` is NOT used: the shipped binary already treats `-v` as
+    /// `--version` (`src/main.rs`).
+    pub verbose: bool,
 }
 
 impl Flags {
@@ -67,11 +192,16 @@ impl Flags {
             .next()
             .map(|s| s.to_string())
             .unwrap_or_else(|| "C".to_string());
+        let env_verbose = std::env::var("KM_VERBOSE")
+            .map(|v| v == "1" || v.eq_ignore_ascii_case("true") || v.eq_ignore_ascii_case("yes"))
+            .unwrap_or(false);
+        let arg_verbose = std::env::args().any(|a| a == "--verbose");
         Flags {
             home,
             system_locale,
             config_path: "/etc/scx_loader.toml".to_string(),
             aur_enabled: false,
+            verbose: env_verbose || arg_verbose,
         }
     }
 }
@@ -93,6 +223,20 @@ pub struct CatalogPayload {
     pub hardware: HardwareProfile,
 }
 
+impl Default for CatalogPayload {
+    /// The empty catalog (the oracle's "No kernels found" state): what the
+    /// NullAlpm dev build produces and what a failed discovery task falls
+    /// back to instead of hanging the app.
+    fn default() -> Self {
+        CatalogPayload {
+            rows: Vec::new(),
+            kernels: BTreeMap::new(),
+            installed: BTreeMap::new(),
+            hardware: HardwareProfile::default(),
+        }
+    }
+}
+
 /// Run discovery: the real libalpm backend with the `alpm` feature, an
 /// EMPTY catalog otherwise (CI/dev — the oracle's "No kernels found" path).
 #[cfg(feature = "alpm")]
@@ -103,8 +247,8 @@ pub fn run_discovery(flags: &Flags) -> CatalogPayload {
     use cachyos_kernel_manager_core::discovery::SyncDb;
     use cachyos_kernel_manager_core::DbPackage;
 
-    struct RealAlpm(AlpmHandle);
-    impl Alpm for RealAlpm {
+    struct RealAlpm<'a>(&'a AlpmHandle);
+    impl Alpm for RealAlpm<'_> {
         fn sync_dbs(&self) -> Vec<SyncDb> {
             self.0
                 .syncdb_names()
@@ -148,7 +292,105 @@ pub fn run_discovery(flags: &Flags) -> CatalogPayload {
     for name in &sections {
         handle.register_syncdb(name);
     }
-    discover_from(&RealAlpm(handle), flags)
+    let mut payload = discover_from(&RealAlpm(&handle), flags);
+    // The REAL hardware profile: the production GUI must feed the plan the
+    // same facts the oracle's static init collects (`kernel.cpp:41-52` + the
+    // install-time module probes `kernel.cpp:114-115`) — findmnt, chwd, the
+    // module-family package queries, and the LOCAL database for the
+    // installed set. The old code filled `installed` from the SYNC repos
+    // (every package that EXISTS upstream, not what is installed) and left
+    // every probe at its default (review seam #1).
+    payload.hardware = hardware_profile(&handle);
+    payload
+}
+
+/// The oracle's static-init hardware facts, probed with the exact courted
+/// commands (the `findmnt`/`chwd`/`pacman -Qqs` pipelines of `kernel.cpp`
+/// and the plan tool's constants) + the local database's installed set.
+#[cfg(feature = "alpm")]
+fn hardware_profile(handle: &cachyos_kernel_manager_alpm::ffi::AlpmHandle) -> HardwareProfile {
+    let findmnt = exec_probe("findmnt -ln -o FSTYPE /");
+    let root_on_zfs = findmnt.trim() == "zfs";
+    // the oracle evaluates TWO separate chwd lambdas; one deterministic run
+    // with the same derivation is semantically equivalent
+    let chwd = exec_probe("chwd --list-installed -d 2>/dev/null | grep Name | awk '{print $4}'");
+    let nvidia = exec_probe("pacman -Qqs '^linux-cachyos.*-nvidia$' 2>/dev/null");
+    let nvidia_open = exec_probe("pacman -Qqs '^linux-cachyos.*-nvidia-open$' 2>/dev/null");
+    // the LOCAL database is the authoritative installed set (the plan's
+    // `installed` membership is about the machine, not the repos)
+    let installed: std::collections::BTreeSet<String> = handle
+        .local_packages()
+        .into_iter()
+        .map(|p| p.name)
+        .collect();
+    HardwareProfile {
+        root_on_zfs,
+        chwd_nvidia: chwd.lines().any(|l| l.starts_with("nvidia-dkms")),
+        chwd_nvidia_open: chwd.lines().any(|l| l.starts_with("nvidia-open-dkms")),
+        installed,
+        nvidia_modules_installed: !nvidia.trim().is_empty(),
+        nvidia_open_modules_installed: !nvidia_open.trim().is_empty(),
+    }
+}
+
+/// Run one of the oracle's probe pipelines (`sh -c`, stdout captured via a
+/// temp file; a failed probe yields an empty string, like the oracle's
+/// error path). BOUNDED: a probe must never hang the discovery — the VM
+/// experience showed `chwd`-style probes blocking forever, leaving the
+/// progress dialog up with no kernels (a 15s cap + kill).
+///
+/// The temp capture file name is unique per call (see [`run_probe`]) so a
+/// probe can never clobber another probe's capture file.
+#[cfg(feature = "alpm")]
+fn exec_probe(cmd: &str) -> String {
+    static PROBE_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let out = std::env::temp_dir().join(format!(
+        "km-probe-{}-{}-{}.out",
+        std::process::id(),
+        PROBE_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+        cmd.len()
+    ));
+    let stdout = match std::fs::File::create(&out) {
+        Ok(f) => f,
+        Err(_) => return String::new(),
+    };
+    let mut child = match std::process::Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .stdout(stdout)
+        .stderr(std::process::Stdio::null())
+        .spawn()
+    {
+        Ok(c) => c,
+        Err(_) => {
+            let _ = std::fs::remove_file(&out);
+            return String::new();
+        }
+    };
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {}
+            Err(_) => break,
+        }
+        if std::time::Instant::now() > deadline {
+            km_eprintln!("cachyos-kernel-manager: probe timed out (15s): {cmd}");
+            let _ = child.kill();
+            let _ = child.wait();
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    let text = std::fs::read_to_string(&out).unwrap_or_default();
+    let _ = std::fs::remove_file(&out);
+    // pop ONE trailing newline exactly like the oracle's `utils::exec`
+    let text = match text.strip_suffix('\n') {
+        Some(t) => t.to_string(),
+        None => text,
+    };
+    vlog!("probe: {cmd:?} -> {}", text.chars().take(200).collect::<String>());
+    text
 }
 
 /// Non-libalpm build: an empty catalog (CI/dev without system libalpm).
@@ -269,8 +511,13 @@ pub enum UiMessage {
     TransactionFailed {
         message: String,
     },
-    /// The Configure-window prepare flow (git refresh) finished.
-    ConfigurePrepared,
+    /// The Configure-window prepare flow (git refresh + the patches-tab
+    /// source-array probe) finished; the payload is the `.patch`-filtered
+    /// source array (the oracle's `reset_patches_data_tab` result).
+    ConfigurePrepared(Vec<String>),
+    /// A patches-tab refresh probe finished (variant/lto/nvidia-open
+    /// changes re-run `reset_patches_data_tab`).
+    PatchesRefreshed(Vec<String>),
     /// The build finished (`.done-status` presence).
     BuildFinished {
         success: bool,
@@ -314,6 +561,13 @@ pub enum UiMessage {
     LtoPicked(cachyos_kernel_manager_core::options::LtoMode),
     PreemptPicked(cachyos_kernel_manager_core::options::PreemptMode),
     HzPicked(HzTick),
+    /// The remaining option combos (review seam #9: these were displayed but
+    /// wired to `DialogDismissed` no-ops — now they feed the model).
+    TicklessPicked(cachyos_kernel_manager_core::options::TicklessMode),
+    HugepagePicked(cachyos_kernel_manager_core::options::HugepageMode),
+    CpuOptPicked(cachyos_kernel_manager_core::options::CpuOptMode),
+    /// The sched-ext window was closed (hides only that window).
+    ScxWindowClosed,
     /// The sched-ext window buttons.
     ScxApply,
     ScxDisable,
@@ -338,6 +592,24 @@ pub mod tr_ctx {
 // ---------------------------------------------------------------------------
 // The application state
 // ---------------------------------------------------------------------------
+
+// The sched-ext minimum-size clamp timer. The declared 480x320 minimum lives
+// on the CONTENT root of scx_window.slint (the content-layout path is the one
+// proven to reach the WM; the window-level constraint mangled on some WMs).
+// As a belt-and-suspenders fallback, while the sched-ext window is visible a
+// repeating timer re-clamps it to 480x320 logical if it's ever dragged below
+// (the 30ms cadence makes the correction imperceptible during a drag).
+// `None` while hidden.
+//
+// This lives in a thread_local, NOT in `App`: `slint::Timer` is `!Send` and
+// `App` is shared behind `Arc<Mutex<App>>` with the probe worker threads. The
+// Slint event loop runs on ONE thread, so the thread_local is safe, and the
+// timer does NOT keep the event loop alive — closing the last window calls
+// `quit_event_loop`, which hard-exits regardless of pending timers
+// (i-slint-backend-winit event_loop.rs `CustomEvent::Exit`).
+thread_local! {
+    static SCX_CLAMP: RefCell<Option<slint::Timer>> = const { RefCell::new(None) };
+}
 
 /// The app: the courted core state + the UI projections.
 pub struct App {
@@ -369,10 +641,23 @@ pub struct App {
     path_dialog: Option<PathDialog>,
     /// The flags read at startup.
     flags: Flags,
+    /// The Slint windows (the presentation; default weaks in the tests).
+    /// The dialogs (progress/error/confirm/file-path) are OVERLAYS inside
+    /// these windows, never separate OS windows (they would show up as
+    /// taskbar entries — review "four windows" issue).
+    ui: slint::Weak<MainWindow>,
+    /// The Configure window (shown while `configuration != Closed`).
+    configure_window: slint::Weak<ConfigureWindow>,
+    /// The sched-ext window (shown while `scx == Visible`).
+    scx_window: slint::Weak<SchedExtWindow>,
 }
 
 impl App {
-    pub fn new(flags: Flags) -> (App, Task<UiMessage>) {
+    /// A new app with no live windows (the tests use this). Runs the
+    /// startup event (the discovery-progress state) and returns its task.
+    pub fn new(flags: Flags) -> (App, Task) {
+        VERBOSE.store(flags.verbose, std::sync::atomic::Ordering::Relaxed);
+        log_file_init();
         let locale = resolve(&flags.system_locale);
         let mut app = App {
             state: AppState::default(),
@@ -389,14 +674,32 @@ impl App {
             conf_tab: ConfTab::Options,
             path_dialog: None,
             flags,
+            ui: slint::Weak::default(),
+            configure_window: slint::Weak::default(),
+            scx_window: slint::Weak::default(),
         };
         let task = app.on_event(AppEvent::Started);
         (app, task)
     }
 
+    /// A new app bound to the live Slint windows (`run` uses this).
+    #[allow(clippy::too_many_arguments)] // the three window weaks mirror the oracle's windows
+    pub fn with_windows(
+        flags: Flags,
+        ui: slint::Weak<MainWindow>,
+        configure: slint::Weak<ConfigureWindow>,
+        scx: slint::Weak<SchedExtWindow>,
+    ) -> (App, Task) {
+        let (mut app, task) = App::new(flags);
+        app.ui = ui;
+        app.configure_window = configure;
+        app.scx_window = scx;
+        (app, task)
+    }
+
     /// The semantic message → core event mapping + the UI-side model updates
     /// that precede it (patch ops, variant switch, config load).
-    fn on_semantic(&mut self, message: Message) -> Task<UiMessage> {
+    fn on_semantic(&mut self, message: Message) -> Task {
         match message {
             Message::VariantChanged { variant } => {
                 // `main_combo_box` change handler + reset_patches_data_tab
@@ -406,21 +709,21 @@ impl App {
                 // variant_dir comes from it).
                 self.configure.on_variant_changed(variant, &[]);
                 self.state.build_options.variant = variant;
-                Task::none()
+                Task::None
             }
             Message::PatchAdded { entry } => {
                 self.configure.add_remote_patch(entry);
-                Task::none()
+                Task::None
             }
             Message::PatchRemoved { index } => {
                 self.configure.remove_patch(index);
-                Task::none()
+                Task::None
             }
             Message::PatchMoved { from, to } => {
                 // the list widget's move ops are up/down only (courted); the
                 // semantic message carries the final index
                 let _ = (from, to);
-                Task::none()
+                Task::None
             }
             Message::ConfigLoaded { config } => {
                 let outdated = self.configure.load_config(&config);
@@ -429,7 +732,7 @@ impl App {
                         message: self.tr(tr_ctx::CONF, "Config file(%1) is outdated"),
                     };
                 }
-                Task::none()
+                Task::None
             }
             Message::SchedulerChanged { scheduler, mode } => {
                 if let Some(scx) = &mut self.scx {
@@ -437,38 +740,68 @@ impl App {
                     let config = cachyos_kernel_manager_scx::config::default_config();
                     scx.on_sched_changed(&scheduler, &config);
                 }
-                Task::none()
+                Task::None
             }
-            Message::KernelToggled { row } => self.on_event(AppEvent::KernelToggled { row }),
+            Message::KernelToggled { raw } => {
+                // resolve the STABLE identity to the discovery-order row
+                // (the core selection is index-based; the UI never sends
+                // presentation indices across this boundary)
+                let Some(row) = self.rows.iter().position(|r| r.raw == raw) else {
+                    return Task::None;
+                };
+                let task = self.on_event(AppEvent::KernelToggled { row });
+                // the checkbox projection is DERIVED from the authoritative
+                // core selection, never an independently mutable copy
+                if let (Some(view), Some(core)) = (
+                    self.rows.get_mut(row),
+                    self.state.selection.rows.get(row),
+                ) {
+                    view.checked = core.checked;
+                }
+                self.recompute_sort();
+                task
+            }
             Message::ExecuteRequested => self.on_event(AppEvent::ExecuteRequested),
             Message::ConfigureRequested => self.on_event(AppEvent::ConfigureRequested),
             Message::BuildRequested => self.on_event(AppEvent::BuildRequested),
             Message::InstallArtifactsRequested => {
                 self.on_event(AppEvent::InstallArtifactsRequested)
             }
-            Message::CancelRequested | Message::CloseRequested => {
-                self.on_event(AppEvent::CloseRequested)
+            Message::CloseRequested => self.on_event(AppEvent::CloseRequested),
+            // the MAIN window's Cancel closes the app (the oracle's
+            // km-window Cancel == close); the Configure window has its own
+            // distinct event (ConfigurationCancelRequested)
+            Message::CancelRequested => self.on_event(AppEvent::CloseRequested),
+            Message::ConfigurationCancelRequested => {
+                self.on_event(AppEvent::ConfigurationCancelRequested)
+            }
+            Message::ConfigurationCloseRequested => {
+                self.on_event(AppEvent::ConfigurationCloseRequested)
             }
             Message::SchedextRequested => self.on_event(AppEvent::ScxToggleRequested),
+            Message::ScxCloseRequested => self.on_event(AppEvent::ScxWindowClosed),
         }
     }
 
     /// Run one core event through the courted transition; execute the
     /// resulting effects.
-    fn on_event(&mut self, event: AppEvent) -> Task<UiMessage> {
+    fn on_event(&mut self, event: AppEvent) -> Task {
+        vlog!("event: {event:?}");
         let (next, effects) = transition(&self.state, event);
         self.state = next;
+        vlog!("state -> phase {:?} ({} effects)", self.state.phase(), effects.len());
         let mut tasks = Vec::new();
         for effect in effects {
             if let Some(task) = self.run_effect(effect) {
                 tasks.push(task);
             }
         }
-        Task::batch(tasks)
+        Task::Batch(tasks)
     }
 
     /// Interpret one courted effect as a runtime action.
-    fn run_effect(&mut self, effect: Effect) -> Option<Task<UiMessage>> {
+    fn run_effect(&mut self, effect: Effect) -> Option<Task> {
+        vlog!("effect: {effect:?}");
         match effect {
             Effect::ShowProgress { message } => {
                 self.state.dialogs = DialogsState::Progress { message };
@@ -488,16 +821,338 @@ impl App {
             Effect::RunTransaction => Some(self.transaction_task()),
             Effect::Authenticate => None, // the exec chain embeds pkexec
             Effect::PrepareConfiguration => Some(self.configure_task()),
-            Effect::RunBuild { variant_dir } => Some(self.build_task(variant_dir)),
+            Effect::RunBuild { .. } => Some(self.build_task()),
             Effect::InstallArtifacts => Some(self.artifacts_task()),
             Effect::ToggleScxWindow => Some(self.scx_init_task()),
-            Effect::Close => Some(iced::exit()), // the oracle's closeEvent exits the app
+            Effect::Close => Some(Task::Exit), // the oracle's closeEvent exits the app
         }
+    }
+
+    /// Push the current app state into the Slint windows (the presentation
+    /// sync; a no-op with the default weaks — the tests).
+    fn sync_ui(&self) {
+        // keep the CachyOS green accent in control (the XDG settings watcher
+        // may have overridden it with the VM's KDE accent)
+        set_cachyos_accent();
+        let Some(ui) = self.ui.upgrade() else {
+            return;
+        };
+        let rows: Vec<TreeRow> = self
+            .sorted_rows
+            .iter()
+            .map(|r| TreeRow {
+                raw: r.raw.clone().into(),
+                version: r.version_text.clone().into(),
+                category: r.category.clone().into(),
+                checked: r.checked,
+                immutable: r.immutable,
+            })
+            .collect();
+        ui.set_rows(ModelRc::new(slint::VecModel::from(rows)));
+        ui.set_description(strings::main_description_plain().into());
+        ui.set_execute_enabled(self.state.execute_enabled());
+        ui.set_schedext_visible(self.schedext_button_visible());
+        ui.set_label_choose(strings::tree_columns::CHOOSE.into());
+        ui.set_label_pkgname(strings::tree_columns::PKG_NAME.into());
+        ui.set_label_version(strings::tree_columns::VERSION.into());
+        ui.set_label_category(strings::tree_columns::CATEGORY.into());
+        ui.set_label_execute(self.tr(tr_ctx::MAIN, strings::main_buttons::EXECUTE).into());
+        ui.set_label_configure(self.tr(tr_ctx::MAIN, strings::main_buttons::CONFIGURE).into());
+        ui.set_label_cancel(self.tr(tr_ctx::MAIN, strings::main_buttons::CANCEL).into());
+        ui.set_label_schedext(self.tr(tr_ctx::MAIN, strings::main_buttons::SCHED_EXT).into());
+        // the shared dialog overlay (progress/error/confirm/file-path are
+        // IN-window overlays — no separate OS windows, no taskbar entries)
+        let (pv, pm, ev, em, cv, cm, pav, pat, pavv) = self.dialog_overlay_values();
+        ui.set_dialog_progress_visible(pv);
+        ui.set_dialog_progress_message(pm.into());
+        ui.set_dialog_error_visible(ev);
+        ui.set_dialog_error_message(em.into());
+        ui.set_dialog_confirm_visible(cv);
+        ui.set_dialog_confirm_message(cm.into());
+        ui.set_dialog_path_visible(pav);
+        ui.set_dialog_path_title(pat.into());
+        ui.set_dialog_path_value(pavv.into());
+        // the Configure/SchedExt windows follow their states
+        self.sync_configure_window();
+        self.sync_scx_window();
+    }
+
+    /// The active dialog state as overlay values `(progress_visible,
+    /// progress_message, error_visible, error_message, confirm_visible,
+    /// confirm_message, path_visible, path_title, path_value)` — pushed into
+    /// EVERY window's overlay so the dialog appears on whichever window is on
+    /// top (e.g. the install question over the Configure window).
+    fn dialog_overlay_values(&self) -> (bool, String, bool, String, bool, String, bool, String, String) {
+        let (progress, error, confirm) = match &self.state.dialogs {
+            DialogsState::Progress { message } => (Some(message.clone()), None, None),
+            DialogsState::Error { message } => (None, Some(message.clone()), None),
+            DialogsState::Confirm { message } => (None, None, Some(message.clone())),
+            DialogsState::None => (None, None, None),
+        };
+        let (path_visible, path_title, path_value) = match &self.path_dialog {
+            Some(d) => (true, d.title.clone(), d.value.clone()),
+            None => (false, String::new(), String::new()),
+        };
+        (
+            progress.is_some(),
+            progress.unwrap_or_default(),
+            error.is_some(),
+            error.unwrap_or_default(),
+            confirm.is_some(),
+            confirm.unwrap_or_default(),
+            path_visible,
+            path_title,
+            path_value,
+        )
     }
 
     /// The user's translated string (Qt `tr()` on the current locale).
     pub fn tr(&self, context: &str, source: &str) -> String {
         self.locale.tr(context, source).to_string()
+    }
+
+    /// Push the Configure window: visibility (shown while Preparing/Editing),
+    /// the variant combo, the 11 option checkboxes, the six option combos,
+    /// the custom name, and the patches tab.
+    fn sync_configure_window(&self) {
+        let Some(w) = self.configure_window.upgrade() else {
+            return;
+        };
+        let open = matches!(
+            self.state.configuration,
+            ConfigurationState::Preparing | ConfigurationState::Editing
+        );
+        if open {
+            let c = &self.configure;
+            // the variant combo (the 10 courted labels)
+            let variants: Vec<slint::SharedString> = cachyos_kernel_manager_core::options::KernelVariant::ALL
+                .iter()
+                .map(|v| self.tr(tr_ctx::CONF_OPTIONS, crate::configure_window::variant_label(*v)).into())
+                .collect();
+            let variant_index = cachyos_kernel_manager_core::options::KernelVariant::ALL
+                .iter()
+                .position(|v| *v == c.variant)
+                .unwrap_or(0) as i32;
+            w.set_variant_labels(ModelRc::new(slint::VecModel::from(variants)));
+            w.set_variant_index(variant_index);
+            // the option checkboxes, split into the two presentation groups
+            // (top 8 above the combos, bottom 3 below — the ORACLE's order,
+            // see conf_check_at). Two models, NOT one with a `visible:`
+            // filter: Slint 1.17 lowers a runtime `visible` binding to a
+            // Clip wrapper that still occupies layout space, leaving gaps.
+            let checks: Vec<ConfCheckRow> = {
+                let zfs_enabled = c.switch.zfs_enabled;
+                let mk = |label: &str, checked: bool, enabled: bool| ConfCheckRow {
+                    label: self.tr(tr_ctx::CONF_OPTIONS, label).into(),
+                    checked,
+                    enabled,
+                };
+                vec![
+                    mk("Enable CachyOS config", c.switch.cachy_config_checked, true),
+                    mk(
+                        "Tweak kernel options prior to a build via nconfig",
+                        c.nconfig_checked,
+                        true,
+                    ),
+                    mk(
+                        "Tweak kernel options prior to a build via xconfig",
+                        c.xconfig_checked,
+                        true,
+                    ),
+                    mk("Use Modprobed-db", c.localmodcfg_checked, true),
+                    mk("Use the current kernel's config", c.use_current_checked, true),
+                    mk("Enable KBUILD_CFLAGS -O3", c.hardly_checked, true),
+                    mk("Set performance governor as default", c.per_gov_checked, true),
+                    mk("Enable TCP_CONG_BBR3", c.tcp_bbr3_checked, true),
+                    mk("Build the ZFS module", c.switch.zfs_checked, zfs_enabled),
+                    mk(
+                        "Build the open NVIDIA module",
+                        c.builtin_nvidia_open_checked,
+                        true,
+                    ),
+                    mk(
+                        "Include vmlinux with debug informations/symbols",
+                        c.build_debug_checked,
+                        true,
+                    ),
+                ]
+            };
+            let (checks_top, checks_bottom): (Vec<ConfCheckRow>, Vec<ConfCheckRow>) = {
+                let (top, bottom) = checks.split_at(8);
+                (top.to_vec(), bottom.to_vec())
+            };
+            w.set_checks_top(ModelRc::new(slint::VecModel::from(checks_top)));
+            w.set_checks_bottom(ModelRc::new(slint::VecModel::from(checks_bottom)));
+            // the option combos (items + current index)
+            let lto_items: Vec<slint::SharedString> = c
+                .switch
+                .lto_items
+                .iter()
+                .map(|m| lto_label(*m).into())
+                .collect();
+            let lto_index =
+                c.switch.lto_items.iter().position(|m| *m == c.switch.lto_selected).unwrap_or(0) as i32;
+            w.set_lto_items(ModelRc::new(slint::VecModel::from(lto_items)));
+            w.set_lto_index(lto_index);
+            let preempt_items: Vec<slint::SharedString> = c
+                .switch
+                .preempt_items
+                .iter()
+                .map(|m| preempt_label(*m).into())
+                .collect();
+            let preempt_index = c
+                .switch
+                .preempt_items
+                .iter()
+                .position(|m| *m == c.switch.preempt_selected)
+                .unwrap_or(0) as i32;
+            w.set_preempt_items(ModelRc::new(slint::VecModel::from(preempt_items)));
+            w.set_preempt_index(preempt_index);
+            let hz_items: Vec<slint::SharedString> =
+                strings::combo_options::HZ_TICKS.iter().map(|s| (*s).into()).collect();
+            let hz_index = hz_index_of(c.switch.hz_selected) as i32;
+            w.set_hz_items(ModelRc::new(slint::VecModel::from(hz_items)));
+            w.set_hz_index(hz_index);
+            let tickless_items: Vec<slint::SharedString> =
+                strings::combo_options::TICKLESS.iter().map(|s| (*s).into()).collect();
+            let tickless_index = tickless_index_of(c.tickless) as i32;
+            w.set_tickless_items(ModelRc::new(slint::VecModel::from(tickless_items)));
+            w.set_tickless_index(tickless_index);
+            let hugepage_items: Vec<slint::SharedString> =
+                strings::combo_options::HUGE_PAGE.iter().map(|s| (*s).into()).collect();
+            let hugepage_index = hugepage_index_of(c.hugepage) as i32;
+            w.set_hugepage_items(ModelRc::new(slint::VecModel::from(hugepage_items)));
+            w.set_hugepage_index(hugepage_index);
+            let cpuopt_items: Vec<slint::SharedString> =
+                strings::combo_options::CPU_OPT.iter().map(|s| (*s).into()).collect();
+            let cpuopt_index = cpuopt_index_of(c.cpu_opt) as i32;
+            w.set_cpuopt_items(ModelRc::new(slint::VecModel::from(cpuopt_items)));
+            w.set_cpuopt_index(cpuopt_index);
+            w.set_custom_name(c.custom_name.clone().into());
+            let patches: Vec<slint::SharedString> = c.patches.iter().map(|p| p.clone().into()).collect();
+            w.set_patches(ModelRc::new(slint::VecModel::from(patches)));
+            let selected = w.get_selected_patch().min(c.patches.len().saturating_sub(1) as i32).max(0);
+            w.set_selected_patch(selected);
+            w.set_build_running(matches!(self.state.build, cachyos_kernel_manager_core::state::BuildState::Running));
+            // the translated labels
+            w.set_label_variant(self.tr(tr_ctx::CONF_OPTIONS, "Select kernel").into());
+            w.set_label_custom_name(self.tr(tr_ctx::CONF_OPTIONS, "Custom package name").into());
+            w.set_label_hz(self.tr(tr_ctx::CONF_OPTIONS, "Running tick rate").into());
+            w.set_label_tickless(self.tr(tr_ctx::CONF_OPTIONS, "Select tickless").into());
+            w.set_label_preempt(self.tr(tr_ctx::CONF_OPTIONS, "Select preempt").into());
+            w.set_label_hugepage(self.tr(tr_ctx::CONF_OPTIONS, "Transparent Hugepages").into());
+            w.set_label_cpuopt(self.tr(tr_ctx::CONF_OPTIONS, "CPU compiler optimizations").into());
+            w.set_label_lto(self.tr(tr_ctx::CONF_OPTIONS, "Enable LTO").into());
+            w.set_label_tab_options(self.tr(tr_ctx::CONF, "Options").into());
+            w.set_label_tab_patches(self.tr(tr_ctx::CONF, "Patches").into());
+            w.set_label_add_local(self.tr(tr_ctx::CONF_PATCHES, "Add local patch").into());
+            w.set_label_add_remote(self.tr(tr_ctx::CONF_PATCHES, "Add remote patch").into());
+            w.set_label_remove(self.tr(tr_ctx::CONF_PATCHES, "Remove").into());
+            w.set_label_up(self.tr(tr_ctx::CONF_PATCHES, "Move up").into());
+            w.set_label_down(self.tr(tr_ctx::CONF_PATCHES, "Move down").into());
+            w.set_label_save(self.tr(tr_ctx::CONF_OPTIONS, "Save").into());
+            w.set_label_load(self.tr(tr_ctx::CONF_OPTIONS, "Load").into());
+            w.set_label_cancel(self.tr(tr_ctx::CONF_OPTIONS, "Cancel").into());
+            w.set_label_execute(self.tr(tr_ctx::CONF_OPTIONS, "Build kernel").into());
+            // the shared dialog overlay (the install question + the file-path
+            // dialog appear over the Configure window, like the oracle)
+            let (pv, pm, ev, em, cv, cm, pav, pat, pavv) = self.dialog_overlay_values();
+            w.set_dialog_progress_visible(pv);
+            w.set_dialog_progress_message(pm.into());
+            w.set_dialog_error_visible(ev);
+            w.set_dialog_error_message(em.into());
+            w.set_dialog_confirm_visible(cv);
+            w.set_dialog_confirm_message(cm.into());
+            w.set_dialog_path_visible(pav);
+            w.set_dialog_path_title(pat.into());
+            w.set_dialog_path_value(pavv.into());
+            let _ = w.show();
+        } else {
+            let _ = w.hide();
+        }
+    }
+
+    /// Push the sched-ext window: visibility (shown while `scx == Visible`),
+    /// the running label, the scheduler/profile combos, the flags, and the
+    /// widget enablement.
+    fn sync_scx_window(&self) {
+        let Some(w) = self.scx_window.upgrade() else {
+            return;
+        };
+        if self.state.scx == ScxState::Visible {
+            if let Some(scx) = &self.scx {
+                w.set_label_running(self.tr(tr_ctx::SCX, strings::scx_labels::RUNNING_SCHEDULER).into());
+                w.set_running(scx.running_scheduler.clone().into());
+                w.set_label_scheduler(self.tr(tr_ctx::SCX, strings::scx_labels::SELECT_SCHEDULER).into());
+                let scheds: Vec<slint::SharedString> =
+                    scx.schedulers.iter().map(|s| s.clone().into()).collect();
+                w.set_schedulers(ModelRc::new(slint::VecModel::from(scheds)));
+                w.set_scheduler_index(
+                    scx.schedulers.iter().position(|s| *s == scx.scheduler).unwrap_or(0) as i32,
+                );
+                w.set_label_profile(self.tr(tr_ctx::SCX, strings::scx_labels::SELECT_PROFILE).into());
+                let profiles: Vec<slint::SharedString> = strings::combo_options::SCX_PROFILE
+                    .iter()
+                    .map(|s| (*s).into())
+                    .collect();
+                w.set_profiles(ModelRc::new(slint::VecModel::from(profiles)));
+                w.set_profile_index(
+                    strings::combo_options::SCX_PROFILE
+                        .iter()
+                        .position(|p| *p == scx.profile)
+                        .unwrap_or(0) as i32,
+                );
+                w.set_profile_visible(scx.profile_visible);
+                w.set_label_flags(self.tr(tr_ctx::SCX, strings::scx_labels::SET_FLAGS).into());
+                w.set_flags(scx.flags.clone().into());
+                w.set_enabled(scx.enabled);
+                w.set_label_apply(self.tr(tr_ctx::SCX, "Apply").into());
+                w.set_label_disable(self.tr(tr_ctx::SCX, "Disable").into());
+                w.set_label_cancel(self.tr(tr_ctx::SCX, "Cancel").into());
+                // the shared dialog overlay (scx errors appear over this window)
+                let (pv, pm, ev, em, cv, cm, pav, pat, pavv) = self.dialog_overlay_values();
+                w.set_dialog_progress_visible(pv);
+                w.set_dialog_progress_message(pm.into());
+                w.set_dialog_error_visible(ev);
+                w.set_dialog_error_message(em.into());
+                w.set_dialog_confirm_visible(cv);
+                w.set_dialog_confirm_message(cm.into());
+                w.set_dialog_path_visible(pav);
+                w.set_dialog_path_title(pat.into());
+                w.set_dialog_path_value(pavv.into());
+                let _ = w.show();
+                // the belt-and-suspenders min-size clamp: run while visible
+                // (480x320 — must match scx_window.slint's content-root mins)
+                if SCX_CLAMP.with(|c| c.borrow().is_none()) {
+                    let weak = w.as_weak();
+                    let timer = slint::Timer::default();
+                    timer.start(
+                        slint::TimerMode::Repeated,
+                        std::time::Duration::from_millis(30),
+                        move || {
+                            if let Some(w) = weak.upgrade() {
+                                let win = w.window();
+                                let sf = win.scale_factor();
+                                let size = win.size();
+                                let (log_w, log_h) =
+                                    (size.width as f32 / sf, size.height as f32 / sf);
+                                if log_w < 480.0 || log_h < 320.0 {
+                                    win.set_size(slint::LogicalSize::new(
+                                        log_w.max(480.0),
+                                        log_h.max(320.0),
+                                    ));
+                                }
+                            }
+                        },
+                    );
+                    SCX_CLAMP.with(|c| *c.borrow_mut() = Some(timer));
+                }
+            }
+        } else {
+            let _ = w.hide();
+            // stop the clamp (dropping the timer stops it; it restarts on show)
+            SCX_CLAMP.with(|c| c.borrow_mut().take());
+        }
     }
 
     /// The sched-ext button visibility (`km-window.cpp:185-188`): the state
@@ -536,6 +1191,93 @@ impl App {
         }
         self.sorted_rows = rows;
     }
+
+    /// Mirror the Configure window's model into the core `build_options`
+    /// (review seam #6: the GUI must feed the plan the REAL option state —
+    /// the build's `options_env_string`/`variant_dir` come from here). Called
+    /// after every configure-model mutation.
+    fn sync_build_options(&mut self) {
+        let c = &self.configure;
+        self.state.build_options = cachyos_kernel_manager_core::options::BuildOptions {
+            variant: c.variant,
+            hardly: c.hardly_checked,
+            per_gov: c.per_gov_checked,
+            tcp_bbr3: c.tcp_bbr3_checked,
+            cachy_config: c.switch.cachy_config_checked,
+            nconfig: c.nconfig_checked,
+            xconfig: c.xconfig_checked,
+            localmodcfg: c.localmodcfg_checked,
+            use_current: c.use_current_checked,
+            builtin_zfs: c.switch.zfs_checked,
+            builtin_nvidia_open: c.builtin_nvidia_open_checked,
+            build_debug: c.build_debug_checked,
+            hz_ticks: c.switch.hz_selected,
+            tickless: c.tickless,
+            preempt: c.switch.preempt_selected,
+            hugepage: c.hugepage,
+            lto: c.switch.lto_selected,
+            cpu_opt: c.cpu_opt,
+            custom_name: c.custom_name.clone(),
+        };
+    }
+}
+
+/// Map a Configure-window checkbox row index to its semantic [`ConfCheck`]
+/// (the `checks` model order in `configure_window.slint` — the ORACLE's
+/// order from `conf-options-page.ui`: cachy_config first, hardly in the
+/// middle, zfs/nvidia-open/build-debug last; the first 8 render above the
+/// combos, the last 3 below them — keep in sync).
+fn conf_check_at(index: usize) -> Option<ConfCheck> {
+    match index {
+        0 => Some(ConfCheck::CachyConfig),
+        1 => Some(ConfCheck::Nconfig),
+        2 => Some(ConfCheck::Xconfig),
+        3 => Some(ConfCheck::Localmodcfg),
+        4 => Some(ConfCheck::UseCurrent),
+        5 => Some(ConfCheck::Hardly),
+        6 => Some(ConfCheck::PerGov),
+        7 => Some(ConfCheck::TcpBbr3),
+        8 => Some(ConfCheck::Zfs),
+        9 => Some(ConfCheck::NvidiaOpen),
+        10 => Some(ConfCheck::BuildDebug),
+        _ => None,
+    }
+}
+
+/// The lto combo labels (strings::combo_options::LTO, index-aligned with
+/// `LtoMode::ALL`).
+fn lto_label(mode: LtoMode) -> &'static str {
+    match mode {
+        LtoMode::None => "No",
+        LtoMode::Full => "Full",
+        LtoMode::Thin => "Thin",
+        LtoMode::ThinDist => "Thin-dist",
+    }
+}
+
+/// The preempt combo labels (the base set + the hardened/lts extension).
+fn preempt_label(mode: PreemptMode) -> &'static str {
+    match mode {
+        PreemptMode::Full => "Full",
+        PreemptMode::Lazy => "Lazy",
+        PreemptMode::Voluntary => "Voluntary",
+        PreemptMode::None => "None",
+    }
+}
+
+/// The combo index of a value within its `ALL` array (the label arrays are
+/// index-aligned with the value arrays).
+fn hz_index_of(hz: HzTick) -> usize {
+    HzTick::ALL.iter().position(|h| *h == hz).unwrap_or(0)
+}
+fn tickless_index_of(mode: TicklessMode) -> usize {
+    TicklessMode::ALL.iter().position(|m| *m == mode).unwrap_or(0)
+}
+fn hugepage_index_of(mode: HugepageMode) -> usize {
+    HugepageMode::ALL.iter().position(|m| *m == mode).unwrap_or(0)
+}
+fn cpuopt_index_of(mode: CpuOptMode) -> usize {
+    CpuOptMode::ALL.iter().position(|m| *m == mode).unwrap_or(0)
 }
 
 /// The sortable text of a row for a column (the oracle's default
@@ -549,32 +1291,351 @@ fn sort_text(row: &KernelRowView, column: usize) -> String {
     }
 }
 
+/// The courted artifact globs for a built PKGBUILD (`conf-window.cpp:218-
+/// 298`): the pkgfuncs probe (`declare -F` + `pkgver:`) + the PKGEXT probe
+/// (`/etc/makepkg.conf`) + the artifact-glob model. Empty when the PKGBUILD
+/// is missing or the probes fail (the oracle's error path).
+fn build_artifact_globs(pkgbuild: &std::path::Path) -> Vec<String> {
+    use cachyos_kernel_manager_build::{
+        artifact_globs, parse_pkgfuncs_probe_output, pkgext_probe_script, pkgfuncs_probe_script,
+    };
+    if !pkgbuild.exists() {
+        return Vec::new();
+    }
+    let funcs = run_probe(&pkgfuncs_probe_script(), Some(pkgbuild));
+    let (suffixes, version) = parse_pkgfuncs_probe_output(&funcs);
+    let Some((pkgver, pkgrel)) = version else {
+        return Vec::new();
+    };
+    if suffixes.is_empty() {
+        return Vec::new();
+    }
+    let pkgext = run_probe(&pkgext_probe_script(), None);
+    artifact_globs(&suffixes, &pkgver, &pkgrel, pkgext.trim())
+}
+
+/// Run one of the courted probe scripts with `bash -c <script> _ <path>`
+/// (the `_` is `$0`, the PKGBUILD path is `$1` — the scripts source
+/// `"$1"`). The pkgext probe takes no path. BOUNDED like [`exec_probe`].
+///
+/// The temp capture file name is UNIQUE PER CALL (pid + a process-wide
+/// counter + the script length): the VM logs showed a probe output cut at
+/// 201 bytes — a deterministic mid-URL truncation that made the `.patch`
+/// filter see no patches. With every probe writing to its own file no
+/// concurrent probe (or repeated probe) can truncate another's capture;
+/// the byte-length log makes any remaining capture problem visible at a
+/// glance instead of a silent empty patch list.
+fn run_probe(script: &str, file: Option<&std::path::Path>) -> String {
+    static PROBE_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let out = std::env::temp_dir().join(format!(
+        "km-probe-{}-{}-{}.out",
+        std::process::id(),
+        PROBE_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+        script.len()
+    ));
+    let stdout = match std::fs::File::create(&out) {
+        Ok(f) => f,
+        Err(_) => return String::new(),
+    };
+    let mut cmd = std::process::Command::new("bash");
+    cmd.arg("-c").arg(script).arg("km-probe");
+    if let Some(f) = file {
+        cmd.arg(f);
+    }
+    let mut child = match cmd.stdout(stdout).stderr(std::process::Stdio::null()).spawn() {
+        Ok(c) => c,
+        Err(_) => {
+            let _ = std::fs::remove_file(&out);
+            return String::new();
+        }
+    };
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(15);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {}
+            Err(_) => break,
+        }
+        if std::time::Instant::now() > deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    let text = std::fs::read_to_string(&out).unwrap_or_default();
+    let _ = std::fs::remove_file(&out);
+    // THE .patch-filter killer: `echo "${source[@]}"` ends with a newline,
+    // so the LAST source entry carries a trailing `\n` and
+    // `entries.ends_with(".patch")` fails — the oracle's `utils::exec` pops
+    // ONE trailing newline (`utils.cpp:99-117`) before the split+filter
+    // (conf-window.cpp:465-466). Match that exactly, or the patches tab is
+    // ALWAYS empty no matter how perfect the capture.
+    let text = match text.strip_suffix('\n') {
+        Some(t) => t.to_string(),
+        None => text,
+    };
+    vlog!(
+        "probe script {} ({} bytes) -> {}",
+        script.len(),
+        text.len(),
+        text.chars().take(4000).collect::<String>()
+    );
+    text
+}
+
 // ---------------------------------------------------------------------------
-// Background tasks (blocking work bridges into the iced runtime)
+// The courted build-flow pipelines (review seams #5/#6)
 // ---------------------------------------------------------------------------
 
-/// Run a blocking closure on the tokio blocking pool and bridge the result
-/// into an iced task. LAZY: the closure runs only when the iced runtime
-/// polls the future (no side effects when the task is dropped unpolled —
-/// the tests rely on this). The closure's OUTPUT must be `Send`; the alpm
-/// handle never leaves its thread.
-fn blocking<A, F>(f: F, make: fn(A) -> UiMessage) -> Task<UiMessage>
+/// Run one git command in a directory; success = exit 0.
+fn git_run(cwd: Option<&std::path::Path>, args: &[&str]) -> bool {
+    let mut cmd = std::process::Command::new("git");
+    cmd.args(args);
+    if let Some(dir) = cwd {
+        cmd.current_dir(dir);
+    }
+    match cmd.status() {
+        Ok(s) => s.success(),
+        Err(_) => false,
+    }
+}
+
+/// Execute the courted `git_cache_plan` (`prepare_git_repo`, utils.cpp:
+/// 161-196) with the exact step order and abort semantics: create the parent
+/// dir, enter it, wipe a stale non-git checkout, clone when missing, enter
+/// the checkout, `checkout --force master`, `clean -fd`, `pull`.
+///
+/// Abort points (EnterParentDir/GitClone/EnterRepoDir failure stops the
+/// whole sequence — the caller continues into the build like the oracle);
+/// checkout/clean failure short-circuits the REMAINING refresh steps only
+/// (the oracle's `||` chain, utils.cpp:191-195).
+///
+/// Deliberate divergence (D-004-ish): the oracle CHANGES the process cwd;
+/// the candidate tracks the cwd per command (worker-thread local), so the
+/// event-loop thread's cwd is untouched. The execve argv/cwd surface per
+/// step is identical, which is what the git-cache VM court witnesses.
+fn execute_git_cache_plan(repo: &std::path::Path, cache: &std::path::Path) {
+    use cachyos_kernel_manager_build::{git_cache_plan, GitCacheState, GitCacheStep};
+
+    let state = GitCacheState {
+        parent_dir_exists: cache.exists(),
+        repo_exists: repo.exists(),
+        repo_is_git: repo.join(".git").exists(),
+    };
+    let plan = git_cache_plan(
+        &state,
+        cache,
+        repo,
+        cachyos_kernel_manager_platform::LINUX_CACHYOS_GIT_URL,
+    );
+    let mut cwd: Option<std::path::PathBuf> = None;
+    let mut short_circuit = false;
+    for step in &plan {
+        vlog!("git-cache step: {step:?}");
+        match step {
+            GitCacheStep::CreateDirectories => {
+                let _ = std::fs::create_dir_all(cache);
+            }
+            GitCacheStep::EnterParentDir => {
+                cwd = Some(cache.to_path_buf());
+                if !cache.is_dir() {
+                    km_eprintln!("prepare_git_repo: cannot enter '{}'", cache.display());
+                    return;
+                }
+            }
+            GitCacheStep::RemoveNonGitRepo => {
+                let _ = std::fs::remove_dir_all(repo);
+            }
+            GitCacheStep::GitClone { url, name } => {
+                if !git_run(cwd.as_deref().or(Some(cache)), &["clone", url, name]) {
+                    km_eprintln!("prepare_git_repo: 'git clone {url}' failed");
+                    return; // aborts the whole sequence (utils.cpp:181-185)
+                }
+            }
+            GitCacheStep::EnterRepoDir => {
+                cwd = Some(repo.to_path_buf());
+                if !repo.is_dir() {
+                    km_eprintln!("prepare_git_repo: cannot enter '{}'", repo.display());
+                    return;
+                }
+            }
+            GitCacheStep::GitCheckoutForceMaster => {
+                if !git_run(cwd.as_deref(), &["checkout", "--force", "master"]) {
+                    short_circuit = true; // skips clean+pull (the || chain)
+                }
+            }
+            GitCacheStep::GitCleanFd => {
+                if !git_run(cwd.as_deref(), &["clean", "-fd"]) {
+                    short_circuit = true; // skips pull
+                }
+            }
+            GitCacheStep::GitPull => {
+                let _ = git_run(cwd.as_deref(), &["pull"]);
+            }
+        }
+        if short_circuit {
+            break;
+        }
+    }
+}
+
+/// The oracle's `write_to_file` (`utils.cpp:80-92`): overwrite the PKGBUILD
+/// (or any build-flow file).
+fn write_pkgbuild(path: &std::path::Path, text: &str) -> bool {
+    match std::fs::write(path, text) {
+        Ok(()) => {
+            vlog!("wrote {}", path.display());
+            true
+        }
+        Err(e) => {
+            km_eprintln!("[WRITE_TO_FILE] '{}' open failed: {}", path.display(), e);
+            false
+        }
+    }
+}
+
+/// The env variables the last build set (the oracle's member
+/// `m_previously_set_options`, conf-window.cpp:712): restored (unset) before
+/// the next build's options are applied. One build runs at a time (the state
+/// machine gates `BuildState::Running`), so a process-wide list is safe.
+static PREVIOUSLY_SET_OPTIONS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// `restore_clean_environment` (`utils.cpp:204-227`): unset every variable
+/// the previous run set, apply the new `(var, value)` pairs to the process
+/// environment (the build's makepkg child inherits them), and remember the
+/// new names for the next run.
+fn restore_clean_environment(assigns: Vec<(String, String)>) {
+    let mut previous = PREVIOUSLY_SET_OPTIONS.lock().unwrap();
+    for name in previous.drain(..) {
+        std::env::remove_var(&name);
+    }
+    for (var, value) in assigns {
+        vlog!("build env: {var}={value}");
+        std::env::set_var(&var, &value);
+        previous.push(var);
+    }
+}
+
+/// `reset_patches_data_tab` (`conf-window.cpp:458-473`): the current
+/// variant's PKGBUILD source array (the options env spliced into the probe
+/// script), filtered to entries ending with `.patch`. Empty when the
+/// PKGBUILD is missing (no clone yet — the configure-prepare flow runs this
+/// AFTER the git-cache plan).
+fn probe_patch_entries(
+    repo: &std::path::Path,
+    variant: KernelVariant,
+    options: &cachyos_kernel_manager_core::options::BuildOptions,
+) -> Vec<String> {
+    use cachyos_kernel_manager_build::{
+        options_env_string, parse_source_array_probe_output, source_array_probe_script,
+    };
+    let pkgbuild = repo.join(variant.dir_name()).join("PKGBUILD");
+    if !pkgbuild.exists() {
+        vlog!("patches probe: no PKGBUILD at {}", pkgbuild.display());
+        return Vec::new();
+    }
+    let env_string = options_env_string(options);
+    let out = run_probe(&source_array_probe_script(&env_string), Some(&pkgbuild));
+    let entries = parse_source_array_probe_output(&out);
+    let patches: Vec<String> = entries
+        .into_iter()
+        .filter(|e| e.ends_with(".patch"))
+        .collect();
+    vlog!("patches probe: {} patch entries", patches.len());
+    patches
+}
+
+// ---------------------------------------------------------------------------
+// Background tasks (blocking work bridges into the Slint event loop)
+// ---------------------------------------------------------------------------
+
+/// A runtime action the backend dispatches (the iced `Task` analogue).
+/// LAZY: a `Spawn` action runs only when dispatched — the tests never
+/// dispatch, so no worker threads are created and no side effects happen.
+#[derive(Default)]
+pub enum Task {
+    #[default]
+    None,
+    Batch(Vec<Task>),
+    /// Spawn a background worker; on completion it delivers a `UiMessage`
+    /// back into the event loop (the window weak + the shared app state).
+    Spawn(Box<dyn FnOnce(slint::Weak<MainWindow>, Arc<Mutex<App>>) + Send>),
+    /// Exit the event loop (the oracle's closeEvent).
+    Exit,
+}
+
+/// Run a blocking closure on a worker thread and bridge the result into the
+/// event loop. A PANIC in the closure is logged to stderr and degrades to
+/// `A::default()` — the alternative (a panic on the event loop) leaves the
+/// progress dialog up forever with no message ever arriving (observed in the
+/// VM: a discovery-data panic froze the app on "Initializing kernels...").
+fn blocking<A, F>(f: F, make: fn(A) -> UiMessage) -> Task
 where
-    A: Send + 'static,
+    A: Send + 'static + Default,
     F: FnOnce() -> A + Send + 'static,
 {
-    Task::perform(
-        async move {
-            tokio::task::spawn_blocking(f)
-                .await
-                .expect("blocking task panicked")
-        },
-        make,
-    )
+    Task::Spawn(Box::new(move |_ui, app| {
+        vlog!("background task spawn");
+        std::thread::spawn(move || {
+            let a = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+                Ok(a) => a,
+                Err(p) => {
+                    km_eprintln!(
+                        "cachyos-kernel-manager: background task panicked: {}",
+                        panic_message(&p)
+                    );
+                    A::default()
+                }
+            };
+            vlog!("background task done");
+            let msg = make(a);
+            let _ = slint::invoke_from_event_loop(move || {
+                let Ok(mut state) = app.lock() else {
+                    return;
+                };
+                let task = update(&mut state, msg);
+                state.sync_ui();
+                drop(state);
+                dispatch(task, &app);
+            });
+        });
+    }))
+}
+
+/// The panic's message, as a String (a downcast of the payload + the
+/// location fallback).
+fn panic_message(panic: &(dyn std::any::Any + Send)) -> String {
+    if let Some(s) = panic.downcast_ref::<&str>() {
+        (*s).to_string()
+    } else if let Some(s) = panic.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "(non-string panic payload)".to_string()
+    }
+}
+
+/// Dispatch a task: spawn its workers (the shared app state rides along for
+/// the result bridge).
+fn dispatch(task: Task, app: &Arc<Mutex<App>>) {
+    let ui = app.lock().map(|a| a.ui.clone()).unwrap_or_default();
+    match task {
+        Task::None => {}
+        Task::Batch(tasks) => {
+            for t in tasks {
+                dispatch(t, app);
+            }
+        }
+        Task::Spawn(f) => f(ui, app.clone()),
+        Task::Exit => {
+            vlog!("quit event loop");
+            let _ = slint::quit_event_loop();
+        }
+    }
 }
 
 impl App {
-    fn discovery_task(&self) -> Task<UiMessage> {
+    fn discovery_task(&self) -> Task {
         let flags = self.flags.clone();
         blocking(
             move || run_discovery(&flags),
@@ -586,7 +1647,7 @@ impl App {
     /// commands (the real `terminal-helper` chain — pacman runs in the
     /// terminal exactly like the oracle), then the kernels-change check
     /// (`is_kernels_change_state`, km-window.cpp:150-166).
-    fn transaction_task(&self) -> Task<UiMessage> {
+    fn transaction_task(&self) -> Task {
         use cachyos_kernel_manager_plan::TransactionPlan;
 
         let selection = self.state.selection.clone();
@@ -597,6 +1658,7 @@ impl App {
         let remove: Vec<String> = plan.remove.iter().map(|a| a.package.clone()).collect();
         let install_names = install.clone();
         let remove_names = remove.clone();
+        vlog!("transaction plan: install {install:?} remove {remove:?}");
 
         blocking(
             move || {
@@ -649,84 +1711,166 @@ impl App {
                     }
                 };
                 if let Some(message) = failed {
-                    Err(message)
+                    (changed, Some(message))
                 } else {
-                    Ok(changed)
+                    (changed, None)
                 }
             },
-            |result| match result {
-                Ok(changed) => UiMessage::TransactionFinished { changed },
-                Err(message) => UiMessage::TransactionFailed { message },
+            |(changed, failed)| match failed {
+                Some(message) => UiMessage::TransactionFailed { message },
+                None => UiMessage::TransactionFinished { changed },
             },
         )
     }
 
-    /// The Configure-window prepare flow: `prepare_build_environment`
-    /// (`utils.cpp:167-194`: clone/refresh the variant PKGBUILDs under the
-    /// cache root) + `reset_patches_data_tab`.
-    fn configure_task(&self) -> Task<UiMessage> {
+    /// The Configure-window prepare flow (`on_configure`, km-window.cpp:
+    /// 340-351): the courted `prepare_build_environment` (the git-cache
+    /// plan of `utils.cpp:161-202`) + `reset_patches_data_tab` (the
+    /// source-array probe for the current variant, `.patch`-filtered).
+    /// Review seam #5: the OLD code ran an ad-hoc clone/pull; the production
+    /// GUI must execute the courted `git_cache_plan` (create dirs, enter
+    /// parent, remove the non-git checkout, clone, enter the checkout,
+    /// `checkout --force master`, `clean -fd`, `pull`).
+    fn configure_task(&self) -> Task {
         let home = self.flags.home.clone();
+        let options = self.state.build_options.clone();
+        let variant = self.configure.variant;
         blocking(
             move || {
-                let pkgbuilds = cachyos_kernel_manager_platform::pkgbuilds_dir(&home);
-                let url = cachyos_kernel_manager_platform::LINUX_CACHYOS_GIT_URL;
-                if !pkgbuilds.join(".git").exists() {
-                    let _ = std::process::Command::new("git")
-                        .args(["clone", url])
-                        .arg(&pkgbuilds)
-                        .status();
-                } else {
-                    let _ = std::process::Command::new("git")
-                        .arg("-C")
-                        .arg(&pkgbuilds)
-                        .args(["pull", "--ff-only"])
-                        .status();
-                }
+                let cache = cachyos_kernel_manager_platform::cache_root(&home);
+                let repo = cachyos_kernel_manager_platform::pkgbuilds_dir(&home);
+                execute_git_cache_plan(&repo, &cache);
+                // reset_patches_data_tab: the current variant's PKGBUILD
+                // source array (options env spliced), filtered to .patch
+                probe_patch_entries(&repo, variant, &options)
             },
-            |_| UiMessage::ConfigurePrepared,
+            UiMessage::ConfigurePrepared,
         )
     }
 
-    /// The build task: the courted `BuildFlowPlan` (`makepkg -scf
-    /// --cleanbuild --skipchecksums && touch .done-status` in the variant
-    /// dir), then success = `.done-status` present (never the exit code).
-    fn build_task(&self, variant_dir: String) -> Task<UiMessage> {
+    /// The `reset_patches_data_tab` re-probe after a variant/lto/nvidia-open
+    /// change (the oracle calls it from those handlers: conf-window.cpp:601,
+    /// 603-605, 407-419). Async: the probe needs the cloned PKGBUILD, so it
+    /// must not block the event loop.
+    fn refresh_patches_task(&self) -> Task {
+        let home = self.flags.home.clone();
+        let variant = self.configure.variant;
+        let options = self.state.build_options.clone();
+        blocking(
+            move || {
+                let repo = cachyos_kernel_manager_platform::pkgbuilds_dir(&home);
+                probe_patch_entries(&repo, variant, &options)
+            },
+            UiMessage::PatchesRefreshed,
+        )
+    }
+
+    /// The Build button's worker (`on_execute`, conf-window.cpp:696-735):
+    /// the FULL courted pipeline — `prepare_build_environment` (git-cache
+    /// plan), `restore_clean_environment` (options env application), the
+    /// source-array probe, the patch source-array mutation, the custom-name
+    /// mutation, then the build through the courted terminal-helper, with
+    /// success defined by `.done-status` presence. Review seam #6: the OLD
+    /// code bypassed the model with a raw `bash -lc` and never mutated the
+    /// PKGBUILD.
+    fn build_task(&self) -> Task {
+        use cachyos_kernel_manager_build::{
+            insert_custom_pkgbase, insert_patch_source_array, options_env_string,
+            parse_source_array_probe_output, source_array_probe_script,
+        };
         use cachyos_kernel_manager_exec::BuildFlowPlan;
 
         let home = self.flags.home.clone();
-        let cwd = cachyos_kernel_manager_platform::pkgbuilds_dir(&home)
-            .join(&variant_dir)
-            .to_str()
-            .unwrap_or_default()
-            .to_string();
-        let globs: Vec<String> = Vec::new(); // the pkgfuncs probe result
-        let plan = BuildFlowPlan::render(self.configure.variant, &cwd, &globs);
-        let done_status = plan.done_status.clone();
-        let build_command = plan.build_command.clone();
+        let options = self.state.build_options.clone();
+        let variant = self.configure.variant;
+        let patches = self.configure.patches.clone();
+        let custom_name = self.configure.custom_name.clone();
         blocking(
             move || {
-                // run_cmd_async (conf-window.cpp:361-376): the command in
-                // the working dir
-                let _ = std::process::Command::new("bash")
-                    .arg("-lc")
-                    .arg(&build_command)
-                    .current_dir(&cwd)
-                    .status();
-                std::path::Path::new(&done_status).exists()
+                let cache = cachyos_kernel_manager_platform::cache_root(&home);
+                let repo = cachyos_kernel_manager_platform::pkgbuilds_dir(&home);
+                // 1. prepare_build_environment — the courted git-cache plan
+                //    (the oracle runs it here too, before the env restore).
+                execute_git_cache_plan(&repo, &cache);
+                // 2. the options env string (get_all_set_values).
+                let env_string = options_env_string(&options);
+                // 3. restore_clean_environment: unset the previous run's
+                //    vars, apply the new ones to the process env (makepkg
+                //    runs as a child and inherits them — the oracle's
+                //    setenv/unsetenv semantics, utils.cpp:204-227).
+                let assigns = cachyos_kernel_manager_build::env_assignments(&env_string);
+                restore_clean_environment(assigns);
+                // 4. the source-array probe (the script embeds the env).
+                let variant_dir = repo.join(variant.dir_name());
+                let pkgbuild_path = variant_dir.join("PKGBUILD");
+                let src = run_probe(&source_array_probe_script(&env_string), Some(&pkgbuild_path));
+                let orig_entries = parse_source_array_probe_output(&src);
+                // 5. the patch source-array mutation + the custom-name
+                //    mutation (both write the PKGBUILD back; a failed
+                //    write aborts like the oracle's insert_status check).
+                let pkgbuild_text = std::fs::read_to_string(&pkgbuild_path).unwrap_or_default();
+                let mutated = insert_patch_source_array(&pkgbuild_text, &orig_entries, &patches);
+                if !write_pkgbuild(&pkgbuild_path, &mutated) {
+                    km_eprintln!(
+                        "cachyos-kernel-manager: Failed to insert new source array into pkgbuild"
+                    );
+                    return false;
+                }
+                let text2 = std::fs::read_to_string(&pkgbuild_path).unwrap_or_default();
+                let mutated2 = insert_custom_pkgbase(&text2, &custom_name);
+                if !write_pkgbuild(&pkgbuild_path, &mutated2) {
+                    km_eprintln!("cachyos-kernel-manager: Failed to set custom name in pkgbuild");
+                    return false;
+                }
+                // 6. run the build through the courted terminal-helper
+                //    (BuildFlowPlan::render with the PKGBUILDS ROOT — the
+                //    render appends the variant dir, so the done-status
+                //    check and the bash cwd agree; review seam #7).
+                let plan = BuildFlowPlan::render(variant, repo.to_str().unwrap_or_default(), &[]);
+                vlog!(
+                    "build: cwd={} cmd={:?} done={}",
+                    plan.working_path,
+                    plan.terminal_argv,
+                    plan.done_status
+                );
+                cachyos_kernel_manager_exec::run_cmd_terminal(
+                    &plan.build_command,
+                    cachyos_kernel_manager_exec::Escalate::None,
+                );
+                // 7. success = `.done-status` PRESENT, never the exit code.
+                let ok = std::path::Path::new(&plan.done_status).exists();
+                vlog!("build finished, done-status present: {ok}");
+                ok
             },
             |success| UiMessage::BuildFinished { success },
         )
     }
 
-    /// The artifact install task (`sudo pacman -U <globs>`; the globs come
-    /// from the pkgfuncs probe — courted by artifact-glob).
-    fn artifacts_task(&self) -> Task<UiMessage> {
+    /// The artifact install task — the REAL `sudo pacman -U <globs>`
+    /// (review seam #8: the old code executed `true`). The globs come from
+    /// the courted pkgfuncs probe on the built PKGBUILD (the artifact-glob
+    /// model), like the oracle's `finished_proc` install path.
+    fn artifacts_task(&self) -> Task {
+        let home = self.flags.home.clone();
+        let variant_dir = self.configure.variant.dir_name().to_string();
         blocking(
             move || {
-                let _ = cachyos_kernel_manager_exec::run_cmd_terminal(
-                    "true",
-                    cachyos_kernel_manager_exec::Escalate::None,
-                );
+                let variant_dir =
+                    cachyos_kernel_manager_platform::pkgbuilds_dir(&home).join(&variant_dir);
+                let pkgbuild = variant_dir.join("PKGBUILD");
+                let globs = build_artifact_globs(&pkgbuild);
+                if globs.is_empty() {
+                    km_eprintln!(
+                        "cachyos-kernel-manager: artifact install skipped (no package globs from {})",
+                        pkgbuild.display()
+                    );
+                } else {
+                    let cmd = format!("sudo pacman -U {}", globs.join(" "));
+                    let _ = cachyos_kernel_manager_exec::run_cmd_terminal(
+                        &cmd,
+                        cachyos_kernel_manager_exec::Escalate::PkexecRootShell,
+                    );
+                }
             },
             |_| UiMessage::ArtifactsInstalled,
         )
@@ -736,7 +1880,7 @@ impl App {
     /// (the REAL D-Bus with the `scx-dbus` feature; the frozen list
     /// otherwise) + the sysfs current-scheduler readback, through the
     /// courted `window_init` trace.
-    fn scx_init_task(&self) -> Task<UiMessage> {
+    fn scx_init_task(&self) -> Task {
         use cachyos_kernel_manager_scx::config::init_config;
         use cachyos_kernel_manager_scx::window::{window_init, WindowInitInput};
 
@@ -825,7 +1969,8 @@ impl From<Message> for UiMessage {
 }
 
 /// The iced update function.
-pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
+pub fn update(app: &mut App, message: UiMessage) -> Task {
+    vlog!("update: {message:?}");
     match message {
         UiMessage::Semantic(m) => app.on_semantic(m),
         UiMessage::CatalogLoaded(payload) => {
@@ -861,7 +2006,18 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
         UiMessage::TransactionFailed { message } => {
             app.on_event(AppEvent::TransactionFailed { message })
         }
-        UiMessage::ConfigurePrepared => app.on_event(AppEvent::ConfigurePrepared),
+        UiMessage::ConfigurePrepared(patches) => {
+            // reset_patches_data_tab (km-window.cpp:349) + the state
+            // transition into Editing
+            app.configure.reset_patches(&patches);
+            app.sync_build_options();
+            app.on_event(AppEvent::ConfigurePrepared)
+        }
+        UiMessage::PatchesRefreshed(patches) => {
+            // a variant/lto/nvidia-open change re-probed the source array
+            app.configure.reset_patches(&patches);
+            Task::None
+        }
         UiMessage::BuildFinished { success } => {
             let task = app.on_event(AppEvent::BuildFinished { success });
             if success {
@@ -880,7 +2036,7 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                 app.state.dialogs = DialogsState::Error { message: critical };
             }
             app.scx = Some(model);
-            Task::none()
+            Task::None
         }
         UiMessage::ScxApplied { ok } => {
             if !ok {
@@ -890,7 +2046,7 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                     }
                 }
             }
-            Task::none()
+            Task::None
         }
         UiMessage::ScxDisabled { ok } => {
             if !ok {
@@ -900,34 +2056,37 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                     }
                 }
             }
-            Task::none()
+            Task::None
         }
         UiMessage::DialogDismissed => {
             app.state.dialogs = DialogsState::None;
-            Task::none()
+            Task::None
         }
         UiMessage::InstallQuestion(yes) => {
             app.state.dialogs = DialogsState::None;
             if yes {
                 app.on_event(AppEvent::InstallArtifactsRequested)
             } else {
-                Task::none()
+                Task::None
             }
         }
         UiMessage::CustomNameChanged(value) => {
             app.configure.custom_name = value;
-            Task::none()
+            app.sync_build_options();
+            Task::None
         }
         UiMessage::ScxFlagsChanged(value) => {
             if let Some(scx) = &mut app.scx {
                 scx.flags = value;
             }
-            Task::none()
+            Task::None
         }
         UiMessage::ConfigLoaded(config) => {
-            app.on_semantic(Message::ConfigLoaded { config: *config })
+            let task = app.on_semantic(Message::ConfigLoaded { config: *config });
+            app.sync_build_options();
+            task
         }
-        UiMessage::Exit => iced::exit(),
+        UiMessage::Exit => Task::Exit,
         UiMessage::SortRequested { column } => {
             if app.sort_column == column {
                 app.sort_ascending = !app.sort_ascending;
@@ -936,11 +2095,11 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                 app.sort_ascending = true;
             }
             app.recompute_sort();
-            Task::none()
+            Task::None
         }
         UiMessage::ConfTabClicked(tab) => {
             app.conf_tab = tab;
-            Task::none()
+            Task::None
         }
         UiMessage::CheckToggled(check) => {
             let mut c = app.configure.clone();
@@ -971,7 +2130,14 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                 ConfCheck::BuildDebug => c.build_debug_checked = value,
             }
             app.configure = c;
-            Task::none()
+            app.sync_build_options();
+            // the oracle re-probes the patches tab when the builtin-nvidia
+            // checkbox changes (connect_all_checkboxes, conf-window.cpp:407-419)
+            if check == ConfCheck::NvidiaOpen {
+                app.refresh_patches_task()
+            } else {
+                Task::None
+            }
         }
         UiMessage::PatchOp(op) => {
             match op {
@@ -979,21 +2145,48 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                 ConfPatchOp::MoveDown(i) => app.configure.move_down(i),
                 ConfPatchOp::Remove(i) => app.configure.remove_patch(i),
             }
-            Task::none()
+            Task::None
         }
-        UiMessage::VariantPicked(variant) => app.on_semantic(Message::VariantChanged { variant }),
+        UiMessage::VariantPicked(variant) => {
+            let task = app.on_semantic(Message::VariantChanged { variant });
+            app.sync_build_options();
+            // the oracle re-probes the patches tab on a variant switch
+            // (conf-window.cpp:601)
+            Task::Batch(vec![task, app.refresh_patches_task()])
+        }
         UiMessage::LtoPicked(lto) => {
             app.configure.switch.lto_selected = lto;
-            Task::none()
+            app.sync_build_options();
+            // the oracle re-probes the patches tab on an lto change
+            // (conf-window.cpp:603-605)
+            app.refresh_patches_task()
         }
         UiMessage::PreemptPicked(preempt) => {
             app.configure.switch.preempt_selected = preempt;
-            Task::none()
+            app.sync_build_options();
+            Task::None
         }
         UiMessage::HzPicked(hz) => {
             app.configure.switch.hz_selected = hz;
-            Task::none()
+            app.sync_build_options();
+            Task::None
         }
+        UiMessage::TicklessPicked(tickless) => {
+            app.configure.tickless = tickless;
+            app.sync_build_options();
+            Task::None
+        }
+        UiMessage::HugepagePicked(hugepage) => {
+            app.configure.hugepage = hugepage;
+            app.sync_build_options();
+            Task::None
+        }
+        UiMessage::CpuOptPicked(cpu_opt) => {
+            app.configure.cpu_opt = cpu_opt;
+            app.sync_build_options();
+            Task::None
+        }
+        UiMessage::ScxWindowClosed => app.on_event(AppEvent::ScxWindowClosed),
         UiMessage::ScxApply => {
             if let Some(scx) = &app.scx {
                 let mode = scx.scx_mode();
@@ -1051,12 +2244,12 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                     |ok| UiMessage::ScxApplied { ok },
                 )
             } else {
-                Task::none()
+                Task::None
             }
         }
         UiMessage::ScxDisable => {
             if let Some(scx) = &app.scx {
-                let config_path = scx.config_path.clone();
+                let _config_path = scx.config_path.clone();
                 blocking(
                     move || {
                         #[cfg(feature = "scx-dbus")]
@@ -1080,14 +2273,14 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                         }
                         #[cfg(not(feature = "scx-dbus"))]
                         {
-                            let _ = config_path;
+                            let _ = _config_path;
                             true
                         }
                     },
                     |ok| UiMessage::ScxDisabled { ok },
                 )
             } else {
-                Task::none()
+                Task::None
             }
         }
         UiMessage::ScxSchedulerPicked(scheduler) => {
@@ -1095,14 +2288,14 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                 let config = cachyos_kernel_manager_scx::config::default_config();
                 scx.on_sched_changed(&scheduler, &config);
             }
-            Task::none()
+            Task::None
         }
         UiMessage::ScxProfilePicked(profile) => {
             if let Some(scx) = &mut app.scx {
                 let config = cachyos_kernel_manager_scx::config::default_config();
                 scx.on_profile_changed(&profile, &config);
             }
-            Task::none()
+            Task::None
         }
         UiMessage::PathDialogOpened(kind) => {
             let title = match kind {
@@ -1118,56 +2311,66 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
                 value: String::new(),
                 on_submit: kind,
             });
-            Task::none()
+            Task::None
         }
         UiMessage::PathDialogChanged(value) => {
             if let Some(dialog) = &mut app.path_dialog {
                 dialog.value = value;
             }
-            Task::none()
+            Task::None
         }
         UiMessage::PathDialogDismissed => {
             app.path_dialog = None;
-            Task::none()
+            Task::None
         }
         UiMessage::PathDialogSubmitted => {
             let Some(dialog) = app.path_dialog.take() else {
-                return Task::none();
+                return Task::None;
             };
             match dialog.on_submit {
                 PathDialogKind::LoadConfig => {
                     let path = dialog.value;
-                    Task::perform(
-                        async move {
-                            KernelManagerConfig::load(std::path::Path::new(&path))
-                                .map_err(|e| e.to_string())
+                    // Option<Result<..>>: the outer None = the task panicked
+                    // (the blocking fallback), the inner Result = the load
+                    blocking(
+                        move || {
+                            Some(
+                                KernelManagerConfig::load(std::path::Path::new(&path))
+                                    .map_err(|e| e.to_string()),
+                            )
                         },
                         |result| match result {
-                            Ok(config) => UiMessage::ConfigLoaded(Box::new(config)),
-                            Err(message) => UiMessage::TransactionFailed { message },
+                            Some(Ok(config)) => UiMessage::ConfigLoaded(Box::new(config)),
+                            Some(Err(message)) => UiMessage::TransactionFailed { message },
+                            None => UiMessage::TransactionFailed {
+                                message: "Failed to load config options from file".into(),
+                            },
                         },
                     )
                 }
                 PathDialogKind::SaveConfig => {
                     let path = dialog.value;
                     let config = app.configure.to_config();
-                    Task::perform(
-                        async move { config.save(std::path::Path::new(&path)) },
+                    blocking(
+                        move || Some(config.save(std::path::Path::new(&path)).map_err(|e| e.to_string())),
                         |result| match result {
-                            Ok(()) => UiMessage::DialogDismissed,
-                            Err(e) => UiMessage::TransactionFailed {
+                            Some(Ok(())) => UiMessage::DialogDismissed,
+                            Some(Err(e)) => UiMessage::TransactionFailed {
                                 message: format!("Failed to save config options to file: {e}"),
+                            },
+                            None => UiMessage::TransactionFailed {
+                                message: "Failed to save config options to file".into(),
                             },
                         },
                     )
                 }
                 PathDialogKind::AddRemotePatch => {
                     app.configure.add_remote_patch(dialog.value);
-                    Task::none()
+                    Task::None
                 }
                 PathDialogKind::AddLocalPatch => {
                     app.configure.add_local_patches(&[dialog.value]);
-                    Task::none()
+                    Task::None
                 }
             }
         }
@@ -1175,481 +2378,338 @@ pub fn update(app: &mut App, message: UiMessage) -> Task<UiMessage> {
 }
 
 // ---------------------------------------------------------------------------
-// run
+// ---------------------------------------------------------------------------
+// run (the Slint entry point)
 // ---------------------------------------------------------------------------
 
-/// Launch the Iced application (the window title is the oracle's).
-pub fn run(flags: Flags) -> iced::Result {
-    iced::application("CachyOS Kernel Manager", update, view)
-        .window_size((940.0, 640.0))
-        .run_with(move || App::new(flags))
+/// Launch the Slint application: build the windows, wire the callbacks to
+/// the courted semantic surface, and run the event loop. Slint's default
+/// backend is winit + the FemtoVG SOFTWARE renderer — no GL/Vulkan setup
+/// is needed, so the GUI runs in VMs without GPU acceleration (unlike the
+/// wgpu-based iced port).
+pub fn run(flags: Flags) -> Result<(), slint::PlatformError> {
+    let ui = MainWindow::new()?;
+    // The initial window sizes: a `width` binding on a Window makes it
+    // FIXED-size in Slint 1.17 and `preferred-width` cannot drive the initial
+    // size (the WindowItem layout info is always zero — the winit adapter
+    // sizes from the width PROPERTY). set_size() sets a writable size: the
+    // window opens at the oracle-like size and the user's resizes stick.
+    ui.window().set_size(slint::LogicalSize::new(1000., 700.));
+    // The CachyOS green accent: set now (backend exists) and re-applied on
+    // every UI sync (the XDG settings watcher can override it later).
+    set_cachyos_accent();
+    // KWin renders the titlebar icon from the app's desktop entry matched via
+    // the xdg app id — the .slint `icon` property only reaches X11's
+    // _NET_WM_ICON. WITHOUT this the titlebar shows the generic yellow
+    // "wayland" icon even though the taskbar is correct. NOTE: this must run
+    // AFTER the first window creation (the backend + global context exist
+    // then) and BEFORE any window is shown (ensure_window reads it).
+    let _ = slint::set_xdg_app_id("org.cachyos.KernelManager");
+    let configure = ConfigureWindow::new()?;
+    // 900x900: the options page (~750px of checkboxes/combos) fits without
+    // scrolling at this height; smaller windows scroll (the min stays 640x560).
+    configure.window().set_size(slint::LogicalSize::new(900., 900.));
+    let scx_window = SchedExtWindow::new()?;
+    // compact: the dialog's content is short (running label, two combos, the
+    // flags input, three buttons) — a tall default just looks stretched. The
+    // window minimum equals this size: it can grow, never shrink.
+    scx_window.window().set_size(slint::LogicalSize::new(480., 320.));
+
+    let (app, startup_task) =
+        App::with_windows(flags, ui.as_weak(), configure.as_weak(), scx_window.as_weak());
+    let app = Arc::new(Mutex::new(app));
+
+    wire_main_window(&ui, &app);
+    wire_configure_window(&configure, &app);
+    wire_scx_window(&scx_window, &app);
+
+    // the initial presentation + the startup discovery
+    app.lock().map(|a| a.sync_ui()).ok();
+    dispatch(startup_task, &app);
+
+    ui.run()
 }
 
-// ---------------------------------------------------------------------------
-// view
-// ---------------------------------------------------------------------------
-
-/// The iced view function.
-pub fn view<'a>(app: &'a App) -> Element<'a, UiMessage> {
-    let base = if app.state.configuration == ConfigurationState::Editing {
-        view_configure(app)
-    } else {
-        view_main(app)
+/// Route one UI event through the semantic update + the presentation sync.
+fn dispatch_event(app: &Arc<Mutex<App>>, message: UiMessage) {
+    let Ok(mut state) = app.lock() else {
+        return;
     };
-    let base = if app.state.scx == ScxState::Visible {
-        overlay(view_scx(app), base)
-    } else {
-        base
-    };
-    // the path dialog sits above everything except the error dialogs
-    if let Some(dialog) = &app.path_dialog {
-        return overlay(view_path_dialog(dialog), base);
-    }
-    match &app.state.dialogs {
-        DialogsState::None => base,
-        DialogsState::Progress { message } => overlay(view_progress(app, message), base),
-        DialogsState::Error { message } => overlay(view_error(app, message), base),
-        DialogsState::Confirm { message } => overlay(view_confirm(app, message), base),
-    }
+    let task = update(&mut state, message);
+    state.sync_ui();
+    drop(state);
+    dispatch(task, app);
 }
 
-/// A modal overlay (dialog or the scx window) above the base view: the
-/// base stays visible underneath (dimmed by the centered content).
-fn overlay<'a>(
-    content: Element<'a, UiMessage>,
-    base: Element<'a, UiMessage>,
-) -> Element<'a, UiMessage> {
-    stack([
-        base,
-        center(container(content).padding(24).style(container::rounded_box)).into(),
-    ])
-    .into()
-}
-
-// -- main window -------------------------------------------------------------
-
-fn view_main<'a>(app: &'a App) -> Element<'a, UiMessage> {
-    let description = text(strings::MAIN_DESCRIPTION_HTML.trim());
-    let tree = view_tree(app);
-    let execute = if app.state.execute_enabled() {
-        button(text(app.tr(tr_ctx::MAIN, strings::main_buttons::EXECUTE)))
-            .on_press(Message::ExecuteRequested.into())
-    } else {
-        button(text(app.tr(tr_ctx::MAIN, strings::main_buttons::EXECUTE)))
-    };
-    let configure = button(text(app.tr(tr_ctx::MAIN, strings::main_buttons::CONFIGURE)))
-        .on_press(Message::ConfigureRequested.into());
-    let cancel = button(text(app.tr(tr_ctx::MAIN, strings::main_buttons::CANCEL)))
-        .on_press(Message::CancelRequested.into());
-    let schedext: Element<'_, UiMessage> = if app.schedext_button_visible() {
-        button(text(app.tr(tr_ctx::MAIN, strings::main_buttons::SCHED_EXT)))
-            .on_press(UiMessage::from(Message::SchedextRequested))
-            .into()
-    } else {
-        horizontal_space().into()
-    };
-    container(
-        column![
-            description,
-            tree,
-            row![schedext, configure, cancel, execute].spacing(8)
-        ]
-        .spacing(12)
-        .padding(16),
-    )
-    .width(iced::Length::Fill)
-    .height(iced::Length::Fill)
-    .into()
-}
-
-/// The kernels tree: the courted rows in a scrollable, one checkbox per
-/// row (the Choose column) with the PkgName/Version/Category columns and
-/// the sortable headers.
-fn view_tree<'a>(app: &'a App) -> Element<'a, UiMessage> {
-    let mut items = column![row![
-        header_button("Choose", 0, app),
-        header_button("PkgName", 1, app),
-        header_button("Version", 2, app),
-        header_button("Category", 3, app),
-    ]
-    .spacing(16)
-    .padding(4)]
-    .spacing(0);
-    for (i, row) in app.sorted_rows.iter().enumerate() {
-        let label = format!("{}  {}  {}", row.raw, row.version_text, row.category);
-        let row_index = i;
-        let checkbox = checkbox(label, row.checked)
-            .on_toggle(move |_| Message::KernelToggled { row: row_index }.into());
-        items = items.push(
-            row![
-                checkbox,
-                text(&row.raw).width(iced::Length::FillPortion(3)),
-                text(&row.version_text).width(iced::Length::FillPortion(2)),
-                text(&row.category).width(iced::Length::FillPortion(2)),
-            ]
-            .spacing(16)
-            .padding(4),
-        );
-    }
-    scrollable(items).height(iced::Length::Fill).into()
-}
-
-fn header_button<'a>(label: &str, column: usize, app: &App) -> Element<'a, UiMessage> {
-    let arrow = if app.sort_column == column {
-        if app.sort_ascending {
-            " ▲"
-        } else {
-            " ▼"
+/// Wire the main-window callbacks to the courted semantic messages.
+fn wire_main_window(ui: &MainWindow, app: &Arc<Mutex<App>>) {
+    let app_execute = app.clone();
+    ui.on_execute_clicked(move || {
+        dispatch_event(&app_execute, UiMessage::Semantic(Message::ExecuteRequested))
+    });
+    let app_configure = app.clone();
+    ui.on_configure_clicked(move || {
+        dispatch_event(&app_configure, UiMessage::Semantic(Message::ConfigureRequested))
+    });
+    let app_cancel = app.clone();
+    ui.on_cancel_clicked(move || {
+        dispatch_event(&app_cancel, UiMessage::Semantic(Message::CancelRequested))
+    });
+    let app_schedext = app.clone();
+    ui.on_schedext_clicked(move || {
+        dispatch_event(&app_schedext, UiMessage::Semantic(Message::SchedextRequested))
+    });
+    let app_toggle = app.clone();
+    ui.on_row_toggled(move |row| {
+        // the presentation index -> the STABLE raw identity, then the
+        // semantic message (sorting cannot redirect a click)
+        let raw = app_toggle
+            .lock()
+            .ok()
+            .and_then(|s| s.sorted_rows.get(row as usize).map(|r| r.raw.clone()));
+        if let Some(raw) = raw {
+            dispatch_event(
+                &app_toggle,
+                UiMessage::Semantic(Message::KernelToggled { raw }),
+            );
         }
-    } else {
-        ""
-    };
-    button(text(format!("{label}{arrow}")))
-        .on_press(UiMessage::SortRequested { column })
-        .into()
+    });
+    let app_sort = app.clone();
+    ui.on_sort_clicked(move |column| {
+        dispatch_event(
+            &app_sort,
+            UiMessage::SortRequested {
+                column: column as usize,
+            },
+        )
+    });
+    // the shared dialog overlay callbacks (same semantics for every window)
+    let app_err = app.clone();
+    ui.on_dialog_error_dismissed(move || dispatch_event(&app_err, UiMessage::DialogDismissed));
+    let app_conf = app.clone();
+    ui.on_dialog_confirm_answered(move |yes| {
+        dispatch_event(&app_conf, UiMessage::InstallQuestion(yes));
+    });
+    let app_path = app.clone();
+    ui.on_dialog_path_dismissed(move || dispatch_event(&app_path, UiMessage::PathDialogDismissed));
+    let app_path_sub = app.clone();
+    ui.on_dialog_path_submitted(move |value| {
+        dispatch_event(&app_path_sub, UiMessage::PathDialogChanged(value.to_string()));
+        dispatch_event(&app_path_sub, UiMessage::PathDialogSubmitted);
+    });
 }
 
-// -- configure window ---------------------------------------------------------
-
-fn view_configure<'a>(app: &'a App) -> Element<'a, UiMessage> {
-    let title = text(app.tr(tr_ctx::CONF, strings::titles::CONFIGURE)).size(20);
-    let tabs = row![
-        button(text("Options")).on_press(UiMessage::ConfTabClicked(ConfTab::Options)),
-        button(text("Patches")).on_press(UiMessage::ConfTabClicked(ConfTab::Patches)),
-    ]
-    .spacing(8);
-    let body = match app.conf_tab {
-        ConfTab::Options => view_conf_options(app),
-        ConfTab::Patches => view_conf_patches(app),
-    };
-    let buttons = row![
-        button(text(app.tr(tr_ctx::CONF, "Load")))
-            .on_press(UiMessage::PathDialogOpened(PathDialogKind::LoadConfig)),
-        button(text(app.tr(tr_ctx::CONF, "Save")))
-            .on_press(UiMessage::PathDialogOpened(PathDialogKind::SaveConfig)),
-        button(text(app.tr(tr_ctx::CONF, "Cancel"))).on_press(Message::CancelRequested.into()),
-        button(text(app.tr(tr_ctx::CONF, "Build kernel"))).on_press(Message::BuildRequested.into()),
-    ]
-    .spacing(8);
-    container(column![title, tabs, body, buttons].spacing(12).padding(16))
-        .width(iced::Length::Fill)
-        .height(iced::Length::Fill)
-        .into()
-}
-
-fn view_conf_options<'a>(app: &'a App) -> Element<'a, UiMessage> {
-    let variant_combo = pick_list(
-        strings::VARIANT_LABELS.to_vec(),
-        Some(app.configure.variant_label),
-        |label| {
-            let variant = KernelVariant::ALL
+/// Wire the Configure window: combos/checkboxes/patches/name/buttons map to
+/// the semantic UI messages. Combo callbacks carry the SELECTED LABEL
+/// string (Slint 1.17 has no index-change callback); the label is mapped
+/// back through the CURRENT item list, so a stale value from a model change
+/// is ignored.
+fn wire_configure_window(ui: &ConfigureWindow, app: &Arc<Mutex<App>>) {
+    let a = app.clone();
+    ui.on_variant_selected(move |label| {
+        let variant = a.lock().ok().and_then(|s| {
+            KernelVariant::ALL
                 .iter()
+                .find(|v| {
+                    s.tr(tr_ctx::CONF_OPTIONS, crate::configure_window::variant_label(**v))
+                        == label.as_str()
+                })
                 .copied()
-                .find(|v| v.label() == label)
-                .unwrap_or(KernelVariant::Cachyos);
-            UiMessage::VariantPicked(variant)
-        },
-    );
-    let lto_options: Vec<&str> = app
-        .configure
-        .switch
-        .lto_items
-        .iter()
-        .map(|l| l.value())
-        .collect();
-    let lto = pick_list(
-        lto_options,
-        Some(app.configure.switch.lto_selected.value()),
-        |value| {
-            let lto = cachyos_kernel_manager_core::options::LtoMode::ALL
+        });
+        if let Some(variant) = variant {
+            dispatch_event(&a, UiMessage::VariantPicked(variant));
+        }
+    });
+    let a = app.clone();
+    ui.on_check_toggled(move |index| {
+        if let Some(check) = conf_check_at(index as usize) {
+            dispatch_event(&a, UiMessage::CheckToggled(check));
+        }
+    });
+    let a = app.clone();
+    ui.on_lto_selected(move |label| {
+        let value = a.lock().ok().and_then(|s| {
+            s.configure
+                .switch
+                .lto_items
                 .iter()
+                .find(|m| lto_label(**m) == label.as_str())
                 .copied()
-                .find(|l| l.value() == value)
-                .unwrap_or(cachyos_kernel_manager_core::options::LtoMode::None);
-            UiMessage::LtoPicked(lto)
-        },
-    );
-    let preempt_options: Vec<&str> = app
-        .configure
-        .switch
-        .preempt_items
-        .iter()
-        .map(|p| p.value())
-        .collect();
-    let preempt = pick_list(
-        preempt_options,
-        Some(app.configure.switch.preempt_selected.value()),
-        |value| {
-            let preempt = cachyos_kernel_manager_core::options::PreemptMode::ALL
+        });
+        if let Some(lto) = value {
+            dispatch_event(&a, UiMessage::LtoPicked(lto));
+        }
+    });
+    let a = app.clone();
+    ui.on_preempt_selected(move |label| {
+        let value = a.lock().ok().and_then(|s| {
+            s.configure
+                .switch
+                .preempt_items
                 .iter()
+                .find(|m| preempt_label(**m) == label.as_str())
                 .copied()
-                .find(|p| p.value() == value)
-                .unwrap_or(cachyos_kernel_manager_core::options::PreemptMode::Full);
-            UiMessage::PreemptPicked(preempt)
-        },
-    );
-    let hz_options: Vec<&str> = HzTick::ALL.iter().map(|h| h.value()).collect();
-    let hz = pick_list(
-        hz_options,
-        Some(app.configure.switch.hz_selected.value()),
-        |value| {
-            let hz = HzTick::ALL
-                .iter()
-                .copied()
-                .find(|h| h.value() == value)
-                .unwrap_or(HzTick::Hz1000);
-            UiMessage::HzPicked(hz)
-        },
-    );
-    let tickless_options: Vec<&str> = cachyos_kernel_manager_core::options::TicklessMode::ALL
-        .iter()
-        .map(|t| t.value())
-        .collect();
-    let tickless = pick_list(
-        tickless_options,
-        Some(app.configure.tickless.value()),
-        |_| UiMessage::DialogDismissed, // no-op selection (fixed at Full)
-    );
-    let hugepage_options: Vec<&str> = HugepageMode::ALL.iter().map(|h| h.value()).collect();
-    let hugepage = pick_list(
-        hugepage_options,
-        Some(app.configure.hugepage.value()),
-        |_| UiMessage::DialogDismissed, // fixed at Always
-    );
-    let cpu_opt_options: Vec<&str> = CpuOptMode::ALL.iter().map(|c| c.value()).collect();
-    let cpu_opt = pick_list(
-        cpu_opt_options,
-        Some(app.configure.cpu_opt.value()),
-        |_| UiMessage::DialogDismissed, // fixed at Disabled
-    );
-    let custom_name_placeholder = app.tr(tr_ctx::CONF_OPTIONS, "Custom package name");
-    let options = column![
-        variant_combo,
-        checkbox(
-            app.tr(tr_ctx::CONF_OPTIONS, "Enable CachyOS config"),
-            app.configure.switch.cachy_config_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::CachyConfig)),
-        checkbox(
-            app.tr(tr_ctx::CONF_OPTIONS, "Hardly"),
-            app.configure.hardly_checked
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::Hardly)),
-        checkbox(
-            app.tr(
-                tr_ctx::CONF_OPTIONS,
-                "Tweak kernel options prior to a build via nconfig"
-            ),
-            app.configure.nconfig_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::Nconfig)),
-        checkbox(
-            app.tr(
-                tr_ctx::CONF_OPTIONS,
-                "Tweak kernel options prior to a build via xconfig"
-            ),
-            app.configure.xconfig_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::Xconfig)),
-        checkbox(
-            app.tr(tr_ctx::CONF_OPTIONS, "Use Modprobed-db"),
-            app.configure.localmodcfg_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::Localmodcfg)),
-        checkbox(
-            app.tr(tr_ctx::CONF_OPTIONS, "Use the current kernel's config"),
-            app.configure.use_current_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::UseCurrent)),
-        checkbox(
-            app.tr(tr_ctx::CONF_OPTIONS, "Enable KBUILD_CFLAGS -O3"),
-            app.configure.tcp_bbr3_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::TcpBbr3)),
-        checkbox(
-            app.tr(tr_ctx::CONF_OPTIONS, "Set performance governor as default"),
-            app.configure.per_gov_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::PerGov)),
-        checkbox(
-            app.tr(tr_ctx::CONF_OPTIONS, "Enable TCP_CONG_BBR3"),
-            app.configure.tcp_bbr3_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::TcpBbr3)),
-        checkbox(
-            app.tr(tr_ctx::CONF_OPTIONS, "Build the ZFS module"),
-            app.configure.switch.zfs_checked,
-        )
-        .on_toggle_maybe(if app.configure.switch.zfs_enabled {
-            Some(|_| UiMessage::CheckToggled(ConfCheck::Zfs))
-        } else {
-            None
-        }),
-        checkbox(
-            app.tr(tr_ctx::CONF_OPTIONS, "Build the open NVIDIA module"),
-            app.configure.builtin_nvidia_open_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::NvidiaOpen)),
-        checkbox(
-            app.tr(
-                tr_ctx::CONF_OPTIONS,
-                "Include vmlinux with debug informations/symbols"
-            ),
-            app.configure.build_debug_checked,
-        )
-        .on_toggle(|_| UiMessage::CheckToggled(ConfCheck::BuildDebug)),
-        text_input(&custom_name_placeholder, &app.configure.custom_name)
-            .on_input(UiMessage::CustomNameChanged),
-        row![text("Running tick rate"), hz].spacing(8),
-        row![text("Select tickless"), tickless].spacing(8),
-        row![text("Select preempt"), preempt].spacing(8),
-        row![text("Transparent Hugepages"), hugepage].spacing(8),
-        row![text("CPU compiler optimizations"), cpu_opt].spacing(8),
-        row![text("Enable LTO"), lto].spacing(8),
-    ]
-    .spacing(8);
-    scrollable(options).height(iced::Length::Fill).into()
+        });
+        if let Some(preempt) = value {
+            dispatch_event(&a, UiMessage::PreemptPicked(preempt));
+        }
+    });
+    let a = app.clone();
+    ui.on_hz_selected(move |label| {
+        let hz = strings::combo_options::HZ_TICKS
+            .iter()
+            .position(|l| *l == label.as_str())
+            .and_then(|i| HzTick::ALL.get(i))
+            .copied();
+        if let Some(hz) = hz {
+            dispatch_event(&a, UiMessage::HzPicked(hz));
+        }
+    });
+    let a = app.clone();
+    ui.on_tickless_selected(move |label| {
+        let mode = strings::combo_options::TICKLESS
+            .iter()
+            .position(|l| *l == label.as_str())
+            .and_then(|i| TicklessMode::ALL.get(i))
+            .copied();
+        if let Some(mode) = mode {
+            dispatch_event(&a, UiMessage::TicklessPicked(mode));
+        }
+    });
+    let a = app.clone();
+    ui.on_hugepage_selected(move |label| {
+        let mode = strings::combo_options::HUGE_PAGE
+            .iter()
+            .position(|l| *l == label.as_str())
+            .and_then(|i| HugepageMode::ALL.get(i))
+            .copied();
+        if let Some(mode) = mode {
+            dispatch_event(&a, UiMessage::HugepagePicked(mode));
+        }
+    });
+    let a = app.clone();
+    ui.on_cpuopt_selected(move |label| {
+        let mode = strings::combo_options::CPU_OPT
+            .iter()
+            .position(|l| *l == label.as_str())
+            .and_then(|i| CpuOptMode::ALL.get(i))
+            .copied();
+        if let Some(mode) = mode {
+            dispatch_event(&a, UiMessage::CpuOptPicked(mode));
+        }
+    });
+    let a = app.clone();
+    ui.on_custom_name_changed(move |value| {
+        dispatch_event(&a, UiMessage::CustomNameChanged(value.to_string()));
+    });
+    let a = app.clone();
+    ui.on_patches_add_local(move || {
+        dispatch_event(&a, UiMessage::PathDialogOpened(PathDialogKind::AddLocalPatch));
+    });
+    let a = app.clone();
+    ui.on_patches_add_remote(move || {
+        dispatch_event(&a, UiMessage::PathDialogOpened(PathDialogKind::AddRemotePatch));
+    });
+    let a = app.clone();
+    ui.on_patch_remove(move |index| {
+        dispatch_event(&a, UiMessage::PatchOp(ConfPatchOp::Remove(index as usize)));
+    });
+    let a = app.clone();
+    ui.on_patch_up(move |index| {
+        dispatch_event(&a, UiMessage::PatchOp(ConfPatchOp::MoveUp(index as usize)));
+    });
+    let a = app.clone();
+    ui.on_patch_down(move |index| {
+        dispatch_event(&a, UiMessage::PatchOp(ConfPatchOp::MoveDown(index as usize)));
+    });
+    let a = app.clone();
+    ui.on_save_clicked(move || {
+        dispatch_event(&a, UiMessage::PathDialogOpened(PathDialogKind::SaveConfig));
+    });
+    let a = app.clone();
+    ui.on_load_clicked(move || {
+        dispatch_event(&a, UiMessage::PathDialogOpened(PathDialogKind::LoadConfig));
+    });
+    let a = app.clone();
+    ui.on_execute_clicked(move || {
+        dispatch_event(&a, UiMessage::Semantic(Message::BuildRequested));
+    });
+    let a = app.clone();
+    ui.on_cancel_clicked(move || {
+        dispatch_event(&a, UiMessage::Semantic(Message::ConfigurationCancelRequested));
+    });
+    // the shared dialog overlay callbacks
+    let a = app.clone();
+    ui.on_dialog_error_dismissed(move || dispatch_event(&a, UiMessage::DialogDismissed));
+    let a = app.clone();
+    ui.on_dialog_confirm_answered(move |yes| {
+        dispatch_event(&a, UiMessage::InstallQuestion(yes));
+    });
+    let a = app.clone();
+    ui.on_dialog_path_dismissed(move || dispatch_event(&a, UiMessage::PathDialogDismissed));
+    let a = app.clone();
+    ui.on_dialog_path_submitted(move |value| {
+        dispatch_event(&a, UiMessage::PathDialogChanged(value.to_string()));
+        dispatch_event(&a, UiMessage::PathDialogSubmitted);
+    });
+    // the WM close: closes ONLY the Configure window (ConfigurationCloseRequested)
+    let a = app.clone();
+    ui.window().on_close_requested(move || {
+        dispatch_event(&a, UiMessage::Semantic(Message::ConfigurationCloseRequested));
+        slint::CloseRequestResponse::HideWindow
+    });
 }
 
-fn view_conf_patches<'a>(app: &'a App) -> Element<'a, UiMessage> {
-    let mut list = column![].spacing(4);
-    for (i, patch) in app.configure.patches.iter().enumerate() {
-        list = list.push(
-            row![
-                text(patch).width(iced::Length::Fill),
-                button(text("↑")).on_press(UiMessage::PatchOp(ConfPatchOp::MoveUp(i))),
-                button(text("↓")).on_press(UiMessage::PatchOp(ConfPatchOp::MoveDown(i))),
-                button(text("✕")).on_press(UiMessage::PatchOp(ConfPatchOp::Remove(i))),
-            ]
-            .spacing(4),
-        );
-    }
-    let buttons = row![
-        button(text(app.tr(tr_ctx::CONF_PATCHES, "Add local patch")))
-            .on_press(UiMessage::PathDialogOpened(PathDialogKind::AddLocalPatch)),
-        button(text(app.tr(tr_ctx::CONF_PATCHES, "Add remote patch")))
-            .on_press(UiMessage::PathDialogOpened(PathDialogKind::AddRemotePatch)),
-    ]
-    .spacing(8);
-    column![
-        scrollable(list).height(iced::Length::FillPortion(3)),
-        buttons
-    ]
-    .spacing(8)
-    .into()
-}
-
-fn view_path_dialog<'a>(dialog: &'a PathDialog) -> Element<'a, UiMessage> {
-    column![
-        text(&dialog.title),
-        text_input("", &dialog.value).on_input(UiMessage::PathDialogChanged),
-        row![
-            button(text("OK")).on_press(UiMessage::PathDialogSubmitted),
-            button(text("Cancel")).on_press(UiMessage::PathDialogDismissed),
-        ]
-        .spacing(8),
-    ]
-    .spacing(12)
-    .width(360)
-    .into()
-}
-
-// -- sched-ext window ---------------------------------------------------------
-
-fn view_scx<'a>(app: &'a App) -> Element<'a, UiMessage> {
-    let Some(scx) = &app.scx else {
-        return column![].into();
-    };
-    let title = text(app.tr(tr_ctx::SCX, "Configure sched-ext scheduler:")).size(18);
-    let running = row![
-        text(app.tr(tr_ctx::SCX, "Running sched-ext scheduler:")),
-        text(&scx.running_scheduler),
-    ]
-    .spacing(8);
-    let scheduler_combo = pick_list(
-        scx.schedulers.clone(),
-        Some(&scx.scheduler),
-        UiMessage::ScxSchedulerPicked,
-    );
-    let scheduler_row = row![
-        text(app.tr(tr_ctx::SCX, "Select sched-ext scheduler:")),
-        scheduler_combo,
-    ]
-    .spacing(8);
-    let profile_row: Element<'_, UiMessage> = if scx.profile_visible {
-        row![
-            text(app.tr(tr_ctx::SCX, "Select scheduler profile:")),
-            pick_list(
-                cachyos_kernel_manager_scx::window::PROFILE_ITEMS.to_vec(),
-                Some(scx.profile.as_str()),
-                |p| UiMessage::ScxProfilePicked(p.to_string()),
-            ),
-        ]
-        .spacing(8)
-        .into()
-    } else {
-        horizontal_space().into()
-    };
-    let flags_row = row![
-        text(app.tr(tr_ctx::SCX, "Set sched-ext extra scheduler flags:")),
-        text_input("", &scx.flags)
-            .on_input(UiMessage::ScxFlagsChanged)
-            .width(iced::Length::Fill),
-    ]
-    .spacing(8);
-    let buttons = row![
-        button(text("Disable")).on_press(UiMessage::ScxDisable),
-        button(text("Apply")).on_press(UiMessage::ScxApply),
-    ]
-    .spacing(8);
-    column![
-        title,
-        running,
-        scheduler_row,
-        profile_row,
-        flags_row,
-        buttons
-    ]
-    .spacing(12)
-    .padding(16)
-    .width(420)
-    .into()
-}
-
-// -- dialogs ------------------------------------------------------------------
-
-fn view_progress<'a>(app: &'a App, message: &str) -> Element<'a, UiMessage> {
-    column![
-        text(app.tr(tr_ctx::MAIN, message)),
-        progress_bar(0.0..=1.0, 0.0),
-    ]
-    .spacing(12)
-    .width(340)
-    .into()
-}
-
-fn view_error<'a>(app: &'a App, message: &str) -> Element<'a, UiMessage> {
-    column![
-        text(app.tr(tr_ctx::MAIN, message)),
-        button(text("OK")).on_press(UiMessage::DialogDismissed),
-    ]
-    .spacing(12)
-    .width(360)
-    .into()
-}
-
-fn view_confirm<'a>(app: &'a App, message: &str) -> Element<'a, UiMessage> {
-    column![
-        text(app.tr(tr_ctx::MAIN, message)),
-        row![
-            button(text("Yes")).on_press(UiMessage::InstallQuestion(true)),
-            button(text("No")).on_press(UiMessage::InstallQuestion(false)),
-        ]
-        .spacing(8),
-    ]
-    .spacing(12)
-    .width(360)
-    .into()
+/// Wire the sched-ext window (combos, flags, apply/disable/close).
+fn wire_scx_window(ui: &SchedExtWindow, app: &Arc<Mutex<App>>) {
+    let a = app.clone();
+    ui.on_scheduler_selected(move |label| {
+        let scheduler = a
+            .lock()
+            .ok()
+            .and_then(|s| s.scx.as_ref().and_then(|m| m.schedulers.iter().find(|s| s.as_str() == label.as_str()).cloned()));
+        if let Some(scheduler) = scheduler {
+            dispatch_event(&a, UiMessage::ScxSchedulerPicked(scheduler));
+        }
+    });
+    let a = app.clone();
+    ui.on_profile_selected(move |label| {
+        if strings::combo_options::SCX_PROFILE.contains(&label.as_str()) {
+            dispatch_event(&a, UiMessage::ScxProfilePicked(label.to_string()));
+        }
+    });
+    let a = app.clone();
+    ui.on_flags_changed(move |value| {
+        dispatch_event(&a, UiMessage::ScxFlagsChanged(value.to_string()));
+    });
+    let a = app.clone();
+    ui.on_apply_clicked(move || dispatch_event(&a, UiMessage::ScxApply));
+    let a = app.clone();
+    ui.on_disable_clicked(move || dispatch_event(&a, UiMessage::ScxDisable));
+    let a = app.clone();
+    ui.on_cancel_clicked(move || {
+        dispatch_event(&a, UiMessage::Semantic(Message::ScxCloseRequested));
+    });
+    // the shared dialog overlay callbacks
+    let a = app.clone();
+    ui.on_dialog_error_dismissed(move || dispatch_event(&a, UiMessage::DialogDismissed));
+    let a = app.clone();
+    ui.on_dialog_confirm_answered(move |yes| {
+        dispatch_event(&a, UiMessage::InstallQuestion(yes));
+    });
+    let a = app.clone();
+    ui.on_dialog_path_dismissed(move || dispatch_event(&a, UiMessage::PathDialogDismissed));
+    let a = app.clone();
+    ui.on_dialog_path_submitted(move |value| {
+        dispatch_event(&a, UiMessage::PathDialogChanged(value.to_string()));
+        dispatch_event(&a, UiMessage::PathDialogSubmitted);
+    });
+    // the WM close: hides ONLY the sched-ext window (the app stays alive)
+    let a = app.clone();
+    ui.window().on_close_requested(move || {
+        dispatch_event(&a, UiMessage::Semantic(Message::ScxCloseRequested));
+        slint::CloseRequestResponse::HideWindow
+    });
 }
 
 #[cfg(test)]
@@ -1665,6 +2725,7 @@ mod tests {
             system_locale: "en_US".into(),
             config_path: "/tmp/km-test/scx_loader.toml".into(),
             aur_enabled: false,
+            verbose: false,
         }
     }
 
@@ -1729,7 +2790,7 @@ mod tests {
         assert!(!app.state.execute_enabled());
         let _ = update(
             &mut app,
-            UiMessage::Semantic(Message::KernelToggled { row: 0 }),
+            UiMessage::Semantic(Message::KernelToggled { raw: "cachyos/linux-cachyos".into() }),
         );
         assert!(app.state.execute_enabled());
         assert_eq!(app.state.phase(), AppPhase::SelectionChanged);
@@ -1762,7 +2823,7 @@ mod tests {
         let mut app = app();
         let _ = update(&mut app, UiMessage::Semantic(Message::ConfigureRequested));
         assert_eq!(app.state.configuration, ConfigurationState::Preparing);
-        let _ = update(&mut app, UiMessage::ConfigurePrepared);
+        let _ = update(&mut app, UiMessage::ConfigurePrepared(vec![]));
         assert_eq!(app.state.configuration, ConfigurationState::Editing);
     }
 
@@ -1798,7 +2859,7 @@ mod tests {
     fn build_success_asks_the_install_question() {
         let mut app = app();
         let _ = update(&mut app, UiMessage::Semantic(Message::ConfigureRequested));
-        let _ = update(&mut app, UiMessage::ConfigurePrepared);
+        let _ = update(&mut app, UiMessage::ConfigurePrepared(vec![]));
         let _ = update(&mut app, UiMessage::BuildFinished { success: true });
         assert_eq!(app.state.build, BuildState::Completed);
         assert!(matches!(app.state.dialogs, DialogsState::Confirm { .. }));
@@ -1857,5 +2918,51 @@ mod tests {
         assert_eq!(app.state.lifecycle, LifecycleState::Shutdown);
     }
 
+    #[test]
+    fn remaining_option_combos_feed_the_model() {
+        // review seam #9: tickless/hugepage/cpu-opt were no-ops — they now
+        // write the configure model AND the core build_options
+        let mut app = app();
+        let _ = update(&mut app, UiMessage::TicklessPicked(TicklessMode::Idle));
+        let _ = update(&mut app, UiMessage::HugepagePicked(HugepageMode::Madvise));
+        let _ = update(&mut app, UiMessage::CpuOptPicked(CpuOptMode::Native));
+        assert_eq!(app.configure.tickless, TicklessMode::Idle);
+        assert_eq!(app.configure.hugepage, HugepageMode::Madvise);
+        assert_eq!(app.configure.cpu_opt, CpuOptMode::Native);
+        assert_eq!(app.state.build_options.tickless, TicklessMode::Idle);
+        assert_eq!(app.state.build_options.hugepage, HugepageMode::Madvise);
+        assert_eq!(app.state.build_options.cpu_opt, CpuOptMode::Native);
+        // a checkbox change mirrors into build_options too (seam #6: the
+        // build env string must reflect the real UI state)
+        let _ = update(&mut app, UiMessage::CheckToggled(ConfCheck::PerGov));
+        assert_eq!(app.configure.per_gov_checked, true);
+        assert_eq!(app.state.build_options.per_gov, true);
+        let _ = update(&mut app, UiMessage::CustomNameChanged("my-kernel".into()));
+        assert_eq!(app.state.build_options.custom_name, "my-kernel");
+    }
+
+    #[test]
+    fn scx_window_close_hides_only_the_scx_window() {
+        let mut app = app();
+        // reach Ready (the schedext button requires a loaded catalog)
+        let _ = update(
+            &mut app,
+            UiMessage::CatalogLoaded(Box::new(CatalogPayload {
+                rows: vec![],
+                kernels: BTreeMap::new(),
+                installed: BTreeMap::new(),
+                hardware: HardwareProfile::default(),
+            })),
+        );
+        let _ = update(&mut app, UiMessage::Semantic(Message::SchedextRequested));
+        assert_eq!(app.state.scx, ScxState::Visible);
+        let _ = update(&mut app, UiMessage::ScxWindowClosed);
+        assert_eq!(app.state.scx, ScxState::Hidden);
+        // the app is still alive (no Close effect)
+        assert_eq!(app.state.lifecycle, LifecycleState::Ready);
+    }
+
     use cachyos_kernel_manager_core::options::LtoMode;
+    use cachyos_kernel_manager_core::options::{CpuOptMode, HugepageMode, TicklessMode};
+    use cachyos_kernel_manager_core::state::ScxState;
 }

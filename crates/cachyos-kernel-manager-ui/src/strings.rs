@@ -26,6 +26,39 @@ pub mod titles {
 /// The main window's description label (`km-window.ui:27`).
 pub const MAIN_DESCRIPTION_HTML: &str = "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install/uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work if you are already running a pacman instance.</p>\n</body>\n</html>";
 
+/// The main window's description rendered as PLAIN TEXT. The oracle shows
+/// the HTML literal above as Qt rich text (`km-window.ui:27`); iced has no
+/// HTML renderer, so the view strips the tags (the courted string
+/// inventory keeps the raw HTML literal unchanged — only the presentation
+/// differs, which the window-choreography note in `app.rs` declares a
+/// rendering choice).
+pub fn main_description_plain() -> String {
+    strip_html(MAIN_DESCRIPTION_HTML)
+}
+
+/// Remove the markup from a small fixed HTML string and keep the paragraph
+/// breaks: each `<p>` block becomes its own line (the oracle renders the
+/// three sentences as separate Qt-rich-text paragraphs).
+fn strip_html(html: &str) -> String {
+    let mut out = String::new();
+    let mut in_tag = false;
+    for ch in html.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' => in_tag = false,
+            _ if !in_tag => out.push(ch),
+            _ => {}
+        }
+    }
+    // the tags leave blank lines; collapse runs of blank lines into ONE
+    // newline so the three sentences render as three separate lines
+    out.split('\n')
+        .map(|line| line.trim())
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// The kernels tree columns (`km-window.ui:66-81`).
 pub mod tree_columns {
     pub const CHOOSE: &str = "Choose";
@@ -600,4 +633,31 @@ pub fn inventory() -> &'static [(&'static str, &'static str, &'static str)] {
             stderr::FAILED_WRITE_CONFIG,
         ),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn description_plain_text_drops_the_markup() {
+        let plain = main_description_plain();
+        assert!(!plain.contains('<'));
+        assert!(!plain.contains("</p>"));
+        assert!(plain.contains("Here you'll see information about currently installed and available Linux kernels."));
+        assert!(plain.contains("You can install/uninstall kernel packages using the checkboxes on the leftmost column."));
+        assert!(plain.contains("This app won't work if you are already running a pacman instance."));
+        // the three paragraphs render as three separate lines
+        assert_eq!(plain.lines().count(), 3);
+        assert!(!plain.contains("\n\n"));
+    }
+
+    #[test]
+    fn raw_description_literal_is_unchanged_for_the_inventory_court() {
+        // the courted inventory compares the RAW HTML literal against the
+        // oracle's km-window.ui:27 string — it must stay byte-exact
+        assert!(MAIN_DESCRIPTION_HTML.starts_with("<html>"));
+        assert!(MAIN_DESCRIPTION_HTML.ends_with("</html>"));
+        assert!(MAIN_DESCRIPTION_HTML.contains("<p>"));
+    }
 }

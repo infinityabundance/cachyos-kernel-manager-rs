@@ -16,6 +16,10 @@ Comment[it]=Gestisci i kernel
 Comment[ja]=カーネルを管理
 Icon=org.cachyos.KernelManager
 Terminal=false
+# KWin groups all three windows (main/configure/sched-ext) under the single
+# taskbar icon by matching this against the windows' WM_CLASS
+# (res_class = the xdg app id set via set_xdg_app_id).
+StartupWMClass=org.cachyos.KernelManager
 StartupNotify=false
 Categories=Qt;System;
 X-AppStream-Ignore=true

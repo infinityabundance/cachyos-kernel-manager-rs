@@ -15,4 +15,10 @@ courts/*/*/evidence.json
 
 # VM build artifacts are regenerable from the build scripts, never committed
 vm/images/
+# the interactive demo VM (qcow2 + iso + served binary)
+vm/demo/
 .scratch/
+
+# local GUI run logs
+km-*.log
+LOG.txt

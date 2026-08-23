@@ -1,0 +1,175 @@
+// ui/scx_window.slint — the sched-ext window (Phase 8, Slint port).
+//
+// Replaces the main-window placeholder: the running-scheduler label, the
+// scheduler combo (the loader's supported list), the profile combo
+// (visible only for scx_bpfland/scx_lavd), the flags input, and the
+// Cancel/Disable/Apply buttons. The DECISIONS live in the scx crate
+// (courted); this file is the presentation of ScxWindowModel.
+//
+// The WM close is wired from Rust via `window().on_close_requested`
+// (ScxWindowClosed — hides only this window, the app stays alive).
+//
+// Sizing notes:
+// - the fluent ComboBox/LineEdit default to `horizontal-stretch: 1`, which
+//   would balloon them across the whole window; each instance overrides it
+//   with `horizontal-stretch: 0` + a normal `width`.
+// - the min size equals the default size: the dialog can be made BIGGER but
+//   never smaller than its natural layout (a window-min requirement).
+
+import { VerticalBox, HorizontalBox, Button, ComboBox, LineEdit } from "std-widgets.slint";
+import { CachyosButton } from "buttons.slint";
+import { DialogOverlay } from "dialogs.slint";
+
+export component SchedExtWindow inherits Window {
+    title: "CachyOS Configure sched-ext";
+    icon: @image-url("org.cachyos.KernelManager.png");
+    // initial size set from Rust (window().set_size). The minimums pin the
+    // dialog at its default size (bigger is allowed, smaller is not). They are
+    // declared BOTH on the Window (the constraint the winit adapter reads via
+    // the root component's layout_info) AND on the content root below (the
+    // content-layout min is the path proven to reach the WM). The Rust side
+    // runs a 30ms clamp timer as a belt-and-suspenders fallback.
+    min-width: 480px;
+    min-height: 320px;
+
+    in property <string> label-running;
+    in property <string> running;
+    in property <string> label-scheduler;
+    in property <[string]> schedulers;
+    in property <int> scheduler-index;
+    in property <string> label-profile;
+    in property <[string]> profiles;
+    in property <int> profile-index;
+    in property <bool> profile-visible;
+    in property <string> label-flags;
+    in property <string> flags;
+    in property <bool> enabled;
+    in property <string> label-apply;
+    in property <string> label-disable;
+    in property <string> label-cancel;
+    // the shared dialog overlay state (scx errors appear over this window)
+    in property <bool> dialog-progress-visible;
+    in property <string> dialog-progress-message;
+    in property <bool> dialog-error-visible;
+    in property <string> dialog-error-message;
+    in property <bool> dialog-confirm-visible;
+    in property <string> dialog-confirm-message;
+    in property <bool> dialog-path-visible;
+    in property <string> dialog-path-title;
+    in property <string> dialog-path-value;
+
+    callback dialog-error-dismissed();
+    callback dialog-confirm-answered(bool);
+    callback dialog-path-dismissed();
+    callback dialog-path-submitted(string);
+
+    callback scheduler-selected(string);
+    callback profile-selected(string);
+    callback flags-changed(string);
+    callback apply-clicked();
+    callback disable-clicked();
+    callback cancel-clicked();
+
+    VerticalBox {
+        // the window minimums: the dialog can be made BIGGER but never
+        // smaller than its default size (480x320 — the Rust clamp matches)
+        min-width: 480px;
+        min-height: 320px;
+        spacing: 10px;
+        padding: 10px;
+
+        HorizontalBox {
+            vertical-stretch: 0;
+            spacing: 8px;
+            Text { text: root.label-running; vertical-alignment: center; }
+            Text { text: root.running; vertical-alignment: center; }
+        }
+        HorizontalBox {
+            vertical-stretch: 0;
+            spacing: 8px;
+            // NO fixed label width: "Select sched-ext scheduler:" was being
+            // clipped at 120px into "Select sched-ext s"
+            Text { text: root.label-scheduler; vertical-alignment: center; }
+            ComboBox {
+                model: root.schedulers;
+                current-index: root.scheduler-index;
+                enabled: root.enabled;
+                selected(v) => { root.scheduler-selected(v); }
+                horizontal-stretch: 0;
+                height: 32px;
+                width: 220px;
+            }
+        }
+        if root.profile-visible : HorizontalBox {
+            vertical-stretch: 0;
+            spacing: 8px;
+            Text { text: root.label-profile; vertical-alignment: center; }
+            ComboBox {
+                model: root.profiles;
+                current-index: root.profile-index;
+                enabled: root.enabled;
+                selected(v) => { root.profile-selected(v); }
+                horizontal-stretch: 0;
+                height: 32px;
+                width: 220px;
+            }
+        }
+        VerticalBox {
+            vertical-stretch: 0;
+            spacing: 4px;
+            Text { text: root.label-flags; }
+            LineEdit {
+                text: root.flags;
+                enabled: root.enabled;
+                edited => { root.flags-changed(self.text); }
+                horizontal-stretch: 0;
+                height: 32px;
+                width: 300px;
+            }
+        }
+        // the buttons: Cancel, Disable, Apply — right-aligned, 32px tall
+        // (leaf-pinned to the main window's natural button height)
+        HorizontalBox {
+            vertical-stretch: 0;
+            spacing: 8px;
+            Rectangle { horizontal-stretch: 1; }
+            Button {
+                text: root.label-cancel;
+                min-width: 88px;
+                height: 32px;
+                clicked => { root.cancel-clicked(); }
+            }
+            Button {
+                text: root.label-disable;
+                min-width: 88px;
+                height: 32px;
+                enabled: root.enabled;
+                clicked => { root.disable-clicked(); }
+            }
+            CachyosButton {
+                text: root.label-apply;
+                primary: true;
+                height: 32px;
+                enabled: root.enabled;
+                clicked => { root.apply-clicked(); }
+            }
+        }
+    }
+
+    // the shared dialog overlay (on top of the window content)
+    DialogOverlay {
+        progress-visible: root.dialog-progress-visible;
+        progress-message: root.dialog-progress-message;
+        error-visible: root.dialog-error-visible;
+        error-message: root.dialog-error-message;
+        confirm-visible: root.dialog-confirm-visible;
+        confirm-message: root.dialog-confirm-message;
+        path-visible: root.dialog-path-visible;
+        path-title: root.dialog-path-title;
+        path-value: root.dialog-path-value;
+        error-dismissed => { root.dialog-error-dismissed(); }
+        confirm-answered(yes) => { root.dialog-confirm-answered(yes); }
+        path-dismissed => { root.dialog-path-dismissed(); }
+        path-submitted(v) => { root.dialog-path-submitted(v); }
+    }
+}

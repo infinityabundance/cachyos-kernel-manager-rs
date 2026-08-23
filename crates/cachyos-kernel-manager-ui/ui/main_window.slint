@@ -1,0 +1,200 @@
+// ui/main_window.slint — the candidate's main window (Phase 8, Slint port).
+//
+// The semantics live in Rust (the courted AppState + models); this file is
+// the presentation: the kernels tree (sortable headers + one checkbox per
+// row), the description, the action buttons, and the shared dialog overlay
+// (progress/error/confirm/file-path — rendered IN this window so the dialogs
+// never become separate taskbar entries).
+//
+// The window icon is the oracle's green CachyOS Kernel Manager icon
+// (icons/128x128/org.cachyos.KernelManager.png), embedded at build time.
+
+import { VerticalBox, HorizontalBox, Button, CheckBox, ScrollView } from "std-widgets.slint";
+import { CachyosButton } from "buttons.slint";
+import { DialogOverlay } from "dialogs.slint";
+
+export struct TreeRow {
+    raw: string,
+    version: string,
+    category: string,
+    checked: bool,
+    immutable: bool,
+}
+
+export component MainWindow inherits Window {
+    title: "CachyOS Kernel Manager";
+    icon: @image-url("org.cachyos.KernelManager.png");
+    // The initial size is set from Rust via window().set_size() (writable,
+    // so the user's resizes stick). A `width` binding would make this window
+    // fixed-size in Slint 1.17 — but `min-width`/`min-height` are layout
+    // CONSTRAINTS: the compiler folds them into the window's layout info, the
+    // winit adapter turns them into min_inner_size, and the window manager
+    // refuses to resize below them. 720x540 guarantees the version/category
+    // columns (150px + 180px + the 52px checkbox column + the stretchy
+    // package-name column) always stay fully visible and aligned.
+    min-width: 720px;
+    min-height: 540px;
+
+    in property <string> description;
+    in property <[TreeRow]> rows;
+    in property <bool> execute-enabled;
+    in property <bool> schedext-visible;
+    in property <string> label-choose;
+    in property <string> label-pkgname;
+    in property <string> label-version;
+    in property <string> label-category;
+    in property <string> label-execute;
+    in property <string> label-configure;
+    in property <string> label-cancel;
+    in property <string> label-schedext;
+    // the shared dialog overlay state
+    in property <bool> dialog-progress-visible;
+    in property <string> dialog-progress-message;
+    in property <bool> dialog-error-visible;
+    in property <string> dialog-error-message;
+    in property <bool> dialog-confirm-visible;
+    in property <string> dialog-confirm-message;
+    in property <bool> dialog-path-visible;
+    in property <string> dialog-path-title;
+    in property <string> dialog-path-value;
+
+    callback execute-clicked();
+    callback configure-clicked();
+    callback cancel-clicked();
+    callback schedext-clicked();
+    callback row-toggled(int);
+    callback sort-clicked(int);
+    callback dialog-error-dismissed();
+    callback dialog-confirm-answered(bool);
+    callback dialog-path-dismissed();
+    callback dialog-path-submitted(string);
+
+    VerticalBox {
+        Text {
+            text: root.description;
+            wrap: word-wrap;
+        }
+
+        // The sortable table header (the oracle's QTreeWidgetHeader). Each
+        // column has a FIXED width shared with the rows below, so the header
+        // and the cells align in neat rows: 52px checkbox, stretchy PkgName,
+        // 150px Version, 180px Category. The header strip has a subtle
+        // background like a native table header.
+        Rectangle {
+            height: 30px;
+            background: #80808026;
+            HorizontalBox {
+                TouchArea {
+                    width: 52px;
+                    clicked => { root.sort-clicked(0); }
+                    Text {
+                        text: root.label-choose;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                        width: 100%;
+                        height: 100%;
+                    }
+                }
+                TouchArea {
+                    horizontal-stretch: 1;
+                    clicked => { root.sort-clicked(1); }
+                    Text {
+                        text: root.label-pkgname;
+                        font-weight: 700;
+                        vertical-alignment: center;
+                        width: 100%;
+                        height: 100%;
+                    }
+                }
+                TouchArea {
+                    width: 150px;
+                    clicked => { root.sort-clicked(2); }
+                    Text {
+                        text: root.label-version;
+                        font-weight: 700;
+                        vertical-alignment: center;
+                        width: 100%;
+                        height: 100%;
+                    }
+                }
+                TouchArea {
+                    width: 180px;
+                    clicked => { root.sort-clicked(3); }
+                    Text {
+                        text: root.label-category;
+                        font-weight: 700;
+                        vertical-alignment: center;
+                        width: 100%;
+                        height: 100%;
+                    }
+                }
+            }
+        }
+
+        ScrollView {
+            VerticalBox {
+                spacing: 2px;
+                for row[i] in root.rows : HorizontalBox {
+                    spacing: 0px;
+                    CheckBox {
+                        width: 52px;
+                        checked: row.checked;
+                        // NEVER disabled: the oracle's `init_kernels_tree_widget`
+                        // (km-window.cpp:89-106) keeps every checkbox user-
+                        // toggleable — installed kernels start CHECKED with the
+                        // Immutable column set as DATA only. Unchecking an
+                        // installed kernel queues its REMOVAL (build_change_list,
+                        // km-window.cpp:307-311). Greying it out deviated from
+                        // the oracle.
+                        toggled => { root.row-toggled(i); }
+                    }
+                    Text { text: row.raw; horizontal-stretch: 1; }
+                    Text { text: row.version; width: 150px; }
+                    Text { text: row.category; width: 180px; }
+                }
+            }
+        }
+
+        // the action buttons (the sched-ext button is visible only when the
+        // sysfs state file exists)
+        HorizontalBox {
+            spacing: 8px;
+            if root.schedext-visible : Button {
+                text: root.label-schedext;
+                clicked => { root.schedext-clicked(); }
+            }
+            Button {
+                text: root.label-configure;
+                clicked => { root.configure-clicked(); }
+            }
+            Button {
+                text: root.label-cancel;
+                clicked => { root.cancel-clicked(); }
+            }
+            CachyosButton {
+                text: root.label-execute;
+                enabled: root.execute-enabled;
+                primary: true;
+                clicked => { root.execute-clicked(); }
+            }
+        }
+    }
+
+    // the shared dialog overlay (on top of the window content)
+    DialogOverlay {
+        progress-visible: root.dialog-progress-visible;
+        progress-message: root.dialog-progress-message;
+        error-visible: root.dialog-error-visible;
+        error-message: root.dialog-error-message;
+        confirm-visible: root.dialog-confirm-visible;
+        confirm-message: root.dialog-confirm-message;
+        path-visible: root.dialog-path-visible;
+        path-title: root.dialog-path-title;
+        path-value: root.dialog-path-value;
+        error-dismissed => { root.dialog-error-dismissed(); }
+        confirm-answered(yes) => { root.dialog-confirm-answered(yes); }
+        path-dismissed => { root.dialog-path-dismissed(); }
+        path-submitted(v) => { root.dialog-path-submitted(v); }
+    }
+}

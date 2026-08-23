@@ -21,18 +21,29 @@ cachyos-kernel-manager-i18n = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
-# Phase 8: the Iced rendering layer (feature-gated; the semantic models and
-# the strings/main-window/configure-window courts do not need it).
-iced = { version = "0.13", default-features = false, features = ["wgpu", "tokio", "image", "svg"], optional = true }
+# Phase 8: the Slint rendering layer (feature-gated; the semantic models
+# and the strings/main-window/configure-window courts do not need it).
+# Slint's default desktop backend = winit + the FEMTOVG software renderer:
+# no GL/Vulkan requirement, so the GUI runs in VMs with zero GPU setup
+# (the wgpu-based iced port needed WGPU_BACKEND=gl + software GL in qemu).
+slint = { version = "1.17", optional = true }
+# the internal core crate, used to set the runtime ACCENT COLOR (the fluent
+# style derives every accent from SlintContext.accent_color via accentify;
+# the system-accent XDG path is unavailable in the VM, so without this the
+# widgets fall back to the BLUE accent). Version-locked to slint 1.17.1.
+i-slint-core = { version = "=1.17.1", optional = true }
 tokio = { version = "1", features = ["sync", "rt-multi-thread", "macros"], optional = true }
 # the real libalpm backend (the alpm crate's FFI is behind ITS libalpm
 # feature; CI cannot build it — the GUI falls back to the empty catalog).
-# The scx-dbus feature enables the real org.scx.Loader client.
-zbus = { version = "=5.5.0", default-features = false, features = ["tokio"], optional = true }
+# the real org.scx.Loader D-Bus client (the scx crate's dbus feature).
+zbus = { version = "5.19", default-features = false, features = ["tokio"], optional = true }
+
+[build-dependencies]
+slint-build = "1.17"
 
 [features]
 default = []
-rendering = ["dep:iced", "dep:tokio"]
+rendering = ["dep:slint", "dep:tokio", "dep:i-slint-core"]
 # the real libalpm discovery (packaging enables this; CI/dev without system
 # libalpm uses the empty-catalog fallback).
 alpm = ["cachyos-kernel-manager-alpm/libalpm"]
@@ -63,3 +74,7 @@ required-features = ["rendering"]
 
 [dev-dependencies]
 serde_json = { workspace = true }
+# headless rendering for the layout-preview integration test (renders the
+# real windows to PNGs with dummy data — no display, no kernel logic).
+i-slint-backend-testing = { version = "1.17", features = ["renderer-software"] }
+image = "0.25"

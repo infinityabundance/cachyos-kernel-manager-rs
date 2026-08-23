@@ -191,7 +191,17 @@ pub enum AppEvent {
     InstallArtifactsRequested,
     ArtifactsInstalled,
     ScxToggleRequested,
+    /// Close the MAIN window (the oracle's closeEvent exits the app).
     CloseRequested,
+    /// The Configure window's Cancel/Close: closes the CONFIGURE window,
+    /// NOT the app (the oracle's `on_cancel`, conf-window.cpp:565-570).
+    ConfigurationCancelRequested,
+    ConfigurationCloseRequested,
+    /// The sched-ext window's close: hides the SCX window, NOT the app
+    /// (the oracle's schedext-window closeEvent just closes the window;
+    /// the main window stays alive and can reopen it). Distinct from
+    /// `ScxToggleRequested` (the button: toggle + re-init).
+    ScxWindowClosed,
 }
 
 /// The application model — orthogonal state components (Phase 8).
@@ -319,6 +329,14 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
             effects.push(Effect::ShowProgress {
                 message: "Please wait...\nInitializing kernels..".into(),
             });
+            // The oracle discovers kernels SYNCHRONOUSLY at construction
+            // (`km-window.hpp:141`: `m_kernels = Kernel::get_kernels(m_handle)`
+            // runs before the window shows). The candidate runs the same
+            // discovery as a background task — WITHOUT this effect the app
+            // sat on the "Initializing kernels.." dialog forever with an
+            // empty catalog (the observed VM hang: phase stuck in
+            // KernelDiscovery, no CatalogLoaded ever arriving).
+            effects.push(Effect::RefreshKernels);
         }
         AppEvent::DiscoveryFinished => {
             next.lifecycle = LifecycleState::Ready;
@@ -398,6 +416,19 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
             next.lifecycle = LifecycleState::Shutdown;
             effects.push(Effect::Close);
         }
+        AppEvent::ScxWindowClosed => {
+            // the window closed: hide it; the UI layer re-hides the Slint
+            // window on sync. No ToggleScxWindow effect (no re-init — the
+            // oracle's closeEvent has no side effects).
+            next.scx = ScxState::Hidden;
+        }
+        // the Configure window's Cancel/Close dismisses ONLY the Configure
+        // window (`on_cancel` conf-window.cpp:565-570: hide + reset); the
+        // main window stays alive
+        AppEvent::ConfigurationCancelRequested | AppEvent::ConfigurationCloseRequested => {
+            next.configuration = ConfigurationState::Closed;
+            effects.push(Effect::HideProgress);
+        }
     }
     (next, effects)
 }
@@ -420,6 +451,10 @@ mod tests {
         assert_eq!(s.lifecycle, LifecycleState::KernelDiscovery);
         assert_eq!(s.phase(), AppPhase::KernelDiscovery);
         assert!(fx.iter().any(|e| matches!(e, Effect::ShowProgress { .. })));
+        // the oracle discovers at construction; the startup MUST spawn the
+        // discovery task (regression: without it the app never loads a
+        // catalog and the kernel list can never appear)
+        assert!(fx.contains(&Effect::RefreshKernels));
     }
 
     #[test]
@@ -460,6 +495,21 @@ mod tests {
         assert_eq!(s.lifecycle, LifecycleState::Shutdown);
         assert_eq!(s.phase(), AppPhase::Shutdown);
         assert_eq!(fx, vec![Effect::Close]);
+    }
+
+    #[test]
+    fn configure_cancel_closes_only_the_configure_window() {
+        // the review seam: Configure->Cancel must NOT exit the app
+        let mut s = ready_state();
+        let (s2, _) = transition(&s, AppEvent::ConfigureRequested);
+        assert_eq!(s2.configuration, ConfigurationState::Preparing);
+        let (s3, _) = transition(&s2, AppEvent::ConfigurationCancelRequested);
+        assert_eq!(s3.configuration, ConfigurationState::Closed);
+        assert_eq!(s3.lifecycle, LifecycleState::Ready); // the app is alive
+        // while the main window's Close still exits
+        let (s4, fx) = transition(&ready_state(), AppEvent::CloseRequested);
+        assert_eq!(s4.lifecycle, LifecycleState::Shutdown);
+        assert!(fx.iter().any(|e| matches!(e, Effect::Close)));
     }
 
     #[test]
@@ -574,5 +624,18 @@ mod tests {
         assert!(fx.contains(&Effect::ToggleScxWindow));
         let (s3, _) = transition(&s2, AppEvent::ScxToggleRequested);
         assert_eq!(s3.scx, ScxState::Hidden);
+    }
+
+    #[test]
+    fn scx_window_close_hides_only_the_scx_window() {
+        let s = ready_state();
+        let (s2, _) = transition(&s, AppEvent::ScxToggleRequested);
+        assert_eq!(s2.scx, ScxState::Visible);
+        let (s3, fx) = transition(&s2, AppEvent::ScxWindowClosed);
+        // hidden, the app alive, NO ToggleScxWindow (no re-init)
+        assert_eq!(s3.scx, ScxState::Hidden);
+        assert_eq!(s3.lifecycle, LifecycleState::Ready);
+        assert!(!fx.contains(&Effect::ToggleScxWindow));
+        assert!(!fx.contains(&Effect::Close));
     }
 }

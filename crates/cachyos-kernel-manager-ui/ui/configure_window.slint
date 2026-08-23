@@ -1,0 +1,352 @@
+// ui/configure_window.slint — the Configure window (Phase 8, Slint port).
+//
+// Replaces the main-window placeholder with the ORACLE's familiar layout
+// (conf-options-page.ui / conf-patches-page.ui):
+// - the Options tab: custom package name, the option checkboxes in the
+//   ORIGINAL order (cachy_config first, hardly in the middle, zfs/nvidia/
+//   debug last), then one combo per line (hz/tickless/preempt/hugepage/
+//   cpu-opt/lto), and the Load/Save/Cancel/Build footer;
+// - the Patches tab: the patch list, then the delete/up/down buttons, then
+//   the "Add remote patch"/"Add local patch" footer.
+// All semantics live in Rust (ConfigureWindowModel + the courted state
+// machine); this file is the presentation only.
+//
+// Combo boxes expose `selected(string)` (they do NOT expose a
+// current-index-changed callback in Slint 1.17); Rust maps the label string
+// back through the CURRENT item list, so a stale value from a model change
+// is ignored. The WM close is wired from Rust via
+// `ComponentHandle::window().on_close_requested` (there is no close-requested
+// callback in the .slint language).
+
+import { VerticalBox, HorizontalBox, Button, CheckBox, ComboBox, ScrollView, ListView, LineEdit, Palette } from "std-widgets.slint";
+import { CachyosButton } from "buttons.slint";
+import { DialogOverlay } from "dialogs.slint";
+
+export struct ConfCheckRow {
+    label: string,
+    checked: bool,
+    enabled: bool,
+}
+
+// The patches-page icon buttons (the oracle's QToolButtons with
+// SP_TrashIcon / SP_ArrowUp / SP_ArrowDown, conf-window.cpp:653-655):
+// small SVG-path icons on a pressable button.
+component PatchIconButton {
+    in property <string> icon;
+    callback clicked();
+
+    i-touch := TouchArea {
+        // TouchArea's layout_info DEFAULTS to stretch: 1 — without explicit
+        // zeros the icon buttons would absorb the row's leftover space and
+        // spread across the width instead of clustering at the right.
+        horizontal-stretch: 0;
+        vertical-stretch: 0;
+        width: 26px;
+        height: 26px;
+        clicked => { root.clicked(); }
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            background: i-touch.has-hover ? #00a88f26 : transparent;
+            Path {
+                x: (parent.width - 18px) / 2;
+                y: (parent.height - 18px) / 2;
+                width: 18px;
+                height: 18px;
+                commands: root.icon;
+                fill: Palette.foreground;
+                stroke: Palette.foreground;
+                stroke-width: 1.5px;
+            }
+        }
+    }
+}
+
+export component ConfigureWindow inherits Window {
+    title: "CachyOS Kernel Manager Configure";
+    icon: @image-url("org.cachyos.KernelManager.png");
+    // initial size set from Rust (window().set_size); a width binding would
+    // make this window fixed-size. The minimums keep the one-combo-per-line
+    // options and the patches footer from squishing on narrow resizes.
+    min-width: 640px;
+    min-height: 560px;
+
+    in property <[string]> variant-labels;
+    in property <int> variant-index;
+    // the option checkboxes in the ORACLE's order (indices 0..10 — the first
+    // 8 appear above the combos, the last 3 below them)
+    in property <[ConfCheckRow]> checks-top;
+    in property <[ConfCheckRow]> checks-bottom;
+    in property <[string]> lto-items;
+    in property <int> lto-index;
+    in property <[string]> preempt-items;
+    in property <int> preempt-index;
+    in property <[string]> hz-items;
+    in property <int> hz-index;
+    in property <[string]> tickless-items;
+    in property <int> tickless-index;
+    in property <[string]> hugepage-items;
+    in property <int> hugepage-index;
+    in property <[string]> cpuopt-items;
+    in property <int> cpuopt-index;
+    in property <string> custom-name;
+    in property <[string]> patches;
+    in-out property <int> selected-patch;
+    in property <bool> build-running;
+    // translated labels
+    in property <string> label-variant;
+    in property <string> label-custom-name;
+    in property <string> label-hz;
+    in property <string> label-tickless;
+    in property <string> label-preempt;
+    in property <string> label-hugepage;
+    in property <string> label-cpuopt;
+    in property <string> label-lto;
+    in property <string> label-tab-options;
+    in property <string> label-tab-patches;
+    in property <string> label-add-local;
+    in property <string> label-add-remote;
+    in property <string> label-remove;
+    in property <string> label-up;
+    in property <string> label-down;
+    in property <string> label-save;
+    in property <string> label-load;
+    in property <string> label-cancel;
+    in property <string> label-execute;
+
+    // the shared dialog overlay state (confirm/path dialogs appear over this
+    // window when it is on top)
+    in property <bool> dialog-progress-visible;
+    in property <string> dialog-progress-message;
+    in property <bool> dialog-error-visible;
+    in property <string> dialog-error-message;
+    in property <bool> dialog-confirm-visible;
+    in property <string> dialog-confirm-message;
+    in property <bool> dialog-path-visible;
+    in property <string> dialog-path-title;
+    in property <string> dialog-path-value;
+
+    callback dialog-error-dismissed();
+    callback dialog-confirm-answered(bool);
+    callback dialog-path-dismissed();
+    callback dialog-path-submitted(string);
+
+    // the tab toggle is pure presentation (the Rust side never sets it);
+    // in-out so the layout-preview test can render both tabs
+    in-out property <bool> tab-options: true;
+
+    callback variant-selected(string);
+    callback check-toggled(int);
+    callback lto-selected(string);
+    callback preempt-selected(string);
+    callback hz-selected(string);
+    callback tickless-selected(string);
+    callback hugepage-selected(string);
+    callback cpuopt-selected(string);
+    callback custom-name-changed(string);
+    callback patches-add-local();
+    callback patches-add-remote();
+    callback patch-remove(int);
+    callback patch-up(int);
+    callback patch-down(int);
+    callback save-clicked();
+    callback load-clicked();
+    callback execute-clicked();
+    callback cancel-clicked();
+
+    VerticalBox {
+        spacing: 8px;
+        padding: 10px;
+
+        HorizontalBox {
+            spacing: 8px;
+            Text { text: root.label-variant; vertical-alignment: center; }
+            ComboBox {
+                model: root.variant-labels;
+                current-index: root.variant-index;
+                selected(v) => { root.variant-selected(v); }
+            }
+        }
+
+        HorizontalBox {
+            spacing: 8px;
+            CachyosButton { text: root.label-tab-options; primary: root.tab-options; clicked => { root.tab-options = true; } }
+            CachyosButton { text: root.label-tab-patches; primary: !root.tab-options; clicked => { root.tab-options = false; } }
+        }
+
+        // ---------- the Options tab (the oracle's conf-options-page.ui) ----------
+        // The whole options content sits in a ScrollView exactly like the
+        // oracle's QScrollArea (conf-options-page.ui:10): the page is ~750px
+        // tall (custom name + 11 checkboxes + 6 combos) — taller than any
+        // window — so without the scroll the LAST three checkboxes (zfs,
+        // nvidia-open, build-debug) are silently clipped. The footer stays
+        // OUTSIDE the scroll area (the oracle's footer_widget is a sibling
+        // of the scroll area).
+        if root.tab-options : VerticalBox {
+            // vertical-stretch: 1 — the `if` block lowers to a repeater whose
+            // cell keeps the child's PREFERRED height otherwise, so the tab
+            // content would hug its content and leave the footer floating
+            // mid-window (the ScrollView then clips instead of scrolling)
+            vertical-stretch: 1;
+            spacing: 6px;
+            ScrollView {
+                vertical-stretch: 1;
+                VerticalBox {
+                    spacing: 4px;
+                    // custom package name
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: root.label-custom-name; vertical-alignment: center; }
+                        LineEdit {
+                            text: root.custom-name;
+                            edited => { root.custom-name-changed(self.text); }
+                        }
+                    }
+                    // the first 8 checkboxes (cachy_config .. tcp_bbr3)
+                    // NOTE: two SEPARATE models instead of one with a
+                    // `visible:` filter — in Slint 1.17 a runtime `visible`
+                    // binding is lowered to a Clip wrapper that still
+                    // RESERVES its layout space, which left gaps between
+                    // the checkbox groups (and `if` inside `for` is not
+                    // supported).
+                    for c[i] in root.checks-top : CheckBox {
+                        text: c.label;
+                        checked: c.checked;
+                        enabled: c.enabled;
+                        toggled => { root.check-toggled(i); }
+                    }
+                    // the six combos, ONE PER LINE like the oracle
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: root.label-hz; vertical-alignment: center; width: 220px; }
+                        ComboBox { model: root.hz-items; current-index: root.hz-index; selected(v) => { root.hz-selected(v); } horizontal-stretch: 1; }
+                    }
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: root.label-tickless; vertical-alignment: center; width: 220px; }
+                        ComboBox { model: root.tickless-items; current-index: root.tickless-index; selected(v) => { root.tickless-selected(v); } horizontal-stretch: 1; }
+                    }
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: root.label-preempt; vertical-alignment: center; width: 220px; }
+                        ComboBox { model: root.preempt-items; current-index: root.preempt-index; selected(v) => { root.preempt-selected(v); } horizontal-stretch: 1; }
+                    }
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: root.label-hugepage; vertical-alignment: center; width: 220px; }
+                        ComboBox { model: root.hugepage-items; current-index: root.hugepage-index; selected(v) => { root.hugepage-selected(v); } horizontal-stretch: 1; }
+                    }
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: root.label-cpuopt; vertical-alignment: center; width: 220px; }
+                        ComboBox { model: root.cpuopt-items; current-index: root.cpuopt-index; selected(v) => { root.cpuopt-selected(v); } horizontal-stretch: 1; }
+                    }
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text { text: root.label-lto; vertical-alignment: center; width: 220px; }
+                        ComboBox { model: root.lto-items; current-index: root.lto-index; selected(v) => { root.lto-selected(v); } horizontal-stretch: 1; }
+                    }
+                    // the last 3 checkboxes (zfs, nvidia-open, build-debug)
+                    // — index offset +8 into the full 11-check model
+                    for c[i] in root.checks-bottom : CheckBox {
+                        text: c.label;
+                        checked: c.checked;
+                        enabled: c.enabled;
+                        toggled => { root.check-toggled(i + 8); }
+                    }
+                }
+            }
+            // the Options footer (the oracle's footer_widget)
+            HorizontalBox {
+                spacing: 8px;
+                Button { text: root.label-load; clicked => { root.load-clicked(); } }
+                Button { text: root.label-save; clicked => { root.save-clicked(); } }
+                Rectangle { horizontal-stretch: 1; }
+                Button { text: root.label-cancel; clicked => { root.cancel-clicked(); } }
+                CachyosButton {
+                    text: root.label-execute;
+                    primary: true;
+                    enabled: !root.build-running;
+                    clicked => { root.execute-clicked(); }
+                }
+            }
+        }
+
+        // ---------- the Patches tab (the oracle's conf-patches-page.ui) ----------
+        // list, then a compact right-aligned footer: the trash/up/down icon
+        // buttons (the oracle's QToolButtons in horizontalWidget) sitting
+        // close together directly above the "Add remote/local patch" buttons
+        // (footer_widget) — both pushed to the bottom-right.
+        if !root.tab-options : VerticalBox {
+            // vertical-stretch: 1 — same repeater-height caveat as the
+            // Options tab: without it the ListView hugs its rows and the
+            // button footer floats in the middle of the window.
+            vertical-stretch: 1;
+            spacing: 4px;
+            // the patch list fills the area
+            ListView {
+                vertical-stretch: 1;
+                for p[i] in root.patches : TouchArea {
+                    clicked => { root.selected-patch = i; }
+                    Rectangle {
+                        background: i == root.selected-patch ? #00a88f33 : transparent;
+                        Text { text: p; }
+                    }
+                }
+            }
+            // the delete/up/down icon buttons, grouped tightly, RIGHT-aligned
+            // (alignment: end packs from the right; vertical-stretch: 0 stops
+            // the row absorbing the tab's leftover height — GridLayout rows
+            // otherwise grow to fill, floating the footer mid-window)
+            HorizontalBox {
+                alignment: end;
+                vertical-stretch: 0;
+                spacing: 2px;
+                PatchIconButton {
+                    icon: "M 3 6 H 21 M 9 2.5 H 15 M 6 6 L 7 21 H 17 L 18 6 Z";
+                    width: 26px;
+                    height: 26px;
+                    clicked => { root.patch-remove(root.selected-patch); }
+                }
+                PatchIconButton {
+                    icon: "M 12 3 L 19 12 H 15 V 21 H 9 V 12 H 5 Z";
+                    width: 26px;
+                    height: 26px;
+                    clicked => { root.patch-up(root.selected-patch); }
+                }
+                PatchIconButton {
+                    icon: "M 12 21 L 5 12 H 9 V 3 H 15 V 12 H 19 Z";
+                    width: 26px;
+                    height: 26px;
+                    clicked => { root.patch-down(root.selected-patch); }
+                }
+            }
+            // the add remote/local footer, RIGHT-aligned, normal buttons
+            HorizontalBox {
+                alignment: end;
+                vertical-stretch: 0;
+                spacing: 8px;
+                Button { text: root.label-add-remote; clicked => { root.patches-add-remote(); } }
+                Button { text: root.label-add-local; clicked => { root.patches-add-local(); } }
+            }
+        }
+    }
+
+    // the shared dialog overlay (on top of the window content)
+    DialogOverlay {
+        progress-visible: root.dialog-progress-visible;
+        progress-message: root.dialog-progress-message;
+        error-visible: root.dialog-error-visible;
+        error-message: root.dialog-error-message;
+        confirm-visible: root.dialog-confirm-visible;
+        confirm-message: root.dialog-confirm-message;
+        path-visible: root.dialog-path-visible;
+        path-title: root.dialog-path-title;
+        path-value: root.dialog-path-value;
+        error-dismissed => { root.dialog-error-dismissed(); }
+        confirm-answered(yes) => { root.dialog-confirm-answered(yes); }
+        path-dismissed => { root.dialog-path-dismissed(); }
+        path-submitted(v) => { root.dialog-path-submitted(v); }
+    }
+}

@@ -1,0 +1,113 @@
+// ui/dialogs.slint — the shared in-window dialog overlay.
+//
+// The oracle's progress/error/confirm dialogs and the file-path input are
+// QDialog/QMessageBox TRANSIENT dialogs: they must NOT appear as separate
+// taskbar entries (the review's "four windows in the taskbar" issue — every
+// Slint `Window` component is a real OS window, and KDE listed the dialog
+// windows alongside the main window). This component renders the active
+// dialog as an OVERLAY inside its host window (dim + centered box), so the
+// only OS windows are Main/Configure/SchedExt — matching the oracle, whose
+// dialogs are transient for their parent.
+//
+// The Rust side drives the same overlay state into every visible window
+// (Main/Configure/SchedExt), so the dialog appears on whichever window is on
+// top (e.g. the "install build packages?" question appears over the
+// Configure window, like the oracle's conf-window QMessageBox).
+
+import { VerticalBox, HorizontalBox, Button, LineEdit, Palette } from "std-widgets.slint";
+import { CachyosButton } from "buttons.slint";
+
+export component DialogOverlay {
+    in property <bool> progress-visible: false;
+    in property <string> progress-message;
+    in property <bool> error-visible: false;
+    in property <string> error-message;
+    in property <bool> confirm-visible: false;
+    in property <string> confirm-message;
+    in property <bool> path-visible: false;
+    in property <string> path-title;
+    in property <string> path-value;
+
+    callback error-dismissed();
+    callback confirm-answered(bool);
+    callback path-dismissed();
+    callback path-submitted(string);
+
+    // the editable path value (edits accumulate; OK submits the local copy)
+    property <string> current-path-value: root.path-value;
+
+    Rectangle {
+        visible: root.progress-visible || root.error-visible || root.confirm-visible || root.path-visible;
+        background: #00000066;
+        // block clicks from reaching the window below (the dialogs are modal)
+        TouchArea { }
+
+        VerticalBox {
+            alignment: center;
+
+            if root.progress-visible : Rectangle {
+                width: 430px;
+                border-radius: 8px;
+                background: Palette.background;
+                VerticalBox {
+                    padding: 18px;
+                    spacing: 8px;
+                    Text { text: root.progress-message; wrap: word-wrap; color: Palette.foreground; }
+                }
+            }
+
+            if root.error-visible : Rectangle {
+                width: 480px;
+                border-radius: 8px;
+                background: Palette.background;
+                VerticalBox {
+                    padding: 18px;
+                    spacing: 12px;
+                    Text { text: root.error-message; wrap: word-wrap; color: Palette.foreground; }
+                    HorizontalBox {
+                        alignment: center;
+                        CachyosButton { text: "OK"; primary: true; clicked => { root.error-dismissed(); } }
+                    }
+                }
+            }
+
+            if root.confirm-visible : Rectangle {
+                width: 480px;
+                border-radius: 8px;
+                background: Palette.background;
+                VerticalBox {
+                    padding: 18px;
+                    spacing: 12px;
+                    Text { text: root.confirm-message; wrap: word-wrap; color: Palette.foreground; }
+                    HorizontalBox {
+                        alignment: center;
+                        spacing: 8px;
+                        CachyosButton { text: "Yes"; primary: true; clicked => { root.confirm-answered(true); } }
+                        Button { text: "No"; clicked => { root.confirm-answered(false); } }
+                    }
+                }
+            }
+
+            if root.path-visible : Rectangle {
+                width: 560px;
+                border-radius: 8px;
+                background: Palette.background;
+                VerticalBox {
+                    padding: 18px;
+                    spacing: 10px;
+                    Text { text: root.path-title; color: Palette.foreground; }
+                    LineEdit {
+                        text: root.current-path-value;
+                        edited => { root.current-path-value = self.text; }
+                    }
+                    HorizontalBox {
+                        alignment: end;
+                        spacing: 8px;
+                        Button { text: "Cancel"; clicked => { root.path-dismissed(); } }
+                        CachyosButton { text: "OK"; primary: true; clicked => { root.path-submitted(root.current-path-value); } }
+                    }
+                }
+            }
+        }
+    }
+}

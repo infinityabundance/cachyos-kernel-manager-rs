@@ -62,14 +62,24 @@ jobs:
           cargo run -q -p xtask -- court run packaging/upgrade --vm
 
       - name: run the differential court matrix (--vm)
+        # FAIL CLOSED: run every court, but aggregate the failures and exit
+        # nonzero (a forensic matrix that turns a court failure into a green
+        # build would defeat the evidence discipline).
         run: |
+          failed=0
           for c in $(cargo run -q -p xtask -- court list --vm-capable | grep -v "courts VM-capable"); do
-            cargo run -q -p xtask -- court run "$c" --vm || echo "COURT FAILED: $c"
+            if ! cargo run -q -p xtask -- court run "$c" --vm; then
+              echo "COURT FAILED: $c"
+              failed=1
+            fi
           done
+          exit "$failed"
 
       - name: evidence verification
         run: cargo xtask evidence verify
 
       - name: publish the evidence release (regenerable)
+        # only publish when every court passed (fail-closed)
+        if: success()
         run: |
           cargo run -q -p xtask -- evidence release ci-$(date -u +%Y%m%d)

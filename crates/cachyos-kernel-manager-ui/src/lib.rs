@@ -8,7 +8,10 @@
 //! Nothing in this crate is rendered yet; the phase is not claimed complete
 //! (docs/ARCHITECTURE.md phase table).
 
-#![forbid(unsafe_code)]
+#![cfg_attr(not(feature = "rendering"), forbid(unsafe_code))]
+// The Slint-generated glue (the `include_modules!` code in `app`, enabled
+// by the `rendering` feature) contains `unsafe`, so the forbid is lifted
+// when that feature is on; the semantic layers stay unsafe-free.
 
 pub mod configure_window;
 pub mod main_window;
@@ -28,8 +31,13 @@ use serde::{Deserialize, Serialize};
 /// that lives in the plan crate.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Message {
+    /// Toggle a kernel row by its STABLE raw identity (`<repo>/<pkg>`), not
+    /// the presentation index — sorting must never change which kernel a
+    /// click toggles (review seam: the iced port passed the sorted-row
+    /// index straight into the core, so after sorting the visible row 0
+    /// toggled the wrong kernel).
     KernelToggled {
-        row: usize,
+        raw: String,
     },
     ExecuteRequested,
     ConfigureRequested,
@@ -51,6 +59,13 @@ pub enum Message {
         mode: String,
     },
     CancelRequested,
+    /// The Configure window's Cancel (closes ONLY the Configure window —
+    /// the review seam: the iced port mapped every Cancel to the app's
+    /// close-and-exit event).
+    ConfigurationCancelRequested,
+    /// The Configure window's WM close (same effect as Cancel: closes only
+    /// the Configure window — review seam #4).
+    ConfigurationCloseRequested,
     CloseRequested,
     BuildRequested,
     InstallArtifactsRequested,
@@ -60,6 +75,9 @@ pub enum Message {
     /// The sched-ext button (`km-window.cpp:185-188` → `on_schedext_config`
     /// → show the window).
     SchedextRequested,
+    /// The sched-ext window's close (distinct from the button toggle: the
+    /// close hides the window only — review seam #4).
+    ScxCloseRequested,
 }
 
 pub use cachyos_kernel_manager_core::options::KernelVariant;
@@ -88,8 +106,10 @@ mod tests {
 
     #[test]
     fn messages_are_serializable_and_semantic() {
-        let m = Message::KernelToggled { row: 3 };
+        let m = Message::KernelToggled {
+            raw: "cachyos/linux-cachyos".into(),
+        };
         let json = serde_json::to_string(&m).unwrap();
-        assert_eq!(json, r#"{"KernelToggled":{"row":3}}"#);
+        assert_eq!(json, r#"{"KernelToggled":{"raw":"cachyos/linux-cachyos"}}"#);
     }
 }

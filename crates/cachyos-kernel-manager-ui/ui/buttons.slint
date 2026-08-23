@@ -1,0 +1,44 @@
+// ui/buttons.slint — the CachyOS-styled action button.
+//
+// The default Slint (fluent) accent is LIGHT BLUE; the CachyOS Kernel
+// Manager uses the CachyOS brand green (#00a88f — the user-specified
+// color). The std-widgets Button does not expose a background override, so
+// the accent buttons are rendered by this component: solid green when
+// `primary`, the theme's control background otherwise (the oracle's Breeze
+// style: neutral buttons + an accent default button).
+
+import { Palette } from "std-widgets.slint";
+
+export component CachyosButton {
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> primary: false;
+    callback clicked();
+
+    TouchArea {
+        // explicit stretch zeros: TouchArea defaults to stretch 1, which
+        // would make the button absorb leftover row space (spread/oversized)
+        horizontal-stretch: 0;
+        vertical-stretch: 0;
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+        Rectangle {
+            min-width: 88px;
+            min-height: 32px;
+            border-radius: 6px;
+            background: root.enabled
+                ? (root.primary ? #00a88f : Palette.control-background)
+                : (root.primary ? #00a88f80 : Palette.control-background);
+            border-width: root.primary ? 0px : 1px;
+            border-color: Palette.border;
+            Text {
+                text: root.text;
+                color: root.enabled ? (root.primary ? #FFFFFF : Palette.foreground) : #808080;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                width: 100%;
+                height: 100%;
+            }
+        }
+    }
+}

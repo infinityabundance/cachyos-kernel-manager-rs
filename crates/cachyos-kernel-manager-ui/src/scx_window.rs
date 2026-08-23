@@ -12,7 +12,7 @@ use cachyos_kernel_manager_scx::window::{
 };
 
 /// The UI state of the sched-ext window.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 #[allow(missing_docs)] // fields documented below; the window semantics are courted by scx/*
 pub struct ScxWindowModel {
     /// The scheduler combo items (the loader's supported schedulers).

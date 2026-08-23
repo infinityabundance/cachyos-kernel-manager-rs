@@ -106,6 +106,17 @@ cmd_start() {
     local VM_MEM_MAX="${KM_VM_MEM_MAX:-12G}"
     local VM_SWAP_MAX="${KM_VM_SWAP_MAX:-4G}"
 
+    # an optional real display (the interactive GUI demo): set
+    # KM_VM_DISPLAY to a qemu -display value (e.g. vnc=127.0.0.1:1) to get
+    # a viewable window and add the virtio-gpu device the guest X server
+    # drives. Without it the VM stays headless (-display none).
+    local display_args=()
+    if [ -n "${KM_VM_DISPLAY:-}" ]; then
+        display_args=(-display "$KM_VM_DISPLAY" -device virtio-gpu-pci)
+    else
+        display_args=(-display none)
+    fi
+
     local qemu_args=(
         -enable-kvm -cpu host -smp 8 -m "$VM_MEM"
         -kernel "$VMLINUZ" -initrd "$INITRD"
@@ -115,7 +126,7 @@ cmd_start() {
         -device virtio-net-pci,netdev=n1
         -device virtio-balloon-pci
         -virtfs local,path="$SHARE",mount_tag=hostshare,security_model=none
-        -display none -serial none -monitor none
+        "${display_args[@]}" -serial none -monitor none
         -pidfile "$PIDFILE"
         "$@"
     )
