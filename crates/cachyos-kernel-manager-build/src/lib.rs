@@ -115,7 +115,7 @@ pub fn insert_custom_pkgbase(pkgbuild: &str, custom_name: &str) -> String {
     insert_before_marker(pkgbuild, "_major=", &insertion)
 }
 
-/// The index of the first byte that would BREAK the PKGBUILD splice, or
+/// The index of the first byte that would BREAK a PKGBUILD splice, or
 /// `None` when the value is safe to splice (D-003 — SECURITY_CORRECTION).
 ///
 /// Both splices put the user value INSIDE double-quoted bash text in the
@@ -124,20 +124,46 @@ pub fn insert_custom_pkgbase(pkgbuild: &str, custom_name: &str) -> String {
 /// into the PKGBUILD that makepkg will EVALUATE:
 ///
 /// - `"` — terminates the quoted string;
-/// - `\n`/`\r` — injects a new line (a `\n` before the closing quote would
-///   put the rest of the splice on its own line);
+/// - `\n`/`\r` — injects a new line;
 /// - `$` and `` ` `` — command substitution / variable expansion;
 /// - `\` — escapes the closing quote (a trailing backslash eats it);
 /// - `\0` — NUL truncation.
 ///
-/// The ORACLE splices without validation (its custom-name and patch inputs
-/// come from its own widgets); the candidate REJECTS unsafe values at the
-/// boundary so a hostile value cannot become PKGBUILD code. Valid inputs
-/// splice byte-identically to the oracle (the courted mutate witnesses).
+/// Use [`splice_safe_custom_name`] for the custom-name field (it permits
+/// the oracle's two SEMANTIC `$` forms — see below); use this for patch
+/// entries and any other spliced value.
 pub fn splice_unsafe_index(value: &str) -> Option<usize> {
-    value.char_indices().find_map(|(i, c)| {
-        matches!(c, '"' | '\n' | '\r' | '$' | '`' | '\\' | '\0').then_some(i)
-    })
+    value
+        .char_indices()
+        .find_map(|(i, c)| matches!(c, '"' | '\n' | '\r' | '$' | '`' | '\\' | '\0').then_some(i))
+}
+
+/// Whether a custom package name is safe to splice (D-003). The accepted
+/// grammar:
+///
+/// 1. the two SEMANTIC forms the oracle itself uses (`conf-options-page.ui`
+///    and `set_custom_name_in_pkgbuild`): `$pkgbase` (the sentinel that
+///    disables the custom-name splice semantics) and `$pkgbase-custom` (the
+///    DEFAULT field value — an untouched Configure -> Build MUST pass);
+/// 2. a literal package name over `[A-Za-z0-9][A-Za-z0-9._+-]*` — the
+///    conservative Arch pkgname grammar (no `$`, quotes, whitespace,
+///    backticks, backslashes, slashes, or control bytes).
+///
+/// Anything else — including ARBITRARY `$`-expansions like `${pkgbase}`,
+/// `$(...)`, or `my$kernel` — is rejected: a hostile value must never
+/// become PKGBUILD code that makepkg EVALUATES. The oracle splices without
+/// validation; the candidate rejects at the boundary and fails SAFELY.
+/// Valid inputs splice byte-identically (the courted mutate witnesses).
+pub fn splice_safe_custom_name(value: &str) -> bool {
+    if value == "$pkgbase" || value == "$pkgbase-custom" {
+        return true;
+    }
+    let mut chars = value.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_alphanumeric() => {}
+        _ => return false,
+    }
+    chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '+' | '-'))
 }
 
 /// `prepare_func_names` + `get_package_names_glob_from_pkgbuild`
@@ -378,7 +404,13 @@ mod tests {
     fn splice_unsafe_index_rejects_splice_breaking_bytes() {
         // D-003 SECURITY_CORRECTION: valid inputs pass, every byte that
         // could escape the double-quoted splice or inject a line is caught.
-        for safe in ["linux-cachyos-rt", "my-kernel", "my-kernel.1", "linux-cachyos-opt", "a_b-c"] {
+        for safe in [
+            "linux-cachyos-rt",
+            "my-kernel",
+            "my-kernel.1",
+            "linux-cachyos-opt",
+            "a_b-c",
+        ] {
             assert_eq!(splice_unsafe_index(safe), None, "{safe} must be safe");
         }
         for (unsafe_value, byte) in [
@@ -391,7 +423,8 @@ mod tests {
         ] {
             let idx = splice_unsafe_index(unsafe_value).expect("must be rejected");
             assert_eq!(
-                unsafe_value.as_bytes()[idx] as char, byte,
+                unsafe_value.as_bytes()[idx] as char,
+                byte,
                 "{unsafe_value:?} must be rejected at the {byte:?} byte"
             );
         }
@@ -399,6 +432,50 @@ mod tests {
         assert!(splice_unsafe_index("a\0b").is_some());
         // the FIRST unsafe byte is reported (the splice aborts there)
         assert_eq!(splice_unsafe_index("ok\"$(evil)"), Some(2));
+    }
+
+    #[test]
+    fn splice_custom_name_accepts_the_oracle_default_and_sentinel() {
+        // P0 regression: the frozen UI's DEFAULT custom name is
+        // `$pkgbase-custom` and the sentinel is `$pkgbase` — an untouched
+        // Configure -> Build MUST pass the validator (it used to be rejected
+        // by the blanket `$` check, breaking the default custom build).
+        use cachyos_kernel_manager_core::options::{DEFAULT_CUSTOM_NAME, PKGBASE_SENTINEL};
+        assert!(
+            splice_safe_custom_name(DEFAULT_CUSTOM_NAME),
+            "{DEFAULT_CUSTOM_NAME}"
+        );
+        assert!(
+            splice_safe_custom_name(PKGBASE_SENTINEL),
+            "{PKGBASE_SENTINEL}"
+        );
+        // the literal package-name grammar
+        for safe in ["linux-cachyos", "my-kernel.1", "linux-cachyos-rt", "a_b+2"] {
+            assert!(
+                splice_safe_custom_name(safe),
+                "{safe} must be a valid literal pkgname"
+            );
+        }
+        // everything else is rejected — including arbitrary `$`-expansions
+        for hostile in [
+            "${pkgbase}",
+            "$(touch /tmp/x)",
+            "my$kernel",
+            "$pkgbase-evil",
+            "a\"b",
+            "a\nb",
+            "a`b",
+            "a\\b",
+            "-lead",
+            "",
+            "has space",
+            "a/b",
+        ] {
+            assert!(
+                !splice_safe_custom_name(hostile),
+                "{hostile:?} must be rejected"
+            );
+        }
     }
 
     #[test]

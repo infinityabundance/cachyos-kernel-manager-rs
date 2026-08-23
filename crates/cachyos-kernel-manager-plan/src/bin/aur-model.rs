@@ -163,7 +163,7 @@ fn render_command(command: &CommandPlan) -> serde_json::Value {
         CommandPlan::GitRefresh { url, dir } => {
             json!({ "kind": "git-refresh", "url": url, "dir": dir })
         }
-        CommandPlan::BuildAurPackage => json!({
+        CommandPlan::BuildAurPackage { .. } => json!({
             "kind": "build-aur",
             "argv": ["makepkg", "-sicf", "--cleanbuild", "--skipchecksums"],
         }),

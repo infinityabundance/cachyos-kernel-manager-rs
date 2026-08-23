@@ -1,6 +1,6 @@
 //! cachyos-kernel-manager — application entry point.
 //!
-//! Phase 8: the shipped binary launches the Iced GUI (feature `gui`). The
+//! Phase 8: the shipped binary launches the Slint GUI (feature `gui`). The
 //! foundation diagnostics (oracle freeze verification + identity report)
 //! remain available behind `--diagnose`; the single-instance lock and
 //! org/app identity semantics from `oracle/upstream/src/main.cpp` are

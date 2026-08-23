@@ -115,10 +115,30 @@ pub enum BuildState {
     Running,
     /// `.done-status` absent → the failure branch.
     Failed,
-    /// `.done-status` present (`finished_proc:385`).
-    Completed,
+    /// `.done-status` present AND the "install build packages?" question is
+    /// up (the oracle's finished_proc success branch, `conf-window.cpp:390`;
+    /// m_running was ALREADY cleared at the start of finished_proc, so the
+    /// user can retry the moment the question is answered).
+    AwaitingInstallDecision,
     /// The user said Yes to the install question; `sudo pacman -U` runs.
     Installing,
+}
+
+impl BuildState {
+    /// The oracle's `m_running` projection for the Configure window's
+    /// on_execute guard (`conf-window.cpp:696-701`): in-flight means a
+    /// build is actually executing OR the install question/install is up.
+    /// OUTCOME states (Failed) are NOT in-flight — the oracle clears
+    /// `m_running` at the START of `finished_proc`, so a failed build (and
+    /// a success after the question is answered No) is IMMEDIATELY
+    /// retryable (audit P0: the old guard used outcome states as the
+    /// m_running projection, soft-locking the Build button).
+    pub fn in_flight(self) -> bool {
+        matches!(
+            self,
+            BuildState::Running | BuildState::AwaitingInstallDecision | BuildState::Installing
+        )
+    }
 }
 
 /// The sched-ext window state.
@@ -162,8 +182,9 @@ pub enum Effect {
     /// The QtConcurrent `prepare_build_environment` + patches reset
     /// (`on_configure`, `km-window.cpp:347-350`).
     PrepareConfiguration,
-    /// Toggle the sched-ext window (`on_schedext_config`).
-    ToggleScxWindow,
+    /// Toggle the sched-ext window (`on_schedext_config` — the oracle's
+    /// handler is `m_sched_window->show()`, always a SHOW).
+    ShowScxWindow,
     /// Close the window.
     Close,
     /// Show an error dialog.
@@ -180,13 +201,19 @@ pub enum Effect {
 pub enum AppEvent {
     Started,
     DiscoveryFinished,
-    KernelToggled { row: usize },
+    KernelToggled {
+        row: usize,
+    },
     ExecuteRequested,
     /// The worker started the commit run (the phase projection shows
     /// `TransactionRunning` for the real work, not a parked Planning).
     TransactionStarted,
-    TransactionFinished { changed: bool },
-    TransactionFailed { message: String },
+    TransactionFinished {
+        changed: bool,
+    },
+    TransactionFailed {
+        message: String,
+    },
     /// The failure error dialog was acknowledged — the transaction returns to
     /// Idle (the oracle's `m_running` releases after the worker's finished
     /// path, after the message box).
@@ -194,10 +221,21 @@ pub enum AppEvent {
     ConfigureRequested,
     ConfigurePrepared,
     BuildRequested,
-    BuildFinished { success: bool },
+    BuildFinished {
+        success: bool,
+    },
     InstallArtifactsRequested,
+    /// The user answered No to the "install build packages?" question — the
+    /// build flow is over and the build returns to Idle (retryable).
+    InstallDeclined,
     ArtifactsInstalled,
-    ScxToggleRequested,
+    /// The sched-ext button (`on_schedext_config`, km-window.cpp:387-388):
+    /// the oracle ALWAYS SHOWS the window — `m_sched_window->show()` never
+    /// hides it. The old `ScxToggleRequested` flipped Visible↔Hidden, so
+    /// clicking the button while the window was open HID it instead of
+    /// raising it (audit P2). Closing the window is the separate
+    /// `ScxWindowClosed` event.
+    ScxShowRequested,
     /// Close the MAIN window (the oracle's closeEvent exits the app).
     CloseRequested,
     /// The Configure window's Cancel/Close: closes the CONFIGURE window,
@@ -207,7 +245,7 @@ pub enum AppEvent {
     /// The sched-ext window's close: hides the SCX window, NOT the app
     /// (the oracle's schedext-window closeEvent just closes the window;
     /// the main window stays alive and can reopen it). Distinct from
-    /// `ScxToggleRequested` (the button: toggle + re-init).
+    /// `ScxShowRequested` (the button: show + re-init).
     ScxWindowClosed,
 }
 
@@ -272,7 +310,7 @@ impl AppState {
                     BuildState::Idle => AppPhase::ConfigurationEditing,
                     BuildState::Running => AppPhase::BuildRunning,
                     BuildState::Failed => AppPhase::BuildFailed,
-                    BuildState::Completed => AppPhase::BuildCompleted,
+                    BuildState::AwaitingInstallDecision => AppPhase::BuildCompleted,
                     BuildState::Installing => AppPhase::ArtifactInstallation,
                 };
             }
@@ -415,12 +453,14 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
             effects.push(Effect::HideProgress);
         }
         AppEvent::BuildRequested => {
-            if state.build != BuildState::Idle {
+            if state.build.in_flight() {
                 // the Configure window's on_execute guard: `if (m_running)
                 // return;` (conf-window.cpp:696-701) — a double-click/double-
                 // press must NEVER spawn a concurrent makepkg run (they race
-                // on .done-status and confuse finished_proc). m_running
-                // covers the build AND the artifact install.
+                // on .done-status and confuse finished_proc). m_running is
+                // cleared at the START of finished_proc, so only in-flight
+                // states block; a FAILED build and a success whose question
+                // was answered No are immediately retryable (audit P0).
                 return (next, effects);
             }
             next.build = BuildState::Running;
@@ -436,20 +476,27 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
         }
         AppEvent::BuildFinished { success } => {
             next.build = if success {
-                BuildState::Completed
+                // the worker found .done-status; the install question is up
+                // (finished_proc:385-390 — m_running already cleared, so the
+                // user can retry as soon as the question is answered)
+                BuildState::AwaitingInstallDecision
             } else {
                 BuildState::Failed
             };
         }
+        // the user answered No to "install build packages?": the flow is
+        // over, the build returns to Idle (immediately retryable).
+        AppEvent::InstallDeclined => {
+            next.build = BuildState::Idle;
+        }
         AppEvent::ArtifactsInstalled => {
             next.build = BuildState::Idle;
         }
-        AppEvent::ScxToggleRequested => {
-            next.scx = match state.scx {
-                ScxState::Hidden => ScxState::Visible,
-                ScxState::Visible => ScxState::Hidden,
-            };
-            effects.push(Effect::ToggleScxWindow);
+        AppEvent::ScxShowRequested => {
+            // the oracle's `on_schedext_config` is `m_sched_window->show()`
+            // (km-window.cpp:387-388) — ALWAYS show, never hide (audit P2).
+            next.scx = ScxState::Visible;
+            effects.push(Effect::ShowScxWindow);
         }
         AppEvent::CloseRequested => {
             next.lifecycle = LifecycleState::Shutdown;
@@ -457,7 +504,7 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
         }
         AppEvent::ScxWindowClosed => {
             // the window closed: hide it; the UI layer re-hides the Slint
-            // window on sync. No ToggleScxWindow effect (no re-init — the
+            // window on sync. No ShowScxWindow effect (no re-init — the
             // oracle's closeEvent has no side effects).
             next.scx = ScxState::Hidden;
         }
@@ -555,13 +602,18 @@ mod tests {
     fn transaction_error_acknowledged_returns_to_idle() {
         // failed -> the error dialog; acknowledging it releases the worker's
         // m_running equivalent and re-enables the OK button.
-        let mut s = ready_state();
-        let (s2, fx) = transition(&s, AppEvent::TransactionFailed {
-            message: "alpm init failed".into(),
-        });
+        let s = ready_state();
+        let (s2, fx) = transition(
+            &s,
+            AppEvent::TransactionFailed {
+                message: "alpm init failed".into(),
+            },
+        );
         assert_eq!(s2.transaction, TransactionState::Failed);
         assert_eq!(s2.phase(), AppPhase::TransactionFailed);
-        assert!(fx.contains(&Effect::ShowError { message: "alpm init failed".into() }));
+        assert!(fx.contains(&Effect::ShowError {
+            message: "alpm init failed".into()
+        }));
         let (s3, _) = transition(&s2, AppEvent::TransactionErrorAcknowledged);
         assert_eq!(s3.transaction, TransactionState::Idle);
         assert!(s3.execute_enabled() || s3.selection.change_list().is_empty());
@@ -581,12 +633,15 @@ mod tests {
     #[test]
     fn build_requested_is_gated_while_a_build_or_install_runs() {
         // conf-window.cpp:696-701 `if (m_running) return;` — a second Execute
-        // while the build OR the artifact install runs is a complete no-op
-        // (a double-click must never spawn concurrent makepkg runs).
+        // while the build OR the install question/install is up is a
+        // complete no-op (a double-click must never spawn concurrent makepkg
+        // runs). m_running is cleared at the START of finished_proc, so
+        // OUTCOME states are NOT in-flight: a failed build is immediately
+        // retryable (audit P0: the old guard blocked everything but Idle,
+        // soft-locking the Build button after the first build).
         for blocked in [
             BuildState::Running,
-            BuildState::Completed,
-            BuildState::Failed,
+            BuildState::AwaitingInstallDecision,
             BuildState::Installing,
         ] {
             let mut s = ready_state();
@@ -596,14 +651,17 @@ mod tests {
             assert_eq!(s2, s, "build must stay {blocked:?} under a second Execute");
             assert!(fx.is_empty());
         }
-        // and the guarded path still starts a fresh build
-        let mut s = ready_state();
-        s.configuration = ConfigurationState::Editing;
-        let (s2, fx) = transition(&s, AppEvent::BuildRequested);
-        assert_eq!(s2.build, BuildState::Running);
-        assert!(fx.iter().any(
-            |e| matches!(e, Effect::RunBuild { variant_dir } if variant_dir == "linux-cachyos")
-        ));
+        // Failed and Idle are retryable
+        for retryable in [BuildState::Idle, BuildState::Failed] {
+            let mut s = ready_state();
+            s.configuration = ConfigurationState::Editing;
+            s.build = retryable;
+            let (s2, fx) = transition(&s, AppEvent::BuildRequested);
+            assert_eq!(s2.build, BuildState::Running);
+            assert!(fx.iter().any(
+                |e| matches!(e, Effect::RunBuild { variant_dir } if variant_dir == "linux-cachyos")
+            ));
+        }
     }
 
     #[test]
@@ -617,13 +675,13 @@ mod tests {
     #[test]
     fn configure_cancel_closes_only_the_configure_window() {
         // the review seam: Configure->Cancel must NOT exit the app
-        let mut s = ready_state();
+        let s = ready_state();
         let (s2, _) = transition(&s, AppEvent::ConfigureRequested);
         assert_eq!(s2.configuration, ConfigurationState::Preparing);
         let (s3, _) = transition(&s2, AppEvent::ConfigurationCancelRequested);
         assert_eq!(s3.configuration, ConfigurationState::Closed);
         assert_eq!(s3.lifecycle, LifecycleState::Ready); // the app is alive
-        // while the main window's Close still exits
+                                                         // while the main window's Close still exits
         let (s4, fx) = transition(&ready_state(), AppEvent::CloseRequested);
         assert_eq!(s4.lifecycle, LifecycleState::Shutdown);
         assert!(fx.iter().any(|e| matches!(e, Effect::Close)));
@@ -699,7 +757,7 @@ mod tests {
         let mut s = ready_state();
         s.configuration = ConfigurationState::Editing;
         let (s2, _) = transition(&s, AppEvent::BuildFinished { success: true });
-        assert_eq!(s2.build, BuildState::Completed);
+        assert_eq!(s2.build, BuildState::AwaitingInstallDecision);
         assert_eq!(s2.phase(), AppPhase::BuildCompleted);
 
         let (s3, _) = transition(&s, AppEvent::BuildFinished { success: false });
@@ -723,36 +781,48 @@ mod tests {
         // finished_proc found .done-status -> Completed; the install question
         // -> InstallArtifactsRequested -> Installing.
         let (s3, _) = transition(&s2, AppEvent::BuildFinished { success: true });
-        assert_eq!(s3.build, BuildState::Completed);
+        assert_eq!(s3.build, BuildState::AwaitingInstallDecision);
         let (s4, fx4) = transition(&s3, AppEvent::InstallArtifactsRequested);
         assert_eq!(s4.build, BuildState::Installing);
         assert_eq!(s4.phase(), AppPhase::ArtifactInstallation);
         assert!(fx4.contains(&Effect::InstallArtifacts));
         let (s5, _) = transition(&s4, AppEvent::ArtifactsInstalled);
         assert_eq!(s5.build, BuildState::Idle);
+        // answering No is immediately retryable (m_running cleared at the
+        // start of finished_proc)
+        let (s6, _) = transition(&s3, AppEvent::InstallDeclined);
+        assert_eq!(s6.build, BuildState::Idle);
+        let (s7, fx7) = transition(&s6, AppEvent::BuildRequested);
+        assert_eq!(s7.build, BuildState::Running);
+        assert!(fx7.iter().any(|e| matches!(e, Effect::RunBuild { .. })));
     }
 
     #[test]
-    fn scx_toggle_is_independent() {
+    fn scx_show_always_shows() {
+        // audit P2: the oracle's on_schedext_config is
+        // `m_sched_window->show()` — the button ALWAYS shows, never hides.
         let s = ready_state();
-        let (s2, fx) = transition(&s, AppEvent::ScxToggleRequested);
+        let (s2, fx) = transition(&s, AppEvent::ScxShowRequested);
         assert_eq!(s2.scx, ScxState::Visible);
         assert_eq!(s2.phase(), AppPhase::ScxConfiguration);
-        assert!(fx.contains(&Effect::ToggleScxWindow));
-        let (s3, _) = transition(&s2, AppEvent::ScxToggleRequested);
-        assert_eq!(s3.scx, ScxState::Hidden);
+        assert!(fx.contains(&Effect::ShowScxWindow));
+        // a second click while visible STAYS visible (show() again) — the
+        // old toggle would have hidden it
+        let (s3, fx3) = transition(&s2, AppEvent::ScxShowRequested);
+        assert_eq!(s3.scx, ScxState::Visible);
+        assert!(fx3.contains(&Effect::ShowScxWindow));
     }
 
     #[test]
     fn scx_window_close_hides_only_the_scx_window() {
         let s = ready_state();
-        let (s2, _) = transition(&s, AppEvent::ScxToggleRequested);
+        let (s2, _) = transition(&s, AppEvent::ScxShowRequested);
         assert_eq!(s2.scx, ScxState::Visible);
         let (s3, fx) = transition(&s2, AppEvent::ScxWindowClosed);
-        // hidden, the app alive, NO ToggleScxWindow (no re-init)
+        // hidden, the app alive, NO ShowScxWindow (no re-init)
         assert_eq!(s3.scx, ScxState::Hidden);
         assert_eq!(s3.lifecycle, LifecycleState::Ready);
-        assert!(!fx.contains(&Effect::ToggleScxWindow));
+        assert!(!fx.contains(&Effect::ShowScxWindow));
         assert!(!fx.contains(&Effect::Close));
     }
 }

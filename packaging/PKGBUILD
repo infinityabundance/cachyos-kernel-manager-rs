@@ -14,17 +14,23 @@ pkgrel=1
 pkgdesc="Native Rust custodial reimplementation of CachyOS Kernel Manager (drop-in for the Qt original)"
 arch=('x86_64')
 url="https://github.com/infinityabundance/cachyos-kernel-manager-rs"
-license=('GPL-2.0-or-later')
+license=('GPL-2.0-or-later' 'GPL-3.0-or-later')  # D-009: the code is GPL-2.0-or-later; the
+                                    # distributed binary ALSO links Slint 1.17.1 (GPL-3.0-or-later
+                                    # or Slint's commercial terms), so the combined binary is
+                                    # GPL-3.0-or-later (2.0-or-later is GPLv3-compatible)
 depends=(
     'polkit'        # the pkexec rootshell chain (privilege/helper-scripts)
     'scx-manager'   # the org.scx.Loader D-Bus service (scx/* courts)
     'pacman'        # the transaction authority (never reimplemented)
     'bash'          # terminal-helper + rootshell.sh are bash scripts
+    'chwd'          # the chwd --list-installed hardware probe (audit P1: the
+                    # frozen official package depends on it; without it the
+                    # probe silently fails and the NVIDIA expansion changes)
 )
 makedepends=(
     'cargo' 'rust' 'git' 'pkg-config'
     'libalpm'       # the FFI's link target (abi/probe.c is verified at build)
-    'libxcb' 'wayland' 'libxkbcommon'  # iced/wgpu system bindings
+    'libxcb' 'wayland' 'libxkbcommon' 'libx11'  # the winit X11 client stack
 )
 provides=('cachyos-kernel-manager')
 conflicts=('cachyos-kernel-manager')

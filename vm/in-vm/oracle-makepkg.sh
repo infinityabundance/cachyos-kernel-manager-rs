@@ -35,7 +35,8 @@ cd /home/test/build-proj
 rm -f .done-status
 strace -f -e trace=execve -o /tmp/scf.trace \
     bash -lc 'yes | sudo -u test bash -lc "$REPO_LITERAL"' >/dev/null 2>&1 || true
-grep -oE 'execve\("[^"]+", \[[^]]*\]' /tmp/scf.trace | sed 's/^[0-9]* *//' | sed 's/@[0-9]\+/@TS/g' \
+grep -oE '^[0-9]+[[:space:]]+execve\("[^"]+", \[[^]]*\]' /tmp/scf.trace | sed 's/^[0-9]* *//' | sed 's/@[0-9]\+/@TS/g' \
+    | sort -s -k1,1n \
     > "$OUT/scf-execs.txt" || true
 cp /tmp/scf.trace "$OUT/scf-raw.trace" || true
 echo "scf: km-runtime-dep installed? $(pacman -Q km-runtime-dep 2>/dev/null || echo NO)"
@@ -46,7 +47,8 @@ echo "scf: .done-status? $(test -f .done-status && echo YES || echo NO)"
 rm -f /home/test/build-proj/*.pkg.tar.*
 strace -f -e trace=execve -o /tmp/sicf.trace \
     bash -lc 'yes | sudo -u test bash -lc "$AUR_LITERAL"' >/dev/null 2>&1 || true
-grep -oE 'execve\("[^"]+", \[[^]]*\]' /tmp/sicf.trace | sed 's/^[0-9]* *//' | sed 's/@[0-9]\+/@TS/g' \
+grep -oE '^[0-9]+[[:space:]]+execve\("[^"]+", \[[^]]*\]' /tmp/sicf.trace | sed 's/^[0-9]* *//' | sed 's/@[0-9]\+/@TS/g' \
+    | sort -s -k1,1n \
     > "$OUT/sicf-execs.txt" || true
 cp /tmp/sicf.trace "$OUT/sicf-raw.trace" || true
 echo "sicf: km-runtime-kernel installed? $(pacman -Q km-runtime-kernel 2>/dev/null || echo NO)"
@@ -55,7 +57,8 @@ echo "sicf: km-runtime-kernel installed? $(pacman -Q km-runtime-kernel 2>/dev/nu
 cd /home/test/aur-proj
 strace -f -e trace=execve -o /tmp/aur.trace \
     bash -lc 'yes | sudo -u test bash -lc "$REPO_LITERAL"' >/dev/null 2>&1 || true
-grep -oE 'execve\("[^"]+", \[[^]]*\]' /tmp/aur.trace | sed 's/^[0-9]* *//' \
+grep -oE '^[0-9]+[[:space:]]+execve\("[^"]+", \[[^]]*\]' /tmp/aur.trace | sed 's/^[0-9]* *//' \
+    | sort -s -k1,1n \
     > "$OUT/aurfail-execs.txt" || true
 cp /tmp/aur.trace "$OUT/aurfail-raw.trace" || true
 echo "aurfail: km-aur-only built? $(ls /home/test/aur-proj/*.pkg.tar.* 2>/dev/null || echo NO)"

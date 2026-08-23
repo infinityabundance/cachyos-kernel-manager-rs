@@ -143,6 +143,15 @@ pub struct Comparator {
     /// byte-identical across boots AND sides (no drift).
     #[serde(default)]
     pub boot_drift: bool,
+    /// Phase 12 production-integration slice (ui/gui-drive --vm): when
+    /// true, the runner drives the PACKAGED GUI (oracle side: the frozen Qt
+    /// binary; candidate side: the release binary staged into the share)
+    /// through the sort → stable-identity → toggle workflow under
+    /// Xvfb + AT-SPI (candidate-drive.py is side-agnostic) and compares the
+    /// SEMANTIC sequence (the sorted pkgname order per header + the toggle
+    /// identity proof) byte-for-byte + the machine residual.
+    #[serde(default)]
+    pub gui_drive: bool,
 }
 
 /// The `[mutate]` comparator section: the Configure-window actions the

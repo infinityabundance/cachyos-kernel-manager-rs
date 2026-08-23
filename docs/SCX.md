@@ -36,7 +36,7 @@ the recoverable SCX authority:
 ## Candidate architecture (Phase 7 — SEALED)
 
 ```text
-Iced UI → typed Rust SCX client → D-Bus (org.scx.Loader) → scx_loader
+Slint UI → typed Rust SCX client → D-Bus (org.scx.Loader) → scx_loader
 ```
 
 `crates/cachyos-kernel-manager-scx`:

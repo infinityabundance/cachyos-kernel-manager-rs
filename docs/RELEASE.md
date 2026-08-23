@@ -21,7 +21,10 @@ Every intentional divergence links to its evidence
 
 ## Deliverables per release (directive §89)
 
-- Implementation (native Rust + Iced)
+- Implementation (native Rust + Slint) — the code is GPL-2.0-or-later; the
+  distributed binary additionally links Slint 1.17.1 (GPL-3.0-or-later or
+  Slint's commercial terms), so the combined binary is GPL-3.0-or-later
+  (D-009)
 - Compatibility atlas (`atlas/inventory.json` + ledger)
 - Historical atlas (`docs/HISTORICAL_LORE.md`)
 - Frozen oracle (`oracle/UPSTREAM.lock` + deterministic archive)
@@ -74,7 +77,10 @@ python3 tools/validate-atlas.py         # ledgers + courts + releases schema
 - `.github/workflows/ci.yml` — the pure gate on every PR/commit: fmt,
   clippy `-D warnings`, `cargo test --workspace`, oracle lock verification,
   atlas/court/release schema validation, status-table derivation check,
-  evidence verification, MSRV (1.85) check.
+  evidence verification, MSRV (1.85) check. D-009: the 1.85 MSRV applies
+  ONLY to the feature-minimal semantic workspace; the shipped GUI
+  (`gui-alpm`) links Slint 1.17.1 (its own MSRV is 1.92) and is built on
+  stable in the gui job.
 - `.github/workflows/forensic.yml` — the heavy differential matrix (VM
   build, fixture baking, `court run --vm` on every VM court, evidence
   release) on a KVM+docker self-hosted runner, manual/nightly only.

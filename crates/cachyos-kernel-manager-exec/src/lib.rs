@@ -59,7 +59,16 @@ pub enum CommandPlan {
     /// `makepkg -scf --cleanbuild --skipchecksums` (repo kernel build).
     BuildKernelPackage,
     /// `makepkg -sicf --cleanbuild --skipchecksums` (AUR kernel build).
-    BuildAurPackage,
+    /// `dir` is the AUR checkout directory the build runs in — CARRIED by
+    /// the plan (paired with its `GitRefresh` at plan time, the oracle's
+    /// `prepare_build_environment` + `runCmdTerminal` sequence of
+    /// `aur_kernel.cpp:32-36,53`), never inferred from neighboring commands
+    /// at execution time (audit P1: the old runtime reverse-scanned the
+    /// command vector, so two AUR selections could build in the WRONG
+    /// directory). The oracle-faithful form is
+    /// `~/.cache/cachyos-km/aur_pkgbuilds/<name>`; the executor resolves the
+    /// `~` with [`fix_path`].
+    BuildAurPackage { dir: String },
     /// `git clone <url> <dir>` / `git checkout --force master` /
     /// `git clean -fd` / `git pull` (refresh lifecycle).
     GitRefresh { url: String, dir: String },
@@ -107,6 +116,26 @@ pub fn makepkg_aur_argv() -> Vec<String> {
 /// (`utils.cpp:124`; `conf-window.cpp:363`).
 pub fn with_pause(cmd: &str) -> String {
     format!("{cmd}{PRESS_ENTER_SUFFIX}")
+}
+
+/// The oracle's `fix_path` (`utils.cpp:153-158`): a path starting with `~`
+/// gets the leading `~` replaced with the home directory
+/// (`g_get_home_dir`). Rust's `Path::new` does NOT shell-expand `~`, so the
+/// AUR executor must resolve it explicitly (audit P1: the old runtime
+/// handed the raw `~/.cache/...` string to `Path::new` and created a
+/// literal `~` directory). The oracle replaces EVERY `~` when `path[0] ==
+/// '~'`; the actual dirs (`~/.cache/cachyos-km/...`) only have a leading
+/// one, so the leading-`~` expansion is semantically identical there
+/// (D-005-style narrowing of an irrelevant edge).
+pub fn fix_path(path: &str) -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_default();
+    if let Some(rest) = path.strip_prefix("~/") {
+        return std::path::PathBuf::from(&home).join(rest);
+    }
+    if path == "~" {
+        return std::path::PathBuf::from(&home);
+    }
+    std::path::PathBuf::from(path)
 }
 
 /// Render the oracle's `terminal-helper` argv.
@@ -299,23 +328,31 @@ pub enum ConfigureAction {
 pub struct ConfigureTraceEvent {
     pub action: ConfigureAction,
     /// `start` (a build began), `ignored` (the m_running guard returned), or
-    /// `closed` (the window closed; the in-flight QProcess member is
-    /// destroyed → the child is terminated).
+    /// `closed` (the window was hidden by Cancel/Close — the build KEEPS
+    /// running: the frozen window is not destroyed, see below).
     pub outcome: String,
 }
 
 /// The Configure-window lifecycle (`on_execute` guard + close semantics)
 /// as a stateful trace.
 ///
-/// Byte-exact reconstruction:
+/// Byte-exact reconstruction (audit P0 — corrected 2026-08-23):
 /// - `on_execute` (`conf-window.cpp:696-701`): `if (m_running) { return; }`
 ///   — a second Execute while a build/install runs is a complete NO-OP
 ///   (no command, no probe, m_running unchanged);
 /// - `on_cancel` → `close()` and `closeEvent` (`688-690`) accepts
-///   unconditionally (`QWidget::closeEvent`) — the window is destroyed and
-///   the `QProcess m_cmd` member destructor terminates the in-flight child;
-/// - after a close/cancel the window is gone: further actions are
-///   unreachable in the oracle and emit nothing.
+///   unconditionally (`QWidget::closeEvent`). The frozen app owns ONE
+///   persistent `ConfWindow` in a `unique_ptr` and NEVER sets
+///   `WA_DeleteOnClose` — Qt documents that `close()` HIDES a widget and
+///   only deletes it with that attribute. The `QProcess m_cmd` member is
+///   therefore NOT destroyed: the in-flight build KEEPS RUNNING after the
+///   window hides, and m_running stays true until `finished_proc` clears it
+///   (conf-window.cpp:378-379). The earlier model ("window destroyed →
+///   QProcess destructor terminates the child") was wrong: framework
+///   object-lifetime semantics, not application source.
+/// - after a close/cancel the window is HIDDEN: it cannot receive further
+///   actions until re-shown (`on_configure`), and the running flag still
+///   reflects the build (still in flight).
 pub fn configure_trace(actions: &[ConfigureAction]) -> (Vec<ConfigureTraceEvent>, bool) {
     let mut running = false;
     let mut trace = Vec::new();
@@ -336,12 +373,14 @@ pub fn configure_trace(actions: &[ConfigureAction]) -> (Vec<ConfigureTraceEvent>
                 }
             }
             ConfigureAction::Cancel | ConfigureAction::Close => {
-                running = false;
+                // the window HIDES; the build (and m_running) continues —
+                // the persistent ConfWindow is not destroyed (no
+                // WA_DeleteOnClose)
                 trace.push(ConfigureTraceEvent {
                     action: *action,
                     outcome: "closed".to_string(),
                 });
-                break; // window destroyed; the oracle cannot receive more
+                break; // the hidden window cannot receive more actions
             }
         }
     }
@@ -424,10 +463,21 @@ pub fn run_cmd_terminal(cmd: &str, escalate: Escalate) -> i32 {
 /// child (for the Configure window's cancellation: closing the window kills
 /// the in-flight process, `conf-window.cpp:688-690`). Same argv surface as
 /// [`run_cmd_terminal_at`] with the SAME working-directory contract.
+///
+/// `env` is the build-option environment (`restore_clean_environment`,
+/// `utils.cpp:204-227`) applied to THIS CHILD via `Command::envs` — never
+/// process-global `set_var` (audit P1/security: `std::env::set_var`/
+/// `remove_var` from a worker thread while the Slint event loop, D-Bus and
+/// native-library threads run is unsound; the oracle's setenv/unsetenv has
+/// the same defect and the candidate deliberately diverges). The terminal
+/// emulator + shell + makepkg inherit the helper's env, so the options reach
+/// the build exactly like the oracle's inherited-process-env semantics —
+/// without polluting the manager's own environment.
 pub fn spawn_cmd_terminal(
     cmd: &str,
     escalate: Escalate,
     cwd: &str,
+    env: &[(String, String)],
 ) -> std::io::Result<std::process::Child> {
     let argv = terminal_helper_argv(cmd, escalate);
     let mut proc = Command::new(&argv[0]);
@@ -435,6 +485,9 @@ pub fn spawn_cmd_terminal(
         proc.arg(arg);
     }
     proc.current_dir(cwd);
+    if !env.is_empty() {
+        proc.envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
+    }
     proc.spawn()
 }
 
@@ -444,9 +497,15 @@ pub fn spawn_cmd_terminal(
 /// dir). The terminal-helper process (and the terminal emulator + shell it
 /// spawns) inherit this cwd, so `makepkg` finds the PKGBUILD and
 /// `.done-status` lands in the variant dir — the exact oracle
-/// working-directory contract the review flagged.
-pub fn run_cmd_terminal_at(cmd: &str, escalate: Escalate, cwd: &str) -> i32 {
-    match spawn_cmd_terminal(cmd, escalate, cwd) {
+/// working-directory contract the review flagged. `env` is the per-child
+/// build environment (see [`spawn_cmd_terminal`]).
+pub fn run_cmd_terminal_at(
+    cmd: &str,
+    escalate: Escalate,
+    cwd: &str,
+    env: &[(String, String)],
+) -> i32 {
+    match spawn_cmd_terminal(cmd, escalate, cwd, env) {
         Ok(mut child) => {
             match child.wait() {
                 Ok(status) => status.code().unwrap_or(0),
@@ -667,19 +726,20 @@ mod tests {
         ]);
         let outcomes: Vec<&str> = trace.iter().map(|e| e.outcome.as_str()).collect();
         assert_eq!(outcomes, vec!["start", "ignored", "closed"]);
-        assert!(!running);
+        // the corrected model (audit P0): closing HIDES the persistent
+        // window, it does NOT destroy the QProcess — the build (and
+        // m_running) keeps running until finished_proc clears it
+        assert!(running);
     }
 
     #[test]
-    fn configure_trace_close_is_terminal() {
-        let (trace, running) = configure_trace(&[
-            ConfigureAction::Execute,
-            ConfigureAction::Close,
-            ConfigureAction::Execute, // unreachable in the oracle
-        ]);
+    fn configure_trace_close_hides_but_the_build_keeps_running() {
+        let (trace, running) = configure_trace(&[ConfigureAction::Execute, ConfigureAction::Close]);
         let outcomes: Vec<&str> = trace.iter().map(|e| e.outcome.as_str()).collect();
         assert_eq!(outcomes, vec!["start", "closed"]);
-        assert!(!running);
+        // no WA_DeleteOnClose -> the window hides, the QProcess member is
+        // NOT destroyed, the in-flight build continues
+        assert!(running);
     }
 
     #[test]

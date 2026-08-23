@@ -424,11 +424,15 @@ pub fn commit_commands(plan: &TransactionPlan) -> Vec<CommandPlan> {
             if name.contains("headers") {
                 continue;
             }
+            let dir = format!("~/.cache/cachyos-km/aur_pkgbuilds/{name}");
             commands.push(CommandPlan::GitRefresh {
                 url: format!("https://aur.archlinux.org/{name}.git"),
-                dir: format!("~/.cache/cachyos-km/aur_pkgbuilds/{name}"),
+                dir: dir.clone(),
             });
-            commands.push(CommandPlan::BuildAurPackage);
+            // the build CARRIES its own cwd (audit P1: the runtime must
+            // never infer it from neighboring commands — two AUR selections
+            // used to make every build run in the LAST refresh's dir).
+            commands.push(CommandPlan::BuildAurPackage { dir });
         }
     }
     if !plan.install.is_empty() {
@@ -826,14 +830,24 @@ mod tests {
             }
             other => panic!("expected git refresh first, got {other:?}"),
         }
-        assert_eq!(commands[1], CommandPlan::BuildAurPackage);
+        assert_eq!(
+            commands[1],
+            CommandPlan::BuildAurPackage {
+                dir: "~/.cache/cachyos-km/aur_pkgbuilds/linux-cachyos-zen".into()
+            }
+        );
         match &commands[2] {
             CommandPlan::GitRefresh { url, .. } => {
                 assert_eq!(url, "https://aur.archlinux.org/linux-cachyos-rc.git");
             }
             other => panic!("expected second git refresh, got {other:?}"),
         }
-        assert_eq!(commands[3], CommandPlan::BuildAurPackage);
+        assert_eq!(
+            commands[3],
+            CommandPlan::BuildAurPackage {
+                dir: "~/.cache/cachyos-km/aur_pkgbuilds/linux-cachyos-rc".into()
+            }
+        );
         match &commands[4] {
             CommandPlan::InstallRepoPackages { packages, .. } => {
                 // the AUR name must NOT leak into pacman -S
@@ -862,7 +876,12 @@ mod tests {
         let commands = commit_commands(&plan);
         assert_eq!(commands.len(), 2); // refresh+build for the non-headers name only
         assert!(matches!(commands[0], CommandPlan::GitRefresh { .. }));
-        assert_eq!(commands[1], CommandPlan::BuildAurPackage);
+        assert_eq!(
+            commands[1],
+            CommandPlan::BuildAurPackage {
+                dir: "~/.cache/cachyos-km/aur_pkgbuilds/linux-cachyos".into()
+            }
+        );
     }
 
     #[test]

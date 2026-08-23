@@ -34,6 +34,11 @@ pub struct ScxWindowModel {
     pub critical: Option<String>,
     /// The config path (for the apply/disable mutations).
     pub config_path: String,
+    /// The CONFIGURATION ACTUALLY LOADED from the config path (audit P0:
+    /// the runtime must use the real config, never a reconstructed
+    /// `default_config()` — the apply plan's args-vs-mode decision and the
+    /// persisted defaults come from it).
+    pub config: cachyos_kernel_manager_scx::config::SchedConfig,
 }
 
 impl ScxWindowModel {
@@ -42,6 +47,7 @@ impl ScxWindowModel {
         steps: &[InitStep],
         config_path: String,
         default_profile: &str,
+        config: cachyos_kernel_manager_scx::config::SchedConfig,
     ) -> ScxWindowModel {
         let mut model = ScxWindowModel {
             schedulers: Vec::new(),
@@ -53,6 +59,7 @@ impl ScxWindowModel {
             flags: String::new(),
             critical: None,
             config_path,
+            config,
         };
         for step in steps {
             match step {
@@ -146,10 +153,10 @@ mod tests {
         let steps = window_init(&WindowInitInput {
             config_init_failed: false,
             supported_scheds: Ok(vec!["scx_bpfland".into(), "scx_lavd".into()]),
-            config,
+            config: config.clone(),
             current_scheduler_label: "scx_bpfland".into(),
         });
-        ScxWindowModel::from_init_steps(&steps, "/etc/scx/config.toml".into(), "Auto")
+        ScxWindowModel::from_init_steps(&steps, "/etc/scx/config.toml".into(), "Auto", config)
     }
 
     #[test]
@@ -173,7 +180,12 @@ mod tests {
             config: default_config(),
             current_scheduler_label: "unknown".into(),
         });
-        let m = ScxWindowModel::from_init_steps(&steps, "/etc/scx/config.toml".into(), "Auto");
+        let m = ScxWindowModel::from_init_steps(
+            &steps,
+            "/etc/scx/config.toml".into(),
+            "Auto",
+            default_config(),
+        );
         assert!(!m.enabled);
         assert_eq!(
             m.critical.as_deref(),

@@ -1,0 +1,7 @@
+{
+ "fixture": "gui-integration",
+ "raw_image_hash": "sha256:625432e804b72f1a00cddc8c1f1ad40d2c94e5d8d2c3252914549dca066f7bde",
+ "baked_at": "2026-08-23T18:37:54Z",
+ "fixture_digest": "sha256:f1c4ff16d3e6a22fccfc4d309050f564ef9bbb39fd369607ae27a5238fd697c4",
+ "spec_sha256": "sha256:d958fe39cd681491f08a704d5d79a4beffcd53115e6552b50121382b01a475af"
+}

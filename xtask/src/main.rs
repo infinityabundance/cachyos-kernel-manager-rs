@@ -323,6 +323,7 @@ fn court_list() -> ExitCode {
                     "configure = ",
                     "[mutate]",
                     "scx = ",
+                    "gui_drive = ",
                 ]
                 .iter()
                 .any(|m| comparator.contains(m));
@@ -670,8 +671,15 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     std::fs::create_dir_all(&scripts_dst).expect("share/scripts");
     for entry in std::fs::read_dir(repo_root().join("vm/in-vm")).expect("vm/in-vm") {
         let entry = entry.expect("entry");
-        std::fs::copy(entry.path(), scripts_dst.join(entry.file_name()))
-            .expect("copy in-vm script");
+        let src = entry.path();
+        // skip non-files (e.g. a stray __pycache__/ or editor backup): a
+        // directory entry panicked the whole matrix when py_compile left one
+        // behind (observed 2026-08-23) — the share must never be the reason
+        // a court cannot run
+        if !src.is_file() {
+            continue;
+        }
+        std::fs::copy(&src, scripts_dst.join(entry.file_name())).expect("copy in-vm script");
     }
 
     // Phase 5: transaction courts drive a real GUI transaction on the oracle
@@ -750,6 +758,22 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         .expect("copy installcmd");
     }
 
+    // Phase 12 production-integration slice (ui/gui-drive --vm): stage the
+    // RELEASE binary (gui-alpm) into the share — the candidate side drives
+    // the INSTALLED BINARY itself, never a witness CLI (the audit's
+    // "drive the packaged Rust GUI" requirement).
+    let is_gui_drive = case.comparator.gui_drive;
+    if is_gui_drive {
+        let gui_src = repo_root().join("target/release/cachyos-kernel-manager");
+        if !gui_src.exists() {
+            eprintln!("build the release GUI first: cargo build --release --features gui-alpm");
+            return ExitCode::FAILURE;
+        }
+        let gui_dst = share.join("gui/cachyos-kernel-manager");
+        std::fs::create_dir_all(gui_dst.parent().expect("share/gui")).expect("create share/gui");
+        std::fs::copy(&gui_src, &gui_dst).expect("copy release gui");
+    }
+
     let run_side = |side: &str, out_dir: &std::path::Path| -> Result<(), String> {
         let overlay = overlay_dir.join(format!("{}-{}.qcow2", name, side));
         let _ = std::fs::remove_file(&overlay);
@@ -801,7 +825,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             }
             match side {
                 "oracle" => {
-                    let script = if is_scx {
+                    let script = if is_gui_drive {
+                        "oracle-gui-drive.sh"
+                    } else if is_scx {
                         "scx-loader-observe.sh"
                     } else if is_boot_failure {
                         "oracle-fail-boot.sh"
@@ -837,7 +863,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                     run("bash", &[ctl, "exec", &cmd])?;
                 }
                 "candidate" => {
-                    let script = if is_scx {
+                    let script = if is_gui_drive {
+                        "candidate-gui-drive.sh"
+                    } else if is_scx {
                         "scx-loader-candidate.sh"
                     } else if is_boot_failure {
                         "candidate-fail-boot.sh"
@@ -1005,6 +1033,14 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             Ok(mut r) => residuals.append(&mut r),
             Err(e) => {
                 eprintln!("makepkg comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else if is_gui_drive {
+        match cachyos_kernel_manager_casefile::vm_court::compare_gui_drive(&case.dir, case_id) {
+            Ok(mut r) => residuals.append(&mut r),
+            Err(e) => {
+                eprintln!("gui-drive comparison error: {e}");
                 return ExitCode::FAILURE;
             }
         }

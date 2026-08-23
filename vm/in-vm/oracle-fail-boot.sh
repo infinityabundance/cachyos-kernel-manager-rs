@@ -38,7 +38,8 @@ strace -f -e trace=execve -o /tmp/remove.trace \
 
 # the extraction (a hard failure on an empty chain)
 sync
-grep -oE 'execve\("[^"]+", \[[^]]*\]' /tmp/remove.trace \
+grep -oE '^[0-9]+[[:space:]]+execve\("[^"]+", \[[^]]*\]' /tmp/remove.trace \
+    | sort -s -k1,1n \
     | sed 's/^[0-9]* *//' \
     | sed 's|/tmp/mkinitcpio\.[A-Za-z0-9]*|/tmp/mkinitcpio.TMP|g' \
     | grep -v 'execve("/usr/bin/grep"' \

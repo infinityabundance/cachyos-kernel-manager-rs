@@ -1,0 +1,25 @@
+version = "1.0.0"
+fixture = "gui-integration"
+gui_drive = true
+
+# The semantic sequence + the machine residual must match byte-for-byte;
+# the raw trees (bridge-specific) and strace traces are raw evidence only.
+ignore = [
+  "oracle.stdout",
+  "oracle.stderr",
+  "candidate.stdout",
+  "candidate.stderr",
+  "oracle-trace.log",
+  "candidate-trace.log",
+  "oracle/candidate-state.json",
+  "candidate/candidate-state.json",
+  "oracle/drive-seq.json",
+  "candidate/drive-seq.json",
+]
+byte_exact = [
+  "drive-semantic.json",
+  "residual.json",
+  "residual.json.after",
+]
+json_semantic = []
+volatile_prefixes = []

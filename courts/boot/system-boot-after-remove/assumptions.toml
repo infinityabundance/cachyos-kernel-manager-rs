@@ -14,3 +14,12 @@ input_domain = "the removal exec chain, the /boot + kernel states, the hook outp
 transformation = "the surfaces are written as sorted text files per phase; the exec chains drop PIDs/env + the nondeterministic greps + the random tmp dirs; boot-check-remove hard-fails on a missing base kernel or a surviving lts"
 justification = "the removal + reboot surfaces ARE the boot-remove contract; determinism across the two boots is the court's second claim"
 falsifier = "a byte difference in any surface between the two boots, or a boot-check-remove failure"
+
+[[normalizers]]
+name = "pid-grouped-exec-extraction"
+version = "1.1.0"
+source_hash = "vm/in-vm/*-boot-install.sh + *-remove-boot.sh + *-fail-boot.sh + *-makepkg.sh"
+input_domain = "the raw strace -f execve trace of the courted command chain"
+transformation = "execve lines are captured WITH their PID, stable-sorted by PID (each process's own sequence preserved in order), then the PID prefix is stripped. The old extraction compared the raw cross-process INTERLEAVING, which is scheduling-dependent: two concurrent mkinitcpio-hook processes (e.g. sed on hook.preset vs cmp on the generated preset) swap order run-to-run on the SAME base image (observed 2026-08-23 on boot/system-boot-after-failure). The per-process exec sequence is the courted surface; the interleaving is environmental noise."
+justification = "deterministic comparison of the exec chain despite concurrent children; the manager's own sequential command chain (each exec its own PID group, spawned in order) is preserved"
+falsifier = "a per-process exec sequence differing between the two boots"

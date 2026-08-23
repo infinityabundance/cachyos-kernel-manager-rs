@@ -644,7 +644,9 @@ mod tests {
         let plain = main_description_plain();
         assert!(!plain.contains('<'));
         assert!(!plain.contains("</p>"));
-        assert!(plain.contains("Here you'll see information about currently installed and available Linux kernels."));
+        assert!(plain.contains(
+            "Here you'll see information about currently installed and available Linux kernels."
+        ));
         assert!(plain.contains("You can install/uninstall kernel packages using the checkboxes on the leftmost column."));
         assert!(plain.contains("This app won't work if you are already running a pacman instance."));
         // the three paragraphs render as three separate lines

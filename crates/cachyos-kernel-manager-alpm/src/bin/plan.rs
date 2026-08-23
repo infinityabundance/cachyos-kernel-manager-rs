@@ -369,7 +369,7 @@ fn main() {
                 // `git clone <url> <name>` from the parent dir.
                 vec!["git".into(), "clone".into()]
             }
-            cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage => {
+            cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage { .. } => {
                 cachyos_kernel_manager_exec::makepkg_aur_argv()
             }
             _ => vec![],
@@ -384,7 +384,9 @@ fn main() {
     // escalation is recorded in `terminal_commands`.
     let terminal_argv: Option<Vec<String>> = command_argv.first().map(|argv| {
         let escalate = match commands.first() {
-            Some(cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage) => Escalate::None,
+            Some(cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage { .. }) => {
+                Escalate::None
+            }
             _ => Escalate::PkexecRootShell,
         };
         terminal_helper_argv(&argv.join(" "), escalate)
@@ -394,7 +396,7 @@ fn main() {
         .zip(commands.iter())
         .map(|(argv, c)| {
             let escalate = match c {
-                cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage => Escalate::None,
+                cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage { .. } => Escalate::None,
                 _ => Escalate::PkexecRootShell,
             };
             Some(terminal_helper_argv(&argv.join(" "), escalate))

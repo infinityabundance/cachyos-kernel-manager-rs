@@ -54,6 +54,12 @@ packager = cachyos-kernel-manager-rs
 size = $(du -sb "$PKGROOT/usr" | cut -f1)
 arch = x86_64
 license = GPL-2.0-or-later
+license = GPL-3.0-or-later  # D-009: the code is GPL-2.0-or-later; the binary also links
+                            # Slint 1.17.1 (GPL-3.0-or-later or commercial), so the combined
+                            # binary is GPL-3.0-or-later
+# the chwd dependency (audit P1: the frozen official package depends on it;
+# without it the chwd probe silently fails and the NVIDIA expansion changes)
+depend = chwd
 depend = polkit
 depend = scx-manager
 depend = pacman

@@ -239,6 +239,60 @@ pub fn compare_packaging(case_dir: &Path, court_id: &str) -> Result<Vec<Residual
     Ok(residuals)
 }
 
+/// Phase 12 production-integration slice (ui/gui-drive --vm): compare the
+/// semantic sort/toggle sequence + the machine residuals byte-for-byte.
+/// Both sides produce drive-semantic.json (the sorted pkgname order per
+/// header + the toggled identity) — the oracle from its Qt tree, the
+/// candidate from its own courted KM_VERBOSE trace — and the residuals
+/// (residual.json vs candidate-residual.json, the runner's rename).
+pub fn compare_gui_drive(case_dir: &Path, court_id: &str) -> Result<Vec<Residual>, CaseError> {
+    let oracle_dir = case_dir.join("oracle");
+    let candidate_dir = case_dir.join("candidate");
+    let mut residuals = Vec::new();
+
+    // the machine residual (fixture-integrity): both sides run on fresh
+    // overlays of the SAME fixture image
+    let oracle_residual = std::fs::read(oracle_dir.join("residual.json"))?;
+    let candidate_residual = std::fs::read(candidate_dir.join("candidate-residual.json"))
+        .or_else(|_| std::fs::read(candidate_dir.join("residual.json")))?;
+    if oracle_residual != candidate_residual {
+        residuals.push(Residual {
+            id: format!("{court_id}-machine-residual-drift"),
+            court: court_id.into(),
+            layer: "machine-residual".into(),
+            oracle_fingerprint: sha256_bytes(&oracle_residual),
+            candidate_fingerprint: sha256_bytes(&candidate_residual),
+            classification: "fixture_drift".into(),
+            root_cause: None,
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+
+    // the semantic sequence: the sorted pkgname order per header + the
+    // toggled identity — the court's claim (the toggle followed the kernel
+    // identity through the reorder, never a presentation index)
+    let oracle_sem = std::fs::read(oracle_dir.join("drive-semantic.json"))?;
+    let candidate_sem = std::fs::read(candidate_dir.join("drive-semantic.json"))?;
+    if oracle_sem != candidate_sem {
+        residuals.push(Residual {
+            id: format!("{court_id}-semantic-sequence"),
+            court: court_id.into(),
+            layer: "gui-drive-semantic".into(),
+            oracle_fingerprint: sha256_bytes(&oracle_sem),
+            candidate_fingerprint: sha256_bytes(&candidate_sem),
+            classification: "deterministic_mismatch".into(),
+            root_cause: None,
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+
+    Ok(residuals)
+}
+
 /// Compare two observations field-by-field; returns residuals.
 pub fn compare_observations(
     court: &str,

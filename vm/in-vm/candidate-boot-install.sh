@@ -28,7 +28,8 @@ strace -f -e trace=execve -o /tmp/install.trace \
 # pass on missing evidence). The module-scan greps and the random
 # mkinitcpio tmp dirs are filtered (nondeterministic find/hash order).
 sync
-grep -oE 'execve\("[^"]+", \[[^]]*\]' /tmp/install.trace \
+grep -oE '^[0-9]+[[:space:]]+execve\("[^"]+", \[[^]]*\]' /tmp/install.trace \
+    | sort -s -k1,1n \
     | sed 's/^[0-9]* *//' \
     | sed 's|/tmp/mkinitcpio\.[A-Za-z0-9]*|/tmp/mkinitcpio.TMP|g' \
     | grep -v 'execve("/usr/bin/grep"' \

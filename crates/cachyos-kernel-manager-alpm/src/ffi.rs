@@ -94,6 +94,17 @@ extern "C" {
     fn alpm_db_get_name(db: *const RawDb) -> *const c_char;
     fn alpm_db_get_pkg(db: *mut RawDb, name: *const c_char) -> *mut RawPkg;
     fn alpm_db_get_pkgcache(db: *mut RawDb) -> *mut RawList;
+    /// `int alpm_db_search(alpm_db_t *db, const alpm_list_t *needles,
+    /// alpm_list_t **ret)` (alpm.h) — the ORACLE's discovery path
+    /// (`Kernel::get_kernels`, kernel.cpp:196). Returns 0 on success and
+    /// fills `ret` with the matching packages IN SEARCH ORDER; the caller
+    /// owns `*ret` (alpm_list_free).
+    fn alpm_db_search(db: *mut RawDb, needles: *const RawList, ret: *mut *mut RawList) -> c_int;
+    /// `alpm_list_t *alpm_list_add(alpm_list_t *list, void *data)`
+    /// (alpm_list.h) — append a node; returns the new list head.
+    fn alpm_list_add(list: *mut RawList, data: *mut c_void) -> *mut RawList;
+    /// `void alpm_list_free(alpm_list_t *list)` (alpm_list.h).
+    fn alpm_list_free(list: *mut RawList);
     fn alpm_pkg_get_name(pkg: *mut RawPkg) -> *const c_char;
     fn alpm_pkg_get_version(pkg: *mut RawPkg) -> *const c_char;
     // NOTE: this CachyOS-patched API returns the installed database NAME as
@@ -221,6 +232,46 @@ impl AlpmHandle {
                 }
                 list = (*list).next;
             }
+            out
+        }
+    }
+
+    /// Packages of a sync database matching the libalpm regex needle, IN
+    /// THE ORDER `alpm_db_search` returns them — the oracle's discovery
+    /// iteration (`Kernel::get_kernels`, kernel.cpp:196-198). The caller
+    /// owns both the needles list and the result list; both are freed here.
+    /// A search failure (nonzero rc) yields an empty result, like the
+    /// oracle's `alpm_db_search` error path (kernel.cpp:196's ret_list
+    /// stays empty).
+    pub fn db_search(&self, db_name: &str, needle: &str) -> Vec<DbPkg> {
+        unsafe {
+            let mut out = Vec::new();
+            let db = self.db_by_name(db_name);
+            if db.is_null() {
+                return out;
+            }
+            let needle_c = cstr(needle);
+            let mut needles: *mut RawList = std::ptr::null_mut();
+            needles = alpm_list_add(needles, needle_c.as_ptr() as *mut c_void);
+            let mut ret: *mut RawList = std::ptr::null_mut();
+            let rc = alpm_db_search(db, needles, &mut ret);
+            alpm_list_free(needles);
+            if rc != 0 {
+                alpm_list_free(ret);
+                return out;
+            }
+            let mut list = ret;
+            while !list.is_null() {
+                let pkg = (*list).data as *mut RawPkg;
+                if let (Some(name), Some(version)) = (
+                    c_to_string(alpm_pkg_get_name(pkg)),
+                    c_to_string(alpm_pkg_get_version(pkg)),
+                ) {
+                    out.push(DbPkg { name, version });
+                }
+                list = (*list).next;
+            }
+            alpm_list_free(ret);
             out
         }
     }

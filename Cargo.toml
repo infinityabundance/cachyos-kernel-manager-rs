@@ -109,8 +109,12 @@ default-members = [".", "xtask"]
 version = "0.1.0"
 edition = "2021"
 license = "GPL-2.0-or-later"
-# MSRV policy: see docs/ARCHITECTURE.md. Value is provisional until CI
-# confirms the full dependency graph on the CachyOS toolchain.
+# MSRV policy (D-009): 1.85 is the FEATURE-MINIMAL semantic workspace (the
+# default-feature build the CI msrv job checks). The shipped GUI binary
+# (`--features gui-alpm`) links Slint 1.17.1, which itself declares
+# rust-version = "1.92" — so the GUI artifact requires Rust 1.92 and CI
+# builds it on stable. Do not raise this value without moving the CI msrv
+# job, and do not claim 1.85 for the GUI feature.
 rust-version = "1.85"
 authors = ["cachyos-kernel-manager-rs contributors"]
 

@@ -1,0 +1,12 @@
+assumptions = [
+  "The frozen oracle sources (oracle/upstream/src @ 6b4a373e) are the single authority for the kernel-tree sort + toggle semantics (km-window.ui sortingEnabled + KernelTreeWidgetItem::operator< km-window.cpp:391-412); the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "The sort semantics are courted by ui/main-window-semantics (the version-column vercmp keys); this court witnesses the REAL GUI applying them.",
+  "The AT-SPI bridges differ structurally (Qt TREE vs Slint TABLE) — the raw trees are raw evidence only; ONLY the semantic projection (drive-semantic.json) is compared byte-for-byte.",
+  "Both sides run on the same baked fixture, so the kernel set + versions are identical; the sorted orders must therefore match exactly.",
+  "A header/toggle the driver cannot activate is recorded (header_found=false / toggle_found=false) and MUST be identical on both sides — a GUI that cannot be driven fails the claim.",
+  "The checkbox toggle path is the same side-agnostic AT-SPI driver (activate action, XTEST fallback); the identity proof is computed from the dumped tree, never from assumptions about the bridge.",
+]
+
+normalizers = [
+  { name = "semantic-projection", version = "1.0.0", source_hash = "vm/in-vm/candidate-drive.py", input_domain = "the full AT-SPI tree dumps after every sort/toggle", transformation = "project the pkgname row order per header, the toggle checked-state transitions, and the identity proof (the pkgname whose checkbox flipped == the first sorted pkgname) into drive-semantic.json", justification = "the Qt and Slint bridges expose structurally different trees; only the semantic projection is comparable", falsifier = "a byte in drive-semantic.json, or in residual.json / residual.json.after, differing between the boots" },
+]

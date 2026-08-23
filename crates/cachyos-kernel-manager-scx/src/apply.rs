@@ -58,94 +58,84 @@ pub struct ApplyInput {
 
 /// `apply_scheduler_change` (`scx_loader_config.rs`) as a pure decision
 /// trace. Byte-exact reconstruction of the ordering, the branches, and the
-/// stdout lines.
+/// stdout lines. The DECISION lives in [`apply_plan`]; this renders the
+/// witness steps from the plan (one decision source, audit P0).
 pub fn apply_trace(input: &ApplyInput) -> Vec<ScxStep> {
+    let plan = apply_plan(input);
     let mut steps: Vec<ScxStep> = Vec::new();
 
     // 1. stop/disable 'scx.service' if running/enabled (it would conflict)
-    if input.scx_service_enabled {
-        steps.push(ScxStep::DisableScxService);
-        steps.push(ScxStep::Stdout {
-            line: "Disabling scx service".to_string(),
-        });
-    } else if input.scx_service_active {
-        steps.push(ScxStep::StopScxService);
-        // NOTE: the oracle's typo is part of the contract
-        steps.push(ScxStep::Stdout {
-            line: "Stoping scx service".to_string(),
-        });
-    }
-
-    // 2. the args-vs-mode decision (commit b70b01b: args only when they
-    //    differ from the mode's defaults)
-    let sched: SupportedSched = input.scx_name.parse().expect("corpus-validated name");
-    let default_args = flags_for_mode(&input.config, sched, input.scx_mode);
-    let mut sched_args: Vec<String> = Vec::new();
-    if !input.extra_flags.is_empty() {
-        sched_args.extend(input.extra_flags.split(' ').map(String::from));
-    }
-
-    if sched_args == default_args {
-        steps.push(ScxStep::Stdout {
-            line: format!(
-                "Applying scx '{}' with mode {}",
-                input.scx_name,
-                input.scx_mode.debug()
-            ),
-        });
-        steps.push(ScxStep::Db {
-            call: format!(
-                "switch_scheduler({}, {})",
-                sched.name(),
-                input.scx_mode.debug()
-            ),
-        });
-        if input.db_result == DbResult::Fail {
+    match plan.scx_service_op {
+        Some(ServiceOp::DisableScxService) => {
+            steps.push(ScxStep::DisableScxService);
             steps.push(ScxStep::Stdout {
-                line: format!(
-                    "Failed to switch '{}' with mode {}: {}",
-                    input.scx_name,
-                    input.scx_mode.debug(),
-                    input.db_error
-                ),
+                line: "Disabling scx service".to_string(),
             });
         }
-    } else {
-        steps.push(ScxStep::Stdout {
-            line: format!(
-                "Applying scx '{}' with args: {}",
-                input.scx_name,
-                sched_args.join(" ")
-            ),
-        });
-        steps.push(ScxStep::Db {
-            call: format!(
-                "switch_scheduler_with_args({}, {:?})",
-                sched.name(),
-                sched_args
-            ),
-        });
-        if input.db_result == DbResult::Fail {
+        Some(ServiceOp::StopScxService) => {
+            steps.push(ScxStep::StopScxService);
+            // NOTE: the oracle's typo is part of the contract
             steps.push(ScxStep::Stdout {
-                line: format!(
-                    "Failed to switch '{}' with args: {:?}: {}",
-                    input.scx_name, sched_args, input.db_error
-                ),
+                line: "Stoping scx service".to_string(),
             });
         }
+        Some(ServiceOp::EnableScxLoaderService) | None => {}
+    }
+
+    // 2. the args-vs-mode decision (already made by the plan)
+    match &plan.db_call {
+        DbCall::SwitchScheduler { sched, mode } => {
+            steps.push(ScxStep::Stdout {
+                line: format!("Applying scx '{}' with mode {}", sched.name(), mode.debug()),
+            });
+            steps.push(ScxStep::Db {
+                call: format!("switch_scheduler({}, {})", sched.name(), mode.debug()),
+            });
+            if input.db_result == DbResult::Fail {
+                steps.push(ScxStep::Stdout {
+                    line: format!(
+                        "Failed to switch '{}' with mode {}: {}",
+                        input.scx_name,
+                        mode.debug(),
+                        input.db_error
+                    ),
+                });
+            }
+        }
+        DbCall::SwitchSchedulerWithArgs { sched, args } => {
+            steps.push(ScxStep::Stdout {
+                line: format!(
+                    "Applying scx '{}' with args: {}",
+                    sched.name(),
+                    args.join(" ")
+                ),
+            });
+            steps.push(ScxStep::Db {
+                call: format!("switch_scheduler_with_args({}, {:?})", sched.name(), args),
+            });
+            if input.db_result == DbResult::Fail {
+                steps.push(ScxStep::Stdout {
+                    line: format!(
+                        "Failed to switch '{}' with args: {:?}: {}",
+                        input.scx_name, args, input.db_error
+                    ),
+                });
+            }
+        }
+        DbCall::StopScheduler => {}
     }
 
     // 3. enable the loader service if not enabled (it fully replaces scx)
-    if !input.scx_loader_service_enabled {
+    if plan.enable_loader {
         steps.push(ScxStep::Stdout {
             line: "Enabling scx_loader service".to_string(),
         });
         steps.push(ScxStep::EnableScxLoaderService);
     }
 
-    // 4. persist: set defaults, write the temp config, pkexec-copy it
+    // 4. persist: write the temp config, pkexec-copy it
     steps.push(ScxStep::PkexecCopy {
-        config_path: input.config_path.clone(),
+        config_path: plan.config_path.clone(),
     });
     steps
 }
@@ -182,6 +172,175 @@ pub fn disable_config_mutation(config: &SchedConfig) -> SchedConfig {
     let mut config = config.clone();
     config.default_sched = None;
     config
+}
+
+// ---------------------------------------------------------------------------
+// The structured execution plan (audit P0): the SAME decision tree as the
+// witness traces above, but structured so the executor can interpret it
+// directly — app.rs must NEVER re-implement this decision tree, and the
+// executor must NEVER parse the witness's string-rendered D-Bus calls
+// (the reverse-scan antipattern).
+// ---------------------------------------------------------------------------
+
+/// A systemd service operation the apply/disable plan performs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ServiceOp {
+    /// `systemctl disable --now -f scx`.
+    DisableScxService,
+    /// `systemctl stop -f scx`.
+    StopScxService,
+    /// `systemctl enable -f scx_loader`.
+    EnableScxLoaderService,
+}
+
+/// The structured D-Bus call the plan performs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DbCall {
+    /// `switch_scheduler(sched, mode)` (the args match the mode's defaults).
+    SwitchScheduler {
+        sched: SupportedSched,
+        mode: SchedMode,
+    },
+    /// `switch_scheduler_with_args(sched, args)` (the args differ from the
+    /// mode's defaults).
+    SwitchSchedulerWithArgs {
+        sched: SupportedSched,
+        args: Vec<String>,
+    },
+    /// `stop_scheduler()`.
+    StopScheduler,
+}
+
+/// The apply execution plan: the exact operations, in the oracle's order
+/// (scx.service conflict -> D-Bus switch -> loader enable -> config
+/// persist), with the MUTATED config to write.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApplyPlan {
+    /// The scx.service conflict op (`None` when neither enabled nor active).
+    pub scx_service_op: Option<ServiceOp>,
+    /// The structured D-Bus call.
+    pub db_call: DbCall,
+    /// `systemctl enable -f scx_loader` when not already enabled.
+    pub enable_loader: bool,
+    /// The MUTATED config (default_sched/default_mode set for apply;
+    /// default_sched cleared for disable) — the executor persists this.
+    pub config: SchedConfig,
+    /// The target config path (the pkexec copy destination).
+    pub config_path: String,
+}
+
+/// The apply decision as a structured plan (the same branches as
+/// [`apply_trace`]: the scx.service conflict, the args-vs-mode decision,
+/// the loader enable, the config mutation).
+pub fn apply_plan(input: &ApplyInput) -> ApplyPlan {
+    let scx_service_op = if input.scx_service_enabled {
+        Some(ServiceOp::DisableScxService)
+    } else if input.scx_service_active {
+        Some(ServiceOp::StopScxService)
+    } else {
+        None
+    };
+    // the args-vs-mode decision (commit b70b01b): args only when they
+    // differ from the mode's defaults
+    let sched: SupportedSched = input.scx_name.parse().expect("corpus-validated name");
+    let default_args = flags_for_mode(&input.config, sched, input.scx_mode);
+    let mut sched_args: Vec<String> = Vec::new();
+    if !input.extra_flags.is_empty() {
+        sched_args.extend(input.extra_flags.split(' ').map(String::from));
+    }
+    let db_call = if sched_args == default_args {
+        DbCall::SwitchScheduler {
+            sched,
+            mode: input.scx_mode,
+        }
+    } else {
+        DbCall::SwitchSchedulerWithArgs {
+            sched,
+            args: sched_args,
+        }
+    };
+    ApplyPlan {
+        scx_service_op,
+        db_call,
+        enable_loader: !input.scx_loader_service_enabled,
+        config: apply_config_mutation(&input.config, &input.scx_name, input.scx_mode),
+        config_path: input.config_path.clone(),
+    }
+}
+
+/// The disable decision as a structured plan (`disable_scheduler` +
+/// `disable_scx_sched`): stop the scheduler, clear `default_sched`, persist.
+pub fn disable_plan(config: &SchedConfig, config_path: &str) -> ApplyPlan {
+    ApplyPlan {
+        scx_service_op: None,
+        db_call: DbCall::StopScheduler,
+        enable_loader: false,
+        config: disable_config_mutation(config),
+        config_path: config_path.to_string(),
+    }
+}
+
+/// Run one systemd service operation via `pkexec systemctl <args>` (the
+/// app runs as the invoking user; the oracle's service ops are root
+/// actions).
+fn run_service_op(op: ServiceOp) {
+    let (sub, args): (&str, &[&str]) = match op {
+        ServiceOp::DisableScxService => ("disable", &["--now", "-f", "scx"]),
+        ServiceOp::StopScxService => ("stop", &["-f", "scx"]),
+        ServiceOp::EnableScxLoaderService => ("enable", &["-f", "scx_loader"]),
+    };
+    let _ = std::process::Command::new("pkexec")
+        .arg("systemctl")
+        .arg(sub)
+        .args(args)
+        .status();
+}
+
+/// Execute an [`ApplyPlan`] against the real system — the RUNTIME consumes
+/// the model's plan; it never re-implements the decision tree and never
+/// parses the witness's string-rendered D-Bus calls (audit P0). Runs in the
+/// caller's tokio runtime (the D-Bus calls are async). Returns whether the
+/// D-Bus switch/stop call succeeded; the service ops + config persist are
+/// best-effort, matching the oracle's sequencing.
+#[cfg(feature = "dbus")]
+pub async fn execute_apply(plan: &ApplyPlan, connection: &zbus::Connection) -> bool {
+    use crate::client::LoaderClientProxy;
+
+    // 1. the scx.service conflict (disable/stop before the switch)
+    if let Some(op) = plan.scx_service_op {
+        run_service_op(op);
+    }
+
+    // 2. the structured D-Bus call (switch, NOT start — the oracle's
+    //    apply switches; the old runtime called start_scheduler directly)
+    let db_ok = match LoaderClientProxy::new(connection).await {
+        Ok(loader) => match &plan.db_call {
+            DbCall::SwitchScheduler { sched, mode } => {
+                loader.switch_scheduler(sched, *mode).await.is_ok()
+            }
+            DbCall::SwitchSchedulerWithArgs { sched, args } => {
+                loader.switch_scheduler_with_args(sched, args).await.is_ok()
+            }
+            DbCall::StopScheduler => loader.stop_scheduler().await.is_ok(),
+        },
+        Err(_) => false,
+    };
+
+    // 3. enable the loader service (it fully replaces scx)
+    if plan.enable_loader {
+        run_service_op(ServiceOp::EnableScxLoaderService);
+    }
+
+    // 4. persist the mutated config: write the temp file, pkexec-copy it
+    if let Ok(toml) = toml::to_string(&plan.config) {
+        if std::fs::write("/tmp/scx_loader.toml", toml).is_ok() {
+            let _ = std::process::Command::new("pkexec")
+                .args(["/usr/bin/cp", "/tmp/scx_loader.toml", &plan.config_path])
+                .status();
+        }
+    }
+
+    db_ok
 }
 
 #[cfg(test)]

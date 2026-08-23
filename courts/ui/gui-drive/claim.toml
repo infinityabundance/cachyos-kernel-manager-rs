@@ -1,0 +1,34 @@
+# CLAIM — ui/gui-drive
+
+claim = "The PACKAGED GUI — the installed binary, not a witness CLI — reproduces the oracle's kernel-list sort + toggle semantics on the same machine. The Phase 12 production-integration slice drives each side's REAL GUI (oracle: the frozen Qt binary; candidate: the release Slint binary built with --features gui-alpm) under Xvfb + AT-SPI through the same workflow: discover the kernel tree, sort by EVERY column header (Choose / PkgName / Version / Category), and after each sort toggle the FIRST row's checkbox. The SEMANTIC sequence must be byte-identical between the sides: the sorted pkgname order per header, and the identity proof — the pkgname that becomes checked after each toggle equals the FIRST row of THAT sort (a toggle that followed a presentation index through the reorder would flip the wrong kernel, the review seam the stable-identity architecture was built to eliminate). The machine residual after each side's run must also match (no side effect differs)."
+
+model = "Oracle: the frozen Qt GUI (oracle/upstream, km-window.ui sortingEnabled + KernelTreeWidgetItem::operator< km-window.cpp:391-412: version column via alpm vercmp with the ∨/∧ markers stripped, other columns via QString). Candidate: the Slint GUI's courted sort (ui/main_window.rs version-column sort keys) + the stable-raw-identity toggle (Message::KernelToggled { raw }, never a presentation index). The driver (vm/in-vm/candidate-drive.py) is side-agnostic: it activates the same named headers and dumps the same semantic projection."
+
+assumptions = [
+  "The frozen oracle sources are the single authority; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "The sort semantics are courted by ui/main-window-semantics (the version-column vercmp keys); this court witnesses the REAL GUI applying them.",
+  "The AT-SPI bridges differ structurally (Qt TREE vs Slint TABLE) — the raw trees are raw evidence only; ONLY the semantic projection (drive-semantic.json) is compared byte-for-byte (the normalizer discipline).",
+  "Both sides run on the same fixture, so the kernel set + versions are identical; the sorted orders must therefore match exactly.",
+  "A header/toggle the driver cannot activate is recorded as header_found=false / toggle_found=false and MUST be identical on both sides (a side whose GUI cannot be driven fails the claim).",
+]
+
+observables = [
+  "per header: sorted_pkgnames (the row order after the sort, first 60)",
+  "per toggle: toggle_before_checked / toggle_after_checked (the checkbox state transition)",
+  "the identity proof: first_sorted_pkgname == the pkgname whose checkbox flipped",
+  "machine residual (residual.json / residual.json.after) equality",
+]
+
+witness = "cargo build --release --features gui-alpm, then cargo xtask court run ui/gui-drive --vm (the runner stages the release binary into the share, drives oracle-gui-drive.sh and candidate-gui-drive.sh, and compares drive-semantic.json + the residuals)."
+
+independence = "the oracle side is the frozen Qt binary; the candidate side is the release Rust binary — two independent implementations of the same contract, each driven by the SAME side-agnostic AT-SPI driver (the driver is not part of either implementation)."
+
+falsifier = "Any difference in the sorted pkgname order for any header, any difference in the toggle state transition, or any machine-residual difference between the two boots — OR the identity proof failing on either side (the toggled pkgname != the first sorted pkgname)."
+
+[[evidence]]
+artifact = "oracle/drive-semantic.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/drive-semantic.json"
+sha256 = "pending"

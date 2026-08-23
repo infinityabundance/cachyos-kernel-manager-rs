@@ -48,8 +48,47 @@ ADDS a `--version` flag (prints `cachyos-kernel-manager 0.1.0`) — an
 additive CLI convenience, no user-visible effect on the GUI drop-in
 surface (the oracle's abort is not a contract).
 
-## D-003 — PKGBUILD splice validation (IMPLEMENTED, witnessed)
+## D-008 — Configure close terminates the in-flight build (IMPLEMENTED, availability correction)
 
+- **oracle_behavior**: the frozen app owns ONE persistent `ConfWindow` in a
+  `unique_ptr`; `on_cancel` calls `close()`, and `closeEvent` just delegates
+  to `QWidget::closeEvent`. `WA_DeleteOnClose` is never set, so `close()`
+  only HIDES the window — the `QProcess m_cmd` member is NOT destroyed and
+  an in-flight build/install KEEPS RUNNING after the window hides
+  (audit P0 correction 2026-08-23: the earlier model claiming the
+  QProcess destructor terminated the child was wrong — framework
+  object-lifetime semantics, not application source; `configure_trace`
+  now models close as hide-with-build-continuing).
+- **candidate_behavior**: the Configure window's Cancel/Close TERMINATES the
+  in-flight build/install (an operation-generation token + the owned
+  terminal-helper child are killed; the worker reports the failure branch).
+- **reason_for_divergence**: INTENTIONAL_CORRECTION (availability): the
+  oracle leaves the build running invisibly after the window hides — the
+  user has no way to cancel it and no progress feedback. The candidate
+  makes the hide an actual cancel so the user is never left with an
+  invisible runaway makepkg/pacman.
+- **user-visible_effect**: closing Configure mid-build aborts the build
+  (and the artifact install, which is owned by the same mechanism); the
+  oracle would keep building invisibly.
+- **compatibility_risk**: a user who closes Configure expecting the build
+  to continue (oracle behavior) now gets a cancelled build. Documented;
+  the VM oracle court (Phase 12) witnesses the difference.
+- **safety_or_correctness_rationale**: no orphaned root/pacman/makepkg
+  processes; deterministic failure instead of invisible progress.
+- **regression_test**: `configure_trace` (close hides, build keeps
+  running — the CORRECTED oracle model) + the UI cancellation tests
+  (generation bump, pre/post-spawn abort checks, install ownership).
+- **oracle_witness**: the frozen source's ConfWindow ownership (unique_ptr,
+  no WA_DeleteOnClose) + `configure_trace`; the Phase 12 VM oracle court
+  drives a real Qt Configure-close-during-build and records the build
+  continuing.
+- **candidate_witness**: `cancel_build_process` + the epoch checks in
+  `build_task`/`artifacts_task`.
+- **maintainer_notes**: if the oracle model is ever re-witnessed as
+  destroying the process (a Qt version difference), re-evaluate; the
+  VM court is the authority.
+
+## D-003 — PKGBUILD splice validation (IMPLEMENTED, witnessed)
 - **oracle_behavior**: the custom package name (`set_custom_name_in_pkgbuild`,
   conf-window.cpp:328-339) and the patch entries (`insert_new_source_array_
   into_pkgbuild`) are spliced into the PKGBUILD double-quoted bash text with
@@ -116,3 +155,74 @@ surface (the oracle's abort is not a contract).
 - **maintainer_notes**: if winit/wslay ever sets a Qt-compatible WM_CLASS
   natively, re-evaluate; the normalizer + court must move with the desktop
   file.
+
+## D-009 — shipped-binary licensing + MSRV after the Slint port (DECISION RECORD)
+- **oracle_behavior**: the frozen package is GPL-2.0-or-later (Qt app), built
+  with the project's historical toolchain; the frozen package declares
+  `license=('GPL-2.0-or-later')`.
+- **candidate_behavior**: the code remains GPL-2.0-or-later, but the SHIPPED
+  GUI binary links Slint 1.17.1, which is offered under GPL-3.0-or-later (or
+  Slint's commercial terms). GPL-2.0-or-later code may be combined with
+  GPL-3.0-or-later code (2.0-or-later is GPLv3-compatible), so the combined
+  distributed binary is licensed GPL-3.0-or-later; the packaging declares
+  both licenses. MSRV: the workspace `rust-version = "1.85"` holds ONLY for
+  the feature-minimal semantic workspace (default features — every semantic
+  crate + the CI msrv job); the GUI feature pulls Slint 1.17.1, which itself
+  declares `rust-version = "1.92"`, so the shipped `gui-alpm` binary
+  requires Rust 1.92 (CI builds the GUI on stable).
+- **reason_for_divergence**: LICENSING/DECISION — the Slint dependency's
+  license terms constrain the combined binary; the old blanket
+  `GPL-2.0-or-later` claim no longer described the distributed artifact. The
+  MSRV statement was similarly stale (the 1.85 CI job never built the slint
+  stack, which needs 1.92).
+- **user-visible_effect**: package metadata now lists GPL-3.0-or-later
+  (alongside GPL-2.0-or-later) for the combined binary; the documented MSRV
+  is per-artifact (1.85 semantic workspace / 1.92 shipped GUI).
+- **compatibility_risk**: none functional; a downstream repackager must
+  honor Slint's GPL-3.0-or-later (or commercial) terms for the binary.
+- **safety_or_correctness_rationale**: accurate licensing/version metadata
+  is a release-blocking correctness item, not documentation polish.
+- **regression_test**: the CI msrv job asserts 1.85 on default features
+  only; the GUI job runs on stable. A toolchain bump on either side moves
+  the CI jobs.
+- **oracle_witness**: the frozen package's GPL-2.0-or-later declaration.
+- **candidate_witness**: packaging/PKGBUILD (both licenses) + Cargo.toml
+  rust-version comment + docs/RELEASE.md §CI.
+- **maintainer_notes**: if the project ever buys a Slint commercial license
+  or Slint changes its GPL option, update the package license + this record.
+
+## D-010 — build-option environment applied per-child, never process-global (IMPLEMENTED, safety correction)
+- **oracle_behavior**: `restore_clean_environment` (`utils.cpp:204-227`)
+  mutates the PROCESS environment with `setenv`/`unsetenv` from a worker
+  thread, then the makepkg child inherits it.
+- **candidate_behavior**: the build-option assigns are carried in the probe
+  script text (the oracle's own mechanism — the env string is spliced
+  verbatim into the `get_source_array_from_pkgbuild` testscript,
+  conf-window.cpp:204-216) and applied to the terminal-helper child via
+  `Command::envs` (`spawn_cmd_terminal`'s `env` parameter). The manager's
+  own process environment is NEVER mutated.
+- **reason_for_divergence**: SAFETY_CORRECTION (audit P1/security):
+  `std::env::set_var`/`remove_var` from a background worker while the Slint
+  event loop, D-Bus and native-library threads run is documented-unsound on
+  multithreaded programs; the oracle's setenv/unsetenv has the same defect.
+  The variable-selection SEMANTICS are preserved (each child receives the
+  exact assigns, unset-then-set ordering is implicit — a fresh child never
+  carries a previous run's vars).
+- **user-visible_effect**: none — makepkg sees the same build options
+  (they reach it via the terminal emulator + shell inheriting the helper's
+  env); the process env of the manager is clean.
+- **compatibility_risk**: none for the build flow; a hypothetical caller
+  that relied on the manager's OWN environment being mutated by a build no
+  longer sees that side effect (which was the defect).
+- **safety_or_correctness_rationale**: no cross-thread environment mutation;
+  per-child env is race-free and the only sound approach in Rust.
+- **regression_test**: the exec `spawn_cmd_terminal` env parameter + the
+  build-env courts (the env string rendering is unchanged; the courted
+  probe script embeds it).
+- **oracle_witness**: the frozen `restore_clean_environment` setenv/unsetenv
+  (`utils.cpp:204-227`).
+- **candidate_witness**: `spawn_cmd_terminal(cmd, escalate, cwd, env)` +
+  the removed `restore_clean_environment`/`PREVIOUSLY_SET_OPTIONS` in app.rs.
+- **maintainer_notes**: the probe scripts already embedded the env (the
+  oracle's design), so only the terminal-helper path needed the per-child
+  carrier.

@@ -238,11 +238,33 @@ The rendering layer itself (the Slint `app`) is verified by the
 `cargo test -p cachyos-kernel-manager-ui --features rendering` suite (the
 message → event → transition pipeline, the dialog/install flows, the i18n
 catalogs, the layout-preview geometry test) and the `gui`/`gui-alpm` CI
-jobs. The remaining Phase 8/12 work is courted in `atlas/status.json`: the
-production integration closure (driving the INSTALLED Slint binary via
-AT-SPI — gap-011, unblocked by slint's accesskit bridge), the CJK
-software-renderer court, and the close-during-transaction worker race
-(gap-010, race-hunting in Phase 12).
+jobs. The production integration closure is SEALED (2026-08-23):
+`ui/gui-drive` — the first Phase 12 slice — PASSES (fixture
+`gui-integration`): the court drives the INSTALLED binary (oracle: the
+frozen Qt GUI; candidate: the release Slint binary via slint's accesskit
+AT-SPI bridge — gap-011, unblocked by the toolkit switch) through
+sort-every-column → toggle-after-each-sort → identity proof, comparing
+the semantic sequence + the machine residual byte-for-byte. The court
+required two candidate fixes it itself exposed: (1) the discovery order
+— the oracle's `Kernel::get_kernels` iterates `alpm_db_search` results,
+while the candidate iterated `alpm_db_get_pkgcache`; the FFI now binds
+`alpm_db_search` and `sync_dbs` assembles each db's packages in search
+order (needle matches first, then the rest for companion lookups);
+(2) the sort semantics — the oracle's `_q_headerClicked` RESETS a new
+column to ascending and re-sorts the DISPLAYED items (the previous sort
+order is the stable tie-break), while the candidate kept the current
+order and re-sorted the discovery catalog; the sort handler now resets
+ascending and `recompute_sort` uses `sorted_rows` as its stable base
+(seeded by `CatalogLoaded`; toggle keeps both copies' checked state in
+sync). Accesskit notes: `at-spi2-core` is pinned to 2.52.0 (2.54+
+breaks accesskit_unix 0.22.1's tree updates) and the `org.a11y.Status`
+enablement stub is required for registration; the bridge cannot serve
+the tree past the first model rebuild, so the candidate driver captures
+the header/row screen positions from the LIVE tree and delivers every
+click by XTEST, witnessing the sorted orders + toggled identities from
+the app's own KM_VERBOSE courted trace. The remaining Phase 8/12 work is
+courted in `atlas/status.json`: the CJK software-renderer court and the
+close-during-transaction worker race (gap-010, race-hunting in Phase 12).
 
 ## Phase 9 status (full differential matrix) — IN PROGRESS
 

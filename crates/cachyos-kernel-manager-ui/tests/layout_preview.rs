@@ -54,13 +54,20 @@ fn dump<C: slint::ComponentHandle>(
     matcher: impl Fn(&i_slint_backend_testing::ElementHandle) -> bool + 'static,
 ) {
     use i_slint_backend_testing::ElementQuery;
-    let found = ElementQuery::from_root(root).match_predicate(matcher).find_all();
+    let found = ElementQuery::from_root(root)
+        .match_predicate(matcher)
+        .find_all();
     for e in found {
         let p = e.absolute_position();
         let s = e.size();
         println!(
             "  [{}] {} at x={:.0} y={:.0} size={:.0}x{:.0}",
-            label, e.id().unwrap_or_default(), p.x, p.y, s.width, s.height
+            label,
+            e.id().unwrap_or_default(),
+            p.x,
+            p.y,
+            s.width,
+            s.height
         );
     }
 }
@@ -180,8 +187,12 @@ fn scx_window_preview() {
     let inner = i_slint_core::window::WindowInner::from_pub(&w.window());
     let component_rc = inner.component();
     let component = i_slint_core::item_tree::ItemTreeRc::borrow_pin(&component_rc);
-    let h = component.as_ref().layout_info(i_slint_core::layout::Orientation::Horizontal);
-    let v = component.as_ref().layout_info(i_slint_core::layout::Orientation::Vertical);
+    let h = component
+        .as_ref()
+        .layout_info(i_slint_core::layout::Orientation::Horizontal);
+    let v = component
+        .as_ref()
+        .layout_info(i_slint_core::layout::Orientation::Vertical);
     let (h_min, v_min) = (h.min as f32, v.min as f32);
     println!("  root layout_info: h.min={h_min} v.min={v_min}");
     assert!(h_min >= 479.0, "SCX min width enforced: {h_min}");
@@ -209,7 +220,10 @@ fn scx_window_preview() {
         assert!((wdt - 220.0).abs() < 8.0, "combo {i} width: {wdt}");
         assert!(*hgt <= 34.0, "combo {i} height (must not inflate): {hgt}");
     }
-    assert!((combos[0].1 - combos[1].1).abs() < 2.0, "combos same height");
+    assert!(
+        (combos[0].1 - combos[1].1).abs() < 2.0,
+        "combos same height"
+    );
     println!("  -- scx elements y in 90..180 --");
     dump(&w, "mid", |e| {
         let p = e.absolute_position();
@@ -218,7 +232,11 @@ fn scx_window_preview() {
     let lineedit = find_one(&w, |e| {
         e.type_name().is_some_and(|t| t.contains("LineEdit")) && e.id().is_none_or(|i| i.is_empty())
     });
-    assert!((lineedit.2 - 300.0).abs() < 8.0, "flags width: {}", lineedit.2);
+    assert!(
+        (lineedit.2 - 300.0).abs() < 8.0,
+        "flags width: {}",
+        lineedit.2
+    );
     // buttons: Cancel then Disable then Apply, right-aligned, natural height,
     // uniform min-width (none squashed)
     let cancel = find_one(&w, by_accessible_label("Cancel"));
@@ -237,10 +255,16 @@ fn scx_window_preview() {
     main.set_label_execute("Execute".into());
     main.set_label_configure("Configure".into());
     main.set_label_cancel("Cancel".into());
-    main.set_rows(slint::ModelRc::new(slint::VecModel::from(Vec::<TreeRow>::new())));
+    main.set_rows(slint::ModelRc::new(slint::VecModel::from(
+        Vec::<TreeRow>::new(),
+    )));
     let _ = main.window().take_snapshot().expect("main snapshot"); // force layout
     let main_h = find_one(&main, by_accessible_label("Execute")).3;
-    for (lbl, scx_h) in [("cancel", cancel.3), ("disable", disable.3), ("apply", apply.3)] {
+    for (lbl, scx_h) in [
+        ("cancel", cancel.3),
+        ("disable", disable.3),
+        ("apply", apply.3),
+    ] {
         assert!(
             (scx_h - main_h).abs() < 2.0,
             "scx {lbl} height {scx_h} != main {main_h}"
@@ -306,7 +330,10 @@ fn configure_patches_preview() {
             && e.id().is_some_and(|i| i.ends_with("::i-touch"))
     });
     let dy = add.1 - icon_y.1;
-    assert!(dy > 20.0 && dy < 60.0, "icons directly above add row, dy={dy}");
+    assert!(
+        dy > 20.0 && dy < 60.0,
+        "icons directly above add row, dy={dy}"
+    );
     println!("  footer ok: icons spread {spread:.0}px, dy(icons->add) {dy:.0}px");
 }
 
@@ -370,9 +397,11 @@ fn configure_common(w: &ConfigureWindow) {
     ])));
     w.set_cpuopt_index(0);
     w.set_custom_name("$pkgbase-custom".into());
-    w.set_patches(slint::ModelRc::new(slint::VecModel::from(vec![slint::SharedString::from(
+    w.set_patches(slint::ModelRc::new(slint::VecModel::from(
+        vec![slint::SharedString::from(
         "https://raw.githubusercontent.com/cachyos/kernel-patches/master/7.2/misc/dkms-clang.patch",
-    )])));
+    )],
+    )));
     w.set_selected_patch(0);
     w.set_label_variant("Select kernel".into());
     w.set_label_custom_name("Custom package name".into());
@@ -403,7 +432,12 @@ fn preview_all_windows() {
     configure_options_preview();
     configure_patches_preview();
     // sanity: the snapshots are non-blank and reasonably sized
-    for name in ["main.png", "scx.png", "configure-options.png", "configure-patches.png"] {
+    for name in [
+        "main.png",
+        "scx.png",
+        "configure-options.png",
+        "configure-patches.png",
+    ] {
         let dir = std::path::Path::new(env!("CARGO_TARGET_TMPDIR"))
             .join("..")
             .join("layout-preview");

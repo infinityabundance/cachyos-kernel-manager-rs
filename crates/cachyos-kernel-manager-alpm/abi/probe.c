@@ -62,6 +62,10 @@ static alpm_db_t *(*const chk_alpm_get_localdb)(alpm_handle_t *) = alpm_get_loca
 static const char *(*const chk_alpm_db_get_name)(const alpm_db_t *) = alpm_db_get_name;
 static alpm_pkg_t *(*const chk_alpm_db_get_pkg)(alpm_db_t *, const char *) = alpm_db_get_pkg;
 static alpm_list_t *(*const chk_alpm_db_get_pkgcache)(alpm_db_t *) = alpm_db_get_pkgcache;
+static int (*const chk_alpm_db_search)(alpm_db_t *, const alpm_list_t *, alpm_list_t **) =
+    alpm_db_search;
+static alpm_list_t *(*const chk_alpm_list_add)(alpm_list_t *, void *) = alpm_list_add;
+static void (*const chk_alpm_list_free)(alpm_list_t *) = alpm_list_free;
 static const char *(*const chk_alpm_pkg_get_name)(alpm_pkg_t *) = alpm_pkg_get_name;
 static const char *(*const chk_alpm_pkg_get_version)(alpm_pkg_t *) = alpm_pkg_get_version;
 static const char *(*const chk_alpm_pkg_get_installed_db)(alpm_pkg_t *) =
