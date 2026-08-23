@@ -11,8 +11,10 @@ set -euo pipefail
 OUT="$1"
 mkdir -p "$OUT"
 
-# the model-rendered command (evidence the candidate executed THIS)
-CMD="$(/mnt/host/inspect/cachyos-kernel-manager-installcmd linux-cachyos-lts linux-cachyos-lts-headers)"
+# the model-rendered command (evidence the candidate executed THIS); the
+# explicit `install` mode word is the current tool CLI (the pre-mode form
+# without it would hit the usage error and exit 2)
+CMD="$(/mnt/host/inspect/cachyos-kernel-manager-installcmd install linux-cachyos-lts linux-cachyos-lts-headers)"
 echo "$CMD" > "$OUT/install-command.txt"
 
 # the pre-install state

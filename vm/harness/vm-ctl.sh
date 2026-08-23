@@ -34,6 +34,11 @@ KERNEL_CMDLINE="root=LABEL=cachyoskmroot console=ttyS0 rw"
 
 ssh_run() { ssh "${SSHOPTS[@]}" root@127.0.0.1 "$@"; }
 
+# bounded ssh wait (default 360 iterations; the failed-boot court caps it
+# via KM_WAIT_SSH_TIMEOUT because a machine whose kernel was removed does
+# NOT become usable — the no-ssh outcome IS the expected witness)
+WAIT_SSH_TIMEOUT="${KM_WAIT_SSH_TIMEOUT:-360}"
+
 wait_ssh() {
     # Boot time is strongly host-dependent: on an idle host the guest is up
     # in ~10s, but under host swap/I/O pressure it has taken 4+ minutes
@@ -41,7 +46,7 @@ wait_ssh() {
     # so slow boots are diagnosable instead of silent timeouts.
     local tries=0
     local report=0
-    while [ "$tries" -lt 360 ]; do
+    while [ "$tries" -lt "$WAIT_SSH_TIMEOUT" ]; do
         if ssh_run true >/dev/null 2>&1; then return 0; fi
         tries=$((tries + 1))
         if [ $((tries % 30)) -eq 0 ]; then
@@ -50,7 +55,7 @@ wait_ssh() {
         fi
         sleep 1
     done
-    echo "vm-ctl: ssh did not become ready in 360s" >&2
+    echo "vm-ctl: ssh did not become ready in ${WAIT_SSH_TIMEOUT}s" >&2
     return 1
 }
 

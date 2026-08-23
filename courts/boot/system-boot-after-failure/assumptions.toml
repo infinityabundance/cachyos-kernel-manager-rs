@@ -1,0 +1,16 @@
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'kernel-install' fixture (the base kernel running; the real lts packages CACHED, not installed — offline).",
+  "The setup installs the lts (the two-kernel state); the removal command is the courted `pacman -Rsn linux-cachyos linux-cachyos-headers` + --noconfirm; the oracle literal == the candidate model render.",
+  "The post-remove hooks remove the base initramfs; the qemu direct-kernel boot provides the kernel + initramfs from the HOST, but the machine does NOT become usable (no ssh within the bounded probe) — the failed-boot witness is boot-attempt.txt, byte-identical on both sides.",
+  "The REBOOT attempt re-uses the SAME overlay; if a boot DID come up, boot-check-failure.sh hard-fails if the base kernel survived or the lts/its initramfs is missing.",
+  "The execve extraction drops PIDs/env + the nondeterministic module-scan greps + the random mkinitcpio tmp dirs; every written surface must match byte-for-byte.",
+]
+
+[[normalizers]]
+name = "boot-failure-surface-extraction"
+version = "1.0.0"
+source_hash = "vm/in-vm/oracle-fail-boot.sh + vm/in-vm/candidate-fail-boot.sh + vm/in-vm/boot-check-failure.sh"
+input_domain = "the removal exec chain, the /boot + kernel states, the hook output, the post-reboot failed-state surfaces"
+transformation = "the surfaces are written as sorted text files per phase; the exec chains drop PIDs/env + the nondeterministic greps + the random tmp dirs; the reboot attempt is probed with a bounded ssh wait and boot-attempt.txt records the no-ssh outcome host-side; if a boot came up, boot-check-failure hard-fails unless the base kernel + its initramfs are GONE and the lts + its initramfs remain"
+justification = "the removal + failed-reboot surfaces ARE the boot-failure contract; determinism across the two boots is the court's second claim"
+falsifier = "a byte difference in any surface between the two boots, or a boot-check-failure failure"

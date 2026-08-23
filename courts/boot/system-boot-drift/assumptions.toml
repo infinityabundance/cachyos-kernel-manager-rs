@@ -1,0 +1,16 @@
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'kernel-install' fixture (the base kernel running; the real lts packages CACHED, not installed — offline).",
+  "The install command is the courted `pacman -S --needed linux-cachyos-lts linux-cachyos-lts-headers` + --noconfirm; the oracle literal == the candidate model render.",
+  "The post-install hooks regenerate /boot; the qemu direct-kernel boot uses the base kernel, so every reboot comes up the same way.",
+  "The REBOOT re-uses the SAME overlay three times; boot-check-drift.sh hard-fails if the machine did not come up or the base/lts kernel + the lts initramfs are not present.",
+  "The execve extraction drops PIDs/env + the nondeterministic module-scan greps + the random mkinitcpio tmp dirs; every written surface must match byte-for-byte across all boots and sides.",
+]
+
+[[normalizers]]
+name = "boot-drift-surface-extraction"
+version = "1.0.0"
+source_hash = "vm/in-vm/oracle-boot-install.sh + vm/in-vm/candidate-boot-install.sh + vm/in-vm/boot-check-drift.sh"
+input_domain = "the install exec chain, the /boot + kernel states, the hook output, the three post-reboot suffixed surfaces"
+transformation = "the surfaces are written as sorted text files per phase (reboot N suffixed with -$N); the exec chains drop PIDs/env + the nondeterministic greps + the random tmp dirs; boot-check-drift hard-fails on a missing kernel or initramfs"
+justification = "the install + 3-reboot surfaces ARE the boot-drift contract; cross-reboot and cross-side byte-identity is the court's claim"
+falsifier = "a byte difference between any two reboot surfaces on a side, between the two sides, or a boot-check-drift failure"

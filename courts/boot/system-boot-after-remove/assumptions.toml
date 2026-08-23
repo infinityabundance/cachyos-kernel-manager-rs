@@ -1,0 +1,16 @@
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'kernel-install' fixture (the base kernel running; the real lts packages CACHED, not installed — offline).",
+  "The setup installs the lts (the two-kernel state); the removal command is the courted `pacman -Rsn ...` + --noconfirm; the oracle literal == the candidate model render.",
+  "The post-remove hooks remove the lts initramfs; the qemu direct-kernel boot uses the base kernel.",
+  "The REBOOT re-uses the SAME overlay; boot-check-remove.sh hard-fails if the base kernel is missing or the lts/its initramfs survived.",
+  "The execve extraction drops PIDs/env + the nondeterministic module-scan greps + the random mkinitcpio tmp dirs; every written surface must match byte-for-byte.",
+]
+
+[[normalizers]]
+name = "boot-remove-surface-extraction"
+version = "1.0.0"
+source_hash = "vm/in-vm/oracle-remove-boot.sh + vm/in-vm/candidate-remove-boot.sh + vm/in-vm/boot-check-remove.sh"
+input_domain = "the removal exec chain, the /boot + kernel states, the hook output, the post-reboot boot status"
+transformation = "the surfaces are written as sorted text files per phase; the exec chains drop PIDs/env + the nondeterministic greps + the random tmp dirs; boot-check-remove hard-fails on a missing base kernel or a surviving lts"
+justification = "the removal + reboot surfaces ARE the boot-remove contract; determinism across the two boots is the court's second claim"
+falsifier = "a byte difference in any surface between the two boots, or a boot-check-remove failure"

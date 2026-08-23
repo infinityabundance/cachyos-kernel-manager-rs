@@ -322,7 +322,7 @@ The PKGBUILD (`packaging/PKGBUILD`) builds the Rust GUI with
 `--features gui-alpm` and installs the drop-in files; the forensic
 workflow's packaging matrix runs the file-layout + upgrade courts.
 
-## Phase 11 status (boot/system courts) — IN PROGRESS
+## Phase 11 status (boot/system courts) — SEALED
 
 - `boot/system-boot-after-install` — PASS (differential VM court on
   fixture `kernel-install`, which caches the REAL linux-cachyos-lts
@@ -335,6 +335,47 @@ workflow's packaging matrix runs the file-layout + upgrade courts.
   (the lts kernel + its initramfs hard-asserted by boot-check.sh). The
   two boots' surfaces are byte-identical. The runner gained a REBOOT
   phase (re-boots the same overlay).
+
+- `boot/system-boot-after-remove` — PASS (differential VM court on
+  fixture `kernel-install`). The court SETS UP the two-kernel state
+  (installs the cached lts), REMOVES the NON-running lts with the
+  courted command (the oracle's literal == the candidate's
+  `pacman_remove_argv` render, witnessed byte-for-byte by
+  remove-command.txt), the REAL post-remove hooks run (mkinitcpio
+  removes the lts initramfs — hook-output.txt + the /boot state), the
+  SAME overlay REBOOTS, `boot-complete: running`, and the lts kernel +
+  its initramfs are GONE (hard-asserted by boot-check-remove.sh). The
+  two boots' surfaces are byte-identical. Runner fixes shipped with
+  this court: the installcmd witness tool is copied for ALL boot
+  courts (the remove court previously reused a stale share copy — a
+  fresh overlay boot then rendered the remove as
+  `pacman -S --needed remove ...`, failing the candidate side with
+  `target not found: remove`), and the REBOOT phase now also fires for
+  `boot_remove` courts with the boot-check-remove.sh check script.
+
+- `boot/system-boot-after-failure` — PASS (differential VM court on
+  fixture `kernel-install`). The court SETS UP the two-kernel state,
+  REMOVES the RUNNING kernel (the base — the kernel the qemu direct
+  boot loads) with the courted command (literal == the model render),
+  and ATTEMPTS to reboot the SAME overlay: the machine does NOT become
+  usable (no ssh within the bounded probe — its own boot path is
+  destroyed; a real machine would fail its next boot from its own
+  disk), witnessed byte-for-byte by boot-attempt.txt on both sides; the
+  post-remove hooks removed the base initramfs (hook-output.txt + the
+  /boot state) and the lts remains as the only kernel. The runner's
+  reboot phase for the failure court probes ssh with a bounded wait
+  (KM_WAIT_SSH_TIMEOUT) and records the no-ssh outcome HOST-SIDE — the
+  expected witness, not an error.
+
+- `boot/system-boot-drift` — PASS (differential VM court on fixture
+  `kernel-install`). The court installs the lts with the courted
+  command, then re-boots the SAME overlay THREE times, recording a
+  suffixed surface after each (boot-status-$N, running-kernel-$N,
+  kernels-$N, boot-files-$N, journal-tail-$N): the three reboot
+  surfaces are byte-identical to each other on each side AND between
+  the sides — no drift across boots, no drift between the oracle's
+  literal and the candidate's model render. The runner gained the
+  3-reboot loop for `boot_drift` courts.
 
 ## Case format
 

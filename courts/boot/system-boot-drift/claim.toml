@@ -1,0 +1,35 @@
+# CLAIM — boot/system-boot-drift
+claim = "A real kernel install (the cached linux-cachyos-lts via the courted install command) followed by THREE reboots of the SAME overlay produces byte-identical surfaces after every reboot — no drift across boots and no drift between the oracle's literal command and the candidate's model render: (install) the exec chain pins `pacman -S --needed linux-cachyos-lts linux-cachyos-lts-headers --noconfirm` (the oracle's literal commit_transaction install, kernel.cpp:288-304, == the candidate's pacman_install_argv render — install-command.txt identical); the post-install hooks (mkinitcpio) regenerate /boot (hook-output.txt + the /boot state); (reboots 1-3) the SAME overlay re-boots three times and boot-check-drift.sh records a suffixed surface after each (boot-status-$N.txt, running-kernel-$N.txt, kernels-$N.txt, boot-files-$N.txt, journal-tail-$N.txt), hard-asserting the machine came up and the install persisted (the base + the lts + the lts initramfs all present). The three reboot surfaces are byte-identical to each other on each side AND byte-identical between the oracle and candidate sides."
+
+model = "Oracle: the frozen source's literal install command + the REAL post-install hooks on the fixture. Candidate: the exec crate's modeled command (cachyos-kernel-manager-installcmd install) + the SAME hooks. Both run the identical install + 3-reboot sequence."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'kernel-install' fixture (the base kernel running; the real lts packages CACHED, not installed — offline).",
+  "The install command is `pacman -S --needed linux-cachyos-lts linux-cachyos-lts-headers` + --noconfirm (a witness adaptation); the oracle literal == the candidate model render.",
+  "The post-install hooks (mkinitcpio) regenerate /boot; the qemu direct-kernel boot uses the base kernel, so every reboot comes up the same way.",
+  "The REBOOT re-uses the SAME overlay three times (the install persists); boot-check-drift.sh hard-fails if the machine did not come up or the base/lts kernel + the lts initramfs are not present.",
+  "The execve extraction drops PIDs/env + the nondeterministic module-scan greps + the random mkinitcpio tmp dirs; every written surface must match byte-for-byte across all boots and sides.",
+]
+
+observables = [
+  "install-command.txt (the literal vs the model render — must be identical)",
+  "install-execs.txt (the exec chain)",
+  "pre/post-kernels.txt, pre/post-boot.txt (the install + the /boot regeneration)",
+  "hook-output.txt (the mkinitcpio run)",
+  "boot-status-$N.txt, running-kernel-$N.txt, kernels-$N.txt, boot-files-$N.txt, journal-tail-$N.txt for N=1..3 (the three reboot surfaces — must be identical to each other and across sides)",
+  "packages.txt (the machine residual)",
+]
+
+witness = "cargo xtask court run boot/system-boot-drift --vm (bake: cargo xtask vm bake kernel-install)."
+
+independence = "The oracle side runs the frozen source's literal command; the candidate side runs its MODEL's render. The hooks and the three reboots are the real system's own behavior. Neither side generates the other's surface."
+
+falsifier = "Any install-command difference, any exec-chain difference, any /boot or kernel-state difference, any boot-check failure, any drift between the three reboot surfaces on a side, or any byte difference between the two sides."
+
+[[evidence]]
+artifact = "oracle/install-execs.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/boot-files-3.txt"
+sha256 = "pending"

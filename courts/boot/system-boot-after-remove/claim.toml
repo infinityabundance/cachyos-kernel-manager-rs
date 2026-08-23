@@ -1,0 +1,35 @@
+# CLAIM — boot/system-boot-after-remove
+claim = "Removing a NON-RUNNING real kernel (linux-cachyos-lts + headers — the qemu direct boot runs the base kernel) with the courted removal command, then REBOOTING, produces a system that boots WITHOUT the removed kernel: (setup) the two-kernel state is created by installing the cached lts; (remove) the exec chain pins the removal command `pacman -Rsn linux-cachyos-lts linux-cachyos-lts-headers --noconfirm` (the oracle's literal commit_transaction removal, kernel.cpp:288-304, == the candidate's pacman_remove_argv render — remove-command.txt identical); the post-remove hooks (mkinitcpio) run and REMOVE the lts initramfs (hook-output.txt + the /boot state); (REBOOT) the same overlay re-boots, the system comes up (`boot-complete: running`), the base kernel is intact, and the lts kernel + its initramfs are GONE (hard-asserted by boot-check-remove.sh). The two boots' surfaces are byte-identical."
+
+model = "Oracle: the frozen source's literal removal command + the REAL post-remove hooks on the fixture. Candidate: the exec crate's modeled command (cachyos-kernel-manager-installcmd remove) + the SAME hooks. Both run the identical setup + remove + reboot sequence."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'kernel-install' fixture (the base kernel running; the real lts packages CACHED, not installed — offline).",
+  "The setup installs the lts (creating the two-kernel state); the removal command is `pacman -Rsn linux-cachyos-lts linux-cachyos-lts-headers` + --noconfirm (a witness adaptation); the oracle literal == the candidate model render.",
+  "The post-remove hooks (mkinitcpio) remove the lts initramfs; the qemu direct-kernel boot uses the base kernel, so the system boots after the removal.",
+  "The REBOOT re-uses the SAME overlay (the removal persists); boot-check-remove.sh hard-fails if the base kernel is missing or the lts/its initramfs survived.",
+  "The execve extraction drops PIDs/env + the nondeterministic module-scan greps + the random mkinitcpio tmp dirs; every written surface must match byte-for-byte between the boots.",
+]
+
+observables = [
+  "remove-command.txt (the literal vs the model render — must be identical)",
+  "remove-execs.txt (the exec chain)",
+  "pre/post-kernels.txt, pre/post-boot.txt (the /boot cleanup)",
+  "hook-output.txt (the mkinitcpio run)",
+  "boot-status.txt, running-kernel.txt, kernels.txt, boot-files.txt, journal-tail.txt (the reboot phase)",
+  "packages.txt (the machine residual)",
+]
+
+witness = "cargo xtask court run boot/system-boot-after-remove --vm (bake: cargo xtask vm bake kernel-install)."
+
+independence = "The oracle side runs the frozen source's literal command; the candidate side runs its MODEL's render. The hooks and the reboot are the real system's own behavior. Neither side generates the other's surface."
+
+falsifier = "Any remove-command difference, any exec-chain difference, any /boot or kernel-state difference, any boot-check failure (the base kernel missing or the lts surviving), or any byte difference between the two boots."
+
+[[evidence]]
+artifact = "oracle/remove-execs.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/boot-status.txt"
+sha256 = "pending"

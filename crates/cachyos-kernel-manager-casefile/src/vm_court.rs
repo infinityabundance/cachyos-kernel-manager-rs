@@ -156,7 +156,7 @@ pub fn compare_boot(case_dir: &Path, court_id: &str) -> Result<Vec<Residual>, Ca
         .collect::<Result<_, _>>()?;
     names.sort();
     for name in names {
-        if name == "packages.txt" || name == "install-raw.trace" {
+        if name == "packages.txt" || name == "install-raw.trace" || name == "remove-raw.trace" {
             continue;
         }
         let o = std::fs::read(oracle_dir.join(&name))?;

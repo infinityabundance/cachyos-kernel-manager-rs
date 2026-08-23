@@ -1,0 +1,36 @@
+# CLAIM — boot/system-boot-after-failure
+claim = "Removing the RUNNING kernel (the base linux-cachyos + headers — the kernel the qemu direct boot loads) with the courted removal command, then attempting to REBOOT, leaves the machine UNUSABLE: the running kernel's packages + its /boot entry are GONE and the machine does NOT come up (no ssh within the bounded probe — a real machine would fail its next boot from its own disk), and the failure residual is byte-identical whether the removal came from the oracle's literal or the candidate's model render: (setup) the two-kernel state is created by installing the cached lts; (remove) the exec chain pins the removal command `pacman -Rsn linux-cachyos linux-cachyos-headers --noconfirm` (the oracle's literal commit_transaction removal, kernel.cpp:288-304, == the candidate's pacman_remove_argv render — remove-command.txt identical); the post-remove hooks (mkinitcpio) run and REMOVE the base initramfs (hook-output.txt + the /boot state); (REBOOT attempt) the same overlay re-boots, the machine does NOT become usable (boot-attempt.txt = boot-failed, witnessed identically on both sides; a boot that DID come up is still valid — boot-check-failure.sh then hard-asserts the failed state: the base kernel + its initramfs GONE, the lts + its initramfs remaining). The two boots' surfaces are byte-identical."
+
+model = "Oracle: the frozen source's literal removal command + the REAL post-remove hooks on the fixture. Candidate: the exec crate's modeled command (cachyos-kernel-manager-installcmd remove) + the SAME hooks. Both run the identical setup + remove + reboot sequence."
+
+assumptions = [
+  "Both runs start from fresh copy-on-write overlays of the SAME baked 'kernel-install' fixture (the base kernel running; the real lts packages CACHED, not installed — offline).",
+  "The setup installs the lts (creating the two-kernel state); the removal command is `pacman -Rsn linux-cachyos linux-cachyos-headers` + --noconfirm (a witness adaptation); the oracle literal == the candidate model render.",
+  "The post-remove hooks (mkinitcpio) remove the base initramfs + preset; the qemu direct-kernel boot provides the kernel + initramfs from the HOST, but the machine does NOT become usable (no ssh within the bounded probe) — the failed-boot witness is boot-attempt.txt, byte-identical on both sides.",
+  "The REBOOT attempt re-uses the SAME overlay (the removal persists); if a boot DID come up, boot-check-failure.sh hard-fails unless the FAILED state is exactly present (the base kernel + its initramfs GONE; the lts + its initramfs remaining).",
+  "The execve extraction drops PIDs/env + the nondeterministic module-scan greps + the random mkinitcpio tmp dirs; every written surface must match byte-for-byte between the boots.",
+]
+
+observables = [
+  "remove-command.txt (the literal vs the model render — must be identical)",
+  "remove-execs.txt (the exec chain)",
+  "pre/post-kernels.txt, pre/post-boot.txt (the running kernel's removal + the /boot cleanup)",
+  "hook-output.txt (the mkinitcpio run)",
+  "boot-attempt.txt (the attempted-reboot outcome — the no-ssh failure witness, recorded host-side)",
+  "boot-status.txt, running-kernel.txt, kernels.txt, boot-files.txt, journal-tail.txt (the reboot phase, ONLY when a boot came up — the FAILED state)",
+  "packages.txt (the machine residual)",
+]
+
+witness = "cargo xtask court run boot/system-boot-after-failure --vm (bake: cargo xtask vm bake kernel-install)."
+
+independence = "The oracle side runs the frozen source's literal command; the candidate side runs its MODEL's render. The hooks and the reboot are the real system's own behavior. Neither side generates the other's surface."
+
+falsifier = "Any remove-command difference, any exec-chain difference, any /boot or kernel-state difference, any boot-check failure (the base kernel surviving or the lts missing), or any byte difference between the two boots."
+
+[[evidence]]
+artifact = "oracle/remove-execs.txt"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/boot-status.txt"
+sha256 = "pending"

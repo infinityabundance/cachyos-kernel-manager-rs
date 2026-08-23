@@ -87,8 +87,8 @@
   {
    "phase": 11,
    "name": "Boot/system courts",
-   "status": "in-progress",
-   "wording": "real kernel mutations, reboot, residual comparison. Done: boot/system-boot-after-install PASS (VM: a REAL linux-cachyos-lts install via the courted command (literal == the model render) runs the REAL post-install hooks (mkinitcpio regenerates /boot with the new initramfs), the same overlay REBOOTS, the system comes up boot-complete, the mutation persisted; the two boots' surfaces byte-identical; the kernel-install fixture caches the real lts packages offline). Remaining: the removal court (remove a NON-running kernel + reboot + the bootloader entry gone), the failed-boot residual comparison, and the multi-reboot drift runs."
+   "status": "sealed",
+   "wording": "real kernel mutations, reboot, residual comparison. boot/system-boot-after-install PASS (VM: a REAL linux-cachyos-lts install via the courted command (literal == the model render) runs the REAL post-install hooks, the same overlay REBOOTS, boot-complete, the mutation persisted; the two boots' surfaces byte-identical; the kernel-install fixture caches the real lts packages offline); boot/system-boot-after-remove PASS (VM: sets up the two-kernel state, REMOVES the NON-running lts with the courted command, the hooks remove the lts initramfs, the same overlay REBOOTS, boot-complete, the lts kernel + its initramfs hard-asserted GONE; runner fixed to copy the installcmd witness for ALL boot courts and to run the reboot phase for the remove court); boot/system-boot-after-failure PASS (VM: REMOVES the RUNNING kernel; the reboot attempt is witnessed as the machine NOT becoming usable — no ssh within the bounded probe, boot-attempt.txt byte-identical on both sides — its own boot path destroyed); boot/system-boot-drift PASS (VM: the install mutation, then the SAME overlay reboots THREE times with a suffixed surface after each — byte-identical to each other and between sides; no drift). All four boot courts on fixture kernel-install, zero residuals. Phase 12 (hostile review) is next."
   },
   {
    "phase": 12,

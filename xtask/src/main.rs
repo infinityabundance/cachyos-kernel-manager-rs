@@ -686,6 +686,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     let is_makepkg = case.comparator.makepkg;
     let is_packaging = case.comparator.packaging;
     let is_boot = case.comparator.boot;
+    let is_boot_remove = case.comparator.boot_remove;
+    let is_boot_failure = case.comparator.boot_failure;
+    let is_boot_drift = case.comparator.boot_drift;
     let tx_select: Vec<String> = case
         .comparator
         .transaction
@@ -730,9 +733,12 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         .expect("copy oracle pkg");
     }
 
-    // Phase 11: the install-command model witness (boot courts)
+    // Phase 11: the install-command model witness (boot courts). Copied for
+    // ALL boot courts (install, remove, failure, drift): each candidate
+    // script renders its command via this tool, and the share may hold a
+    // stale copy from a previous court otherwise.
     let installcmd_src = repo_root().join("target/debug/cachyos-kernel-manager-installcmd");
-    if is_boot {
+    if is_boot || is_boot_remove || is_boot_failure || is_boot_drift {
         if !installcmd_src.exists() {
             eprintln!("build the installcmd tool first: cargo build -p cachyos-kernel-manager-exec --bin cachyos-kernel-manager-installcmd");
             return ExitCode::FAILURE;
@@ -797,7 +803,11 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                 "oracle" => {
                     let script = if is_scx {
                         "scx-loader-observe.sh"
-                    } else if is_boot {
+                    } else if is_boot_failure {
+                        "oracle-fail-boot.sh"
+                    } else if is_boot_remove {
+                        "oracle-remove-boot.sh"
+                    } else if is_boot || is_boot_drift {
                         "oracle-boot-install.sh"
                     } else if is_makepkg {
                         "oracle-makepkg.sh"
@@ -829,7 +839,11 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                 "candidate" => {
                     let script = if is_scx {
                         "scx-loader-candidate.sh"
-                    } else if is_boot {
+                    } else if is_boot_failure {
+                        "candidate-fail-boot.sh"
+                    } else if is_boot_remove {
+                        "candidate-remove-boot.sh"
+                    } else if is_boot || is_boot_drift {
                         "candidate-boot-install.sh"
                     } else if is_makepkg {
                         "candidate-makepkg.sh"
@@ -864,24 +878,77 @@ fn court_run_vm(case_id: &str) -> ExitCode {
         })();
         let _ = run("bash", &[ctl, "stop"]);
         res?;
-        // Phase 11 boot courts: REBOOT the SAME overlay (the kernel install
-        // persisted) and run the boot-check phase.
-        if is_boot {
-            let _ = run("bash", &[ctl, "cleanup"]);
-            run("bash", &[ctl, "start", overlay.to_str().expect("path")])?;
-            let res2 = (|| -> Result<(), String> {
-                run(
-                    "bash",
-                    &[
-                        ctl,
-                        "exec",
-                        "bash /mnt/host/scripts/boot-check.sh /mnt/host/out",
-                    ],
-                )?;
-                Ok(())
-            })();
-            let _ = run("bash", &[ctl, "stop"]);
-            res2?;
+        // Phase 11 boot courts: REBOOT the SAME overlay (the mutation
+        // persisted) and run the boot-check phase. The remove court runs
+        // boot-check-remove.sh (asserts the NON-running kernel is GONE);
+        // the drift court reboots the SAME overlay 3 times, recording the
+        // suffixed surface after each; the install court runs
+        // boot-check.sh.
+        if is_boot || is_boot_remove || is_boot_failure || is_boot_drift {
+            let check_script = if is_boot_remove {
+                "boot-check-remove.sh"
+            } else if is_boot_drift {
+                "boot-check-drift.sh"
+            } else if is_boot_failure {
+                "boot-check-failure.sh"
+            } else {
+                "boot-check.sh"
+            };
+            let reboots: usize = if is_boot_drift { 3 } else { 1 };
+            for n in 1..=reboots {
+                let _ = run("bash", &[ctl, "cleanup"]);
+                if is_boot_failure {
+                    // The failed-boot court's reboot is the EXPECTED
+                    // failure: removing the RUNNING kernel destroys the
+                    // machine's own boot path, and the direct-boot machine
+                    // does NOT become usable (no ssh). Probe for a bounded
+                    // time and record the attempted-boot surface
+                    // HOST-SIDE (the guest is unreachable). A boot that
+                    // DOES come up is still valid — boot-check-failure.sh
+                    // then hard-asserts the failed state.
+                    let start_ok = Command::new("bash")
+                        .args([ctl, "start", overlay.to_str().expect("path")])
+                        .env("KM_WAIT_SSH_TIMEOUT", "240")
+                        .status()
+                        .map(|s| s.success())
+                        .unwrap_or(false);
+                    if start_ok {
+                        let check_cmd =
+                            format!("bash /mnt/host/scripts/{check_script} /mnt/host/out");
+                        let res2 = (|| -> Result<(), String> {
+                            run("bash", &[ctl, "exec", &check_cmd])?;
+                            Ok(())
+                        })();
+                        let _ = run("bash", &[ctl, "stop"]);
+                        std::fs::write(
+                            share_out.join("boot-attempt.txt"),
+                            "boot-complete: ssh ready\n",
+                        )
+                        .map_err(|e| e.to_string())?;
+                        res2?;
+                    } else {
+                        let _ = run("bash", &[ctl, "stop"]);
+                        std::fs::write(
+                            share_out.join("boot-attempt.txt"),
+                            "boot-failed: no ssh within 240s\n",
+                        )
+                        .map_err(|e| e.to_string())?;
+                    }
+                    continue;
+                }
+                run("bash", &[ctl, "start", overlay.to_str().expect("path")])?;
+                let check_cmd = if is_boot_drift {
+                    format!("bash /mnt/host/scripts/{check_script} /mnt/host/out {n}")
+                } else {
+                    format!("bash /mnt/host/scripts/{check_script} /mnt/host/out")
+                };
+                let res2 = (|| -> Result<(), String> {
+                    run("bash", &[ctl, "exec", &check_cmd])?;
+                    Ok(())
+                })();
+                let _ = run("bash", &[ctl, "stop"]);
+                res2?;
+            }
         }
         // pull observations out of the share into the case dir
         for entry in std::fs::read_dir(&share_out).map_err(|e| e.to_string())? {
@@ -925,7 +992,7 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                 return ExitCode::FAILURE;
             }
         }
-    } else if is_boot {
+    } else if is_boot || is_boot_remove || is_boot_failure || is_boot_drift {
         match cachyos_kernel_manager_casefile::vm_court::compare_boot(&case.dir, case_id) {
             Ok(mut r) => residuals.append(&mut r),
             Err(e) => {

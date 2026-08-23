@@ -122,6 +122,27 @@ pub struct Comparator {
     /// and runs the boot-check phase.
     #[serde(default)]
     pub boot: bool,
+    /// Phase 11 removal court (boot/system-boot-after-remove --vm): like
+    /// `boot`, but the phase-1 scripts SET UP the two-kernel state and
+    /// REMOVE the second kernel; the reboot check asserts the removal
+    /// persisted.
+    #[serde(default)]
+    pub boot_remove: bool,
+    /// Phase 11 failed-boot court (boot/system-boot-after-failure --vm):
+    /// like `boot_remove`, but the phase-1 scripts REMOVE the RUNNING
+    /// kernel (the base, which the qemu direct boot loads); the reboot
+    /// check asserts the FAILED state (the running kernel's packages + its
+    /// /boot entry are GONE — a real machine would fail its next boot from
+    /// its own disk — while the harness's direct-kernel boot still brings
+    /// the machine up for the residual witness).
+    #[serde(default)]
+    pub boot_failure: bool,
+    /// Phase 11 multi-reboot drift court (boot/system-boot-drift --vm):
+    /// the install mutation, then the SAME overlay reboots N times with a
+    /// suffixed boot-check after each; every reboot surface must be
+    /// byte-identical across boots AND sides (no drift).
+    #[serde(default)]
+    pub boot_drift: bool,
 }
 
 /// The `[mutate]` comparator section: the Configure-window actions the
