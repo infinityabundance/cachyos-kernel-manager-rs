@@ -115,6 +115,31 @@ pub fn insert_custom_pkgbase(pkgbuild: &str, custom_name: &str) -> String {
     insert_before_marker(pkgbuild, "_major=", &insertion)
 }
 
+/// The index of the first byte that would BREAK the PKGBUILD splice, or
+/// `None` when the value is safe to splice (D-003 — SECURITY_CORRECTION).
+///
+/// Both splices put the user value INSIDE double-quoted bash text in the
+/// PKGBUILD (`pkgbase="<custom>"` and the `source=( ... )` entries). A
+/// value containing any of these can escape the quotes or inject a line
+/// into the PKGBUILD that makepkg will EVALUATE:
+///
+/// - `"` — terminates the quoted string;
+/// - `\n`/`\r` — injects a new line (a `\n` before the closing quote would
+///   put the rest of the splice on its own line);
+/// - `$` and `` ` `` — command substitution / variable expansion;
+/// - `\` — escapes the closing quote (a trailing backslash eats it);
+/// - `\0` — NUL truncation.
+///
+/// The ORACLE splices without validation (its custom-name and patch inputs
+/// come from its own widgets); the candidate REJECTS unsafe values at the
+/// boundary so a hostile value cannot become PKGBUILD code. Valid inputs
+/// splice byte-identically to the oracle (the courted mutate witnesses).
+pub fn splice_unsafe_index(value: &str) -> Option<usize> {
+    value.char_indices().find_map(|(i, c)| {
+        matches!(c, '"' | '\n' | '\r' | '$' | '`' | '\\' | '\0').then_some(i)
+    })
+}
+
 /// `prepare_func_names` + `get_package_names_glob_from_pkgbuild`
 /// (`conf-window.cpp:238-298`): for each `package_<suffix>` function,
 /// produce the glob `<suffix>-<pkgver>-<pkgrel>-*<PKGEXT>`.
@@ -347,6 +372,33 @@ mod tests {
         // precedes prepare() so the later assignment wins in bash.
         // Oracle byte-behavior note: the block lands at the last newline
         // before `prepare()` (here, the one ending the blank line).
+    }
+
+    #[test]
+    fn splice_unsafe_index_rejects_splice_breaking_bytes() {
+        // D-003 SECURITY_CORRECTION: valid inputs pass, every byte that
+        // could escape the double-quoted splice or inject a line is caught.
+        for safe in ["linux-cachyos-rt", "my-kernel", "my-kernel.1", "linux-cachyos-opt", "a_b-c"] {
+            assert_eq!(splice_unsafe_index(safe), None, "{safe} must be safe");
+        }
+        for (unsafe_value, byte) in [
+            ("linux\"cachyos", '"'),
+            ("linux\ncachyos", '\n'),
+            ("linux\rcachyos", '\r'),
+            ("linux$cachyos", '$'),
+            ("linux`cachyos", '`'),
+            ("linux\\cachyos", '\\'),
+        ] {
+            let idx = splice_unsafe_index(unsafe_value).expect("must be rejected");
+            assert_eq!(
+                unsafe_value.as_bytes()[idx] as char, byte,
+                "{unsafe_value:?} must be rejected at the {byte:?} byte"
+            );
+        }
+        // a NUL byte is rejected too (bash/read truncation)
+        assert!(splice_unsafe_index("a\0b").is_some());
+        // the FIRST unsafe byte is reported (the splice aborts there)
+        assert_eq!(splice_unsafe_index("ok\"$(evil)"), Some(2));
     }
 
     #[test]

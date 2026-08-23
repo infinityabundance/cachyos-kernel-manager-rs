@@ -242,6 +242,17 @@ pub fn kernels_by_raw(
 /// Derive the oracle's tree-row flags from discovery + local db + installed
 /// provenance. `installed_db` is the `HAVE_ALPM_INSTALLED_DB` provenance
 /// (empty string when unknown).
+/// Build discovery-order selection rows for the plan tests.
+///
+/// FIXTURE HELPER ONLY (review seam #4): the `update_available` flag needs
+/// the local vs sync version comparison (vercmp), which lives in the alpm
+/// layer — the plan crate cannot compute it (layering: core/plan never
+/// depend on alpm). The REAL plan input rows are built by the alpm layer's
+/// plan CLI (alpm/src/bin/plan.rs) with the real vercmp, so this helper
+/// hardcodes `update_available: false` and can never cover the update quirk
+/// (the BOTH `-S --needed` and `-Rsn` path courted by
+/// kernel-removal/update-available-execute). Do NOT build production
+/// selection state from this function.
 pub fn to_rows(
     kernels: &[DiscoveredKernel],
     local_versions: &std::collections::BTreeMap<String, (String, String)>,
@@ -255,8 +266,8 @@ pub fn to_rows(
                 .map(|(db, _)| db.as_str())
                 .unwrap_or("");
             let immutable = installed && (installed_db.is_empty() || installed_db == k.repo);
-            // version comparison is the alpm layer's job; the plan layer only
-            // needs the update flag, computed by the caller.
+            // the update flag is the alpm layer's vercmp job; this fixture
+            // helper cannot compute it (see the fn docs)
             KernelRow {
                 raw: k.raw.clone(),
                 name: k.name.clone(),

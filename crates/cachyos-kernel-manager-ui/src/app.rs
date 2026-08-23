@@ -26,6 +26,7 @@ use cachyos_kernel_manager_core::options::{
 use cachyos_kernel_manager_core::selection::KernelRow;
 use cachyos_kernel_manager_core::state::{
     transition, AppEvent, AppState, BuildState, ConfigurationState, DialogsState, Effect, ScxState,
+    TransactionState,
 };
 use cachyos_kernel_manager_plan::HardwareProfile;
 use slint::ModelRc;
@@ -504,6 +505,9 @@ pub enum UiMessage {
     Semantic(Message),
     /// A discovery pass finished (initial load or post-transaction refresh).
     CatalogLoaded(Box<CatalogPayload>),
+    /// The transaction worker started the commit run (the phase projection
+    /// enters `TransactionRunning` for the real work).
+    TransactionStarted,
     /// The transaction commit finished; `changed` = the kernels-change flag.
     TransactionFinished {
         changed: bool,
@@ -512,6 +516,11 @@ pub enum UiMessage {
     TransactionFailed {
         message: String,
     },
+    /// A config load/save I/O error — a PLAIN error dialog, never a
+    /// transaction-state transition (config I/O is not a pacman
+    /// transaction; routing it through TransactionFailed used to soft-lock
+    /// the OK button).
+    ConfigError(String),
     /// The Configure-window prepare flow (git refresh + the patches-tab
     /// source-array probe) finished; the payload is the `.patch`-filtered
     /// source array (the oracle's `reset_patches_data_tab` result).
@@ -1584,6 +1593,23 @@ pub enum Task {
 /// `A::default()` — the alternative (a panic on the event loop) leaves the
 /// progress dialog up forever with no message ever arriving (observed in the
 /// VM: a discovery-data panic froze the app on "Initializing kernels...").
+/// Deliver one UI message into the event loop from a worker thread (the
+/// shared result bridge): update + sync + dispatch the resulting tasks. Used
+/// by [`blocking`] for the final result and by the transaction worker for
+/// its intermediate started signal.
+fn deliver(app: &Arc<Mutex<App>>, msg: UiMessage) {
+    let app = app.clone();
+    let _ = slint::invoke_from_event_loop(move || {
+        let Ok(mut state) = app.lock() else {
+            return;
+        };
+        let task = update(&mut state, msg);
+        state.sync_ui();
+        drop(state);
+        dispatch(task, &app);
+    });
+}
+
 fn blocking<A, F>(f: F, make: fn(A) -> UiMessage) -> Task
 where
     A: Send + 'static + Default,
@@ -1603,16 +1629,7 @@ where
                 }
             };
             vlog!("background task done");
-            let msg = make(a);
-            let _ = slint::invoke_from_event_loop(move || {
-                let Ok(mut state) = app.lock() else {
-                    return;
-                };
-                let task = update(&mut state, msg);
-                state.sync_ui();
-                drop(state);
-                dispatch(task, &app);
-            });
+            deliver(&app, make(a));
         });
     }))
 }
@@ -1657,84 +1674,193 @@ impl App {
         )
     }
 
-    /// The transaction task: plan from the selection, run the commit
-    /// commands (the real `terminal-helper` chain — pacman runs in the
-    /// terminal exactly like the oracle), then the kernels-change check
-    /// (`is_kernels_change_state`, km-window.cpp:150-166).
+    /// The transaction task: plan from the selection (AUR kernels included
+    /// per the runtime `aur_enabled` flag), run the commit chain in the
+    /// oracle's order via the courted `commit_commands` (AUR git-refresh +
+    /// `makepkg -sicf` FIRST — kernel.cpp:289-294, aur_kernel.cpp — then
+    /// `pacman -S --needed`, then `pacman -Rsn`), then the kernels-change
+    /// check (`is_kernels_change_state`, km-window.cpp:150-166). The worker
+    /// signals `TransactionStarted` when the commit run begins so the phase
+    /// projection shows `TransactionRunning` for the real work.
     fn transaction_task(&self) -> Task {
-        use cachyos_kernel_manager_plan::TransactionPlan;
+        use cachyos_kernel_manager_plan::commit_commands;
 
         let selection = self.state.selection.clone();
         let kernels = self.kernels.clone();
         let hardware = self.hardware.clone();
-        let plan = TransactionPlan::from_selection(&selection, &hardware, &kernels);
-        let install: Vec<String> = plan.install.iter().map(|a| a.package.clone()).collect();
-        let remove: Vec<String> = plan.remove.iter().map(|a| a.package.clone()).collect();
-        let install_names = install.clone();
-        let remove_names = remove.clone();
-        vlog!("transaction plan: install {install:?} remove {remove:?}");
+        // the runtime AUR flag (the shipped build is OFF; the model must not
+        // silently differ from the flag — review seam #3)
+        let aur_enabled = self.flags.aur_enabled;
+        let mut plan = cachyos_kernel_manager_plan::TransactionPlan::from_selection(
+            &selection,
+            &hardware,
+            &kernels,
+        );
+        plan.aur_enabled = aur_enabled;
+        // the ORACLE's commit ordering (courted by commit_commands): AUR
+        // builds first, then the repo install, then the removal.
+        let commands = commit_commands(&plan);
+        let install_names: Vec<String> =
+            plan.install.iter().map(|a| a.package.clone()).collect();
+        let remove_names: Vec<String> =
+            plan.remove.iter().map(|a| a.package.clone()).collect();
+        vlog!(
+            "transaction plan: aur_enabled={} aur={:?} install {install_names:?} remove {remove_names:?}",
+            aur_enabled,
+            plan.aur_install
+        );
 
-        blocking(
-            move || {
-                // the worker thread semantics (km-window.cpp:120-174):
-                // install, remove, commit, then the change check.
-                // assigned by the alpm change-check branch (feature alpm)
-                #[allow(unused_mut)]
-                let mut failed: Option<String> = None;
-                if !install.is_empty() {
-                    let cmd = format!("pacman -S --needed {}", install.join(" "));
-                    cachyos_kernel_manager_exec::run_cmd_terminal(
-                        &cmd,
-                        cachyos_kernel_manager_exec::Escalate::PkexecRootShell,
-                    );
-                }
-                if !remove.is_empty() {
-                    let cmd = format!("pacman -Rsn {}", remove.join(" "));
-                    cachyos_kernel_manager_exec::run_cmd_terminal(
-                        &cmd,
-                        cachyos_kernel_manager_exec::Escalate::PkexecRootShell,
-                    );
-                }
-                let changed = {
-                    #[cfg(feature = "alpm")]
-                    {
-                        use cachyos_kernel_manager_alpm::ffi::AlpmHandle;
-                        match AlpmHandle::init("/", "/var/lib/pacman/") {
-                            Ok(handle) => {
-                                let installed_now: std::collections::BTreeSet<String> = handle
-                                    .local_packages()
-                                    .into_iter()
-                                    .map(|p| p.name)
-                                    .collect();
-                                let install_changed =
-                                    install_names.iter().any(|n| installed_now.contains(n));
-                                let remove_changed =
-                                    remove_names.iter().any(|n| !installed_now.contains(n));
-                                install_changed || remove_changed
+        Task::Spawn(Box::new(move |_ui, app| {
+            vlog!("background task spawn (transaction)");
+            std::thread::spawn(move || {
+                // the commit run started: the phase projection enters
+                // TransactionRunning (review seam #5)
+                deliver(&app, UiMessage::TransactionStarted);
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    // the worker thread semantics (km-window.cpp:120-174):
+                    // AUR builds, install, remove, commit, then the change
+                    // check. The terminal-helper exit codes are LOGGED but
+                    // the outcome is the changed-check — the ORACLE ignores
+                    // the terminal exit code (runCmdTerminal, gap-008) and
+                    // keys on the package state; the pacman error text is
+                    // visible in the terminal itself.
+                    let mut failed: Option<String> = None;
+                    for command in &commands {
+                        match command {
+                            cachyos_kernel_manager_exec::CommandPlan::GitRefresh {
+                                url,
+                                dir,
+                            } => {
+                                // the AUR git refresh (aur_kernel.cpp:32-36):
+                                // clone when missing, else the refresh chain.
+                                let dir_path = std::path::Path::new(dir);
+                                let parent = dir_path.parent().unwrap_or(std::path::Path::new("~/.cache/cachyos-km"));
+                                let _ = std::fs::create_dir_all(parent);
+                                if dir_path.join(".git").exists() {
+                                    let _ = git_run(
+                                        Some(dir_path),
+                                        &["checkout", "--force", "master"],
+                                    );
+                                    let _ = git_run(Some(dir_path), &["clean", "-fd"]);
+                                    let _ = git_run(Some(dir_path), &["pull"]);
+                                } else {
+                                    let _ = git_run(
+                                        Some(parent),
+                                        &["clone", url, dir_path.file_name().unwrap_or_default().to_str().unwrap_or("repo")],
+                                    );
+                                }
                             }
-                            Err(e) => {
-                                failed = Some(format!("alpm init failed ({e})"));
-                                false
+                            cachyos_kernel_manager_exec::CommandPlan::BuildAurPackage => {
+                                // makepkg runs NON-escalated IN the AUR dir
+                                // (aur_kernel.cpp:53 + the working-directory
+                                // contract); -sicf = install on success. The
+                                // dir is the LAST GitRefresh's target (the
+                                // commit_commands pairing: refresh then build
+                                // per AUR kernel, in order).
+                                let aur_dir = commands
+                                    .iter()
+                                    .rev()
+                                    .find_map(|c| match c {
+                                        cachyos_kernel_manager_exec::CommandPlan::GitRefresh {
+                                            dir,
+                                            ..
+                                        } => Some(dir.clone()),
+                                        _ => None,
+                                    })
+                                    .unwrap_or_default();
+                                let _ = cachyos_kernel_manager_exec::run_cmd_terminal_at(
+                                    &cachyos_kernel_manager_exec::makepkg_aur_argv().join(" "),
+                                    cachyos_kernel_manager_exec::Escalate::None,
+                                    &aur_dir,
+                                );
                             }
+                            cachyos_kernel_manager_exec::CommandPlan::InstallRepoPackages {
+                                packages,
+                                needed,
+                            } => {
+                                let cmd = cachyos_kernel_manager_exec::pacman_install_argv(
+                                    packages,
+                                    *needed,
+                                )
+                                .join(" ");
+                                let rc = cachyos_kernel_manager_exec::run_cmd_terminal(
+                                    &cmd,
+                                    cachyos_kernel_manager_exec::Escalate::PkexecRootShell,
+                                );
+                                vlog!("transaction terminal exit: {rc} ({cmd})");
+                            }
+                            cachyos_kernel_manager_exec::CommandPlan::RemovePackages {
+                                packages,
+                            } => {
+                                let cmd = cachyos_kernel_manager_exec::pacman_remove_argv(packages)
+                                    .join(" ");
+                                let rc = cachyos_kernel_manager_exec::run_cmd_terminal(
+                                    &cmd,
+                                    cachyos_kernel_manager_exec::Escalate::PkexecRootShell,
+                                );
+                                vlog!("transaction terminal exit: {rc} ({cmd})");
+                            }
+                            _ => {}
                         }
                     }
-                    #[cfg(not(feature = "alpm"))]
-                    {
-                        let _ = (&install_names, &remove_names);
-                        false
+                    let changed = {
+                        #[cfg(feature = "alpm")]
+                        {
+                            use cachyos_kernel_manager_alpm::ffi::AlpmHandle;
+                            match AlpmHandle::init("/", "/var/lib/pacman/") {
+                                Ok(handle) => {
+                                    let installed_now: std::collections::BTreeSet<String> =
+                                        handle
+                                            .local_packages()
+                                            .into_iter()
+                                            .map(|p| p.name)
+                                            .collect();
+                                    let install_changed = install_names
+                                        .iter()
+                                        .any(|n| installed_now.contains(n));
+                                    let remove_changed = remove_names
+                                        .iter()
+                                        .any(|n| !installed_now.contains(n));
+                                    install_changed || remove_changed
+                                }
+                                Err(e) => {
+                                    failed = Some(format!("alpm init failed ({e})"));
+                                    false
+                                }
+                            }
+                        }
+                        #[cfg(not(feature = "alpm"))]
+                        {
+                            let _ = (&install_names, &remove_names);
+                            false
+                        }
+                    };
+                    if let Some(message) = failed {
+                        (changed, Some(message))
+                    } else {
+                        (changed, None)
+                    }
+                }));
+                let (changed, failed) = match result {
+                    Ok(r) => r,
+                    Err(p) => {
+                        km_eprintln!(
+                            "cachyos-kernel-manager: transaction task panicked: {}",
+                            panic_message(&p)
+                        );
+                        (false, Some("transaction worker panicked".to_string()))
                     }
                 };
-                if let Some(message) = failed {
-                    (changed, Some(message))
-                } else {
-                    (changed, None)
-                }
-            },
-            |(changed, failed)| match failed {
-                Some(message) => UiMessage::TransactionFailed { message },
-                None => UiMessage::TransactionFinished { changed },
-            },
-        )
+                vlog!("background task done (transaction)");
+                deliver(
+                    &app,
+                    match failed {
+                        Some(message) => UiMessage::TransactionFailed { message },
+                        None => UiMessage::TransactionFinished { changed },
+                    },
+                );
+            });
+        }))
     }
 
     /// The Configure-window prepare flow (`on_configure`, km-window.cpp:
@@ -1828,6 +1954,26 @@ impl App {
                 // 5. the patch source-array mutation + the custom-name
                 //    mutation (both write the PKGBUILD back; a failed
                 //    write aborts like the oracle's insert_status check).
+                //    D-003 SECURITY_CORRECTION: a hostile custom name or
+                //    patch entry (quote/newline/$/backtick/backslash) would
+                //    escape the splice and become PKGBUILD code that makepkg
+                //    EVALUATES — reject it at the boundary (the oracle
+                //    splices blindly; the candidate fails SAFELY instead).
+                let unsafe_name = cachyos_kernel_manager_build::splice_unsafe_index(&custom_name);
+                if let Some(i) = unsafe_name {
+                    km_eprintln!(
+                        "cachyos-kernel-manager: custom package name rejected (unsafe byte at {i}) — D-003"
+                    );
+                    return false;
+                }
+                for p in &patches {
+                    if let Some(i) = cachyos_kernel_manager_build::splice_unsafe_index(p) {
+                        km_eprintln!(
+                            "cachyos-kernel-manager: patch entry rejected (unsafe byte at {i}): {p:?} — D-003"
+                        );
+                        return false;
+                    }
+                }
                 let pkgbuild_text = std::fs::read_to_string(&pkgbuild_path).unwrap_or_default();
                 let mutated = insert_patch_source_array(&pkgbuild_text, &orig_entries, &patches);
                 if !write_pkgbuild(&pkgbuild_path, &mutated) {
@@ -2081,11 +2227,19 @@ pub fn update(app: &mut App, message: UiMessage) -> Task {
             app.recompute_sort();
             app.on_event(AppEvent::DiscoveryFinished)
         }
+        UiMessage::TransactionStarted => app.on_event(AppEvent::TransactionStarted),
         UiMessage::TransactionFinished { changed } => {
             app.on_event(AppEvent::TransactionFinished { changed })
         }
         UiMessage::TransactionFailed { message } => {
             app.on_event(AppEvent::TransactionFailed { message })
+        }
+        UiMessage::ConfigError(message) => {
+            // a PLAIN error dialog — config I/O is not a pacman transaction,
+            // so it must never drive the transaction state machine (routing
+            // it through TransactionFailed soft-locked the OK button)
+            app.state.dialogs = DialogsState::Error { message };
+            Task::None
         }
         UiMessage::ConfigurePrepared(patches) => {
             // reset_patches_data_tab (km-window.cpp:349) + the state
@@ -2141,7 +2295,16 @@ pub fn update(app: &mut App, message: UiMessage) -> Task {
         }
         UiMessage::DialogDismissed => {
             app.state.dialogs = DialogsState::None;
-            Task::None
+            // a FAILED transaction's error dialog was acknowledged: the
+            // worker is done and the OK button re-enables (the oracle's
+            // m_running releases after the worker's finished path — review
+            // seam #1: the transaction used to park in Failed forever,
+            // soft-locking Execute for the process lifetime).
+            if app.state.transaction == TransactionState::Failed {
+                app.on_event(AppEvent::TransactionErrorAcknowledged)
+            } else {
+                Task::None
+            }
         }
         UiMessage::InstallQuestion(yes) => {
             app.state.dialogs = DialogsState::None;
@@ -2422,10 +2585,10 @@ pub fn update(app: &mut App, message: UiMessage) -> Task {
                         },
                         |result| match result {
                             Some(Ok(config)) => UiMessage::ConfigLoaded(Box::new(config)),
-                            Some(Err(message)) => UiMessage::TransactionFailed { message },
-                            None => UiMessage::TransactionFailed {
-                                message: "Failed to load config options from file".into(),
-                            },
+                            Some(Err(message)) => UiMessage::ConfigError(message),
+                            None => UiMessage::ConfigError(
+                                "Failed to load config options from file".into(),
+                            ),
                         },
                     )
                 }
@@ -2436,12 +2599,14 @@ pub fn update(app: &mut App, message: UiMessage) -> Task {
                         move || Some(config.save(std::path::Path::new(&path)).map_err(|e| e.to_string())),
                         |result| match result {
                             Some(Ok(())) => UiMessage::DialogDismissed,
-                            Some(Err(e)) => UiMessage::TransactionFailed {
-                                message: format!("Failed to save config options to file: {e}"),
-                            },
-                            None => UiMessage::TransactionFailed {
-                                message: "Failed to save config options to file".into(),
-                            },
+                            Some(Err(e)) => {
+                                UiMessage::ConfigError(format!(
+                                    "Failed to save config options to file: {e}"
+                                ))
+                            }
+                            None => UiMessage::ConfigError(
+                                "Failed to save config options to file".into(),
+                            ),
                         },
                     )
                 }
@@ -2836,6 +3001,60 @@ mod tests {
         let app = app();
         assert_eq!(app.state.lifecycle, LifecycleState::KernelDiscovery);
         assert!(matches!(app.state.dialogs, DialogsState::Progress { .. }));
+    }
+
+    #[test]
+    fn transaction_returns_to_idle_so_execute_reenables() {
+        // review seam #1: the transaction used to park in Complete/Failed
+        // forever, soft-locking the OK button for the process lifetime.
+        let mut app = app();
+        // a dirty selection so execute_enabled() can come back on
+        app.state.selection.rows.push(cachyos_kernel_manager_core::selection::KernelRow {
+            raw: "cachyos/linux-cachyos".into(),
+            name: "linux-cachyos".into(),
+            installed: false,
+            immutable: false,
+            update_available: false,
+            checked: true,
+        });
+        let _ = update(&mut app, UiMessage::Semantic(Message::ExecuteRequested));
+        assert!(app.state.transaction_in_progress());
+        // (a) NOTHING changed: back to Idle immediately, Execute re-enabled
+        let _ = update(&mut app, UiMessage::TransactionFinished { changed: false });
+        assert_eq!(app.state.transaction, TransactionState::Idle);
+        assert!(app.state.execute_enabled());
+        // (b) changed: Complete + refresh, then the refresh discovery -> Idle
+        let _ = update(&mut app, UiMessage::Semantic(Message::ExecuteRequested));
+        let _ = update(&mut app, UiMessage::TransactionFinished { changed: true });
+        assert_eq!(app.state.transaction, TransactionState::Complete { changed: true });
+        assert!(!app.state.execute_enabled()); // refresh pending
+        let _ = update(&mut app, UiMessage::CatalogLoaded(Box::new(CatalogPayload {
+            rows: vec![KernelRowView {
+                raw: "cachyos/linux-cachyos".into(),
+                version_text: "6.14.1-3".into(),
+                category: "stable".into(),
+                checked: true,
+                immutable: false,
+                update_available: false,
+            }],
+            kernels: BTreeMap::new(),
+            installed: BTreeMap::new(),
+            hardware: HardwareProfile::default(),
+        })));
+        assert_eq!(app.state.transaction, TransactionState::Idle);
+        // (c) failed: the error dialog ack releases the transaction
+        let _ = update(&mut app, UiMessage::Semantic(Message::ExecuteRequested));
+        let _ = update(
+            &mut app,
+            UiMessage::TransactionFailed {
+                message: "alpm init failed".into(),
+            },
+        );
+        assert_eq!(app.state.transaction, TransactionState::Failed);
+        assert!(!app.state.execute_enabled());
+        let _ = update(&mut app, UiMessage::DialogDismissed);
+        assert_eq!(app.state.transaction, TransactionState::Idle);
+        assert!(app.state.execute_enabled());
     }
 
     #[test]

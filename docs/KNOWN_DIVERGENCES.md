@@ -27,7 +27,7 @@ maintainer_notes
 |---|---|---|
 | D-001 | `rootshell.sh` arbitrary root shell | SECURITY_CORRECTION → narrow typed helper + shim (docs/PRIVILEGE_MODEL.md) |
 | D-002 | PKGBUILD/config non-atomic writes | INTENTIONAL_CORRECTION → atomic replace (crash resilience) |
-| D-003 | custom pkgbase / patch splice validation | SECURITY_CORRECTION → reject quote/newline bytes that break the splice |
+| D-003 | custom pkgbase / patch splice validation | SECURITY_CORRECTION → IMPLEMENTED 2026-08-23 (see the D-003 ledger entry below) — the splice boundary rejects quote/newline/$/backtick/backslash bytes |
 | D-004 | process-cwd mutation by git prep | INTENTIONAL_CORRECTION → derive build path from explicit cache path, not mutable cwd (user-visible parity: build dir stays `~/.cache/cachyos-km/pkgbuilds/linux-cachyos/<variant>`) |
 | D-005 | `fix_path`/`restore_clean_environment` UB on empty/malformed input | INTENTIONAL_CORRECTION → defined behavior (no observable difference for valid inputs) |
 | D-006 | desktop `Categories=Qt` | packaging-artifact reclassification, evidence-gated |
@@ -48,8 +48,40 @@ ADDS a `--version` flag (prints `cachyos-kernel-manager 0.1.0`) — an
 additive CLI convenience, no user-visible effect on the GUI drop-in
 surface (the oracle's abort is not a contract).
 
-## D-007 — desktop entry StartupWMClass (IMPLEMENTED, witnessed)
+## D-003 — PKGBUILD splice validation (IMPLEMENTED, witnessed)
 
+- **oracle_behavior**: the custom package name (`set_custom_name_in_pkgbuild`,
+  conf-window.cpp:328-339) and the patch entries (`insert_new_source_array_
+  into_pkgbuild`) are spliced into the PKGBUILD double-quoted bash text with
+  NO validation — a value containing `"`, a newline, `$`, backticks, or a
+  backslash escapes the splice and becomes PKGBUILD code that makepkg
+  EVALUATES (arbitrary command execution in the user's build).
+- **candidate_behavior**: the production build boundary (`build_task`)
+  rejects any custom name or patch entry containing `"` / newline / CR /
+  `$` / backtick / backslash / NUL (`splice_unsafe_index`, build crate); the
+  build fails SAFELY (the failure branch) instead of injecting the value.
+  Valid inputs splice byte-identically to the oracle (the courted
+  mutate/patch-injection witnesses are unchanged).
+- **reason_for_divergence**: SECURITY_CORRECTION — a hostile value must not
+  become PKGBUILD code.
+- **user-visible_effect**: an unsafe custom name or patch entry now fails
+  the build with a stderr diagnostic instead of producing a broken/hostile
+  PKGBUILD (which would have failed or worse). Valid inputs behave
+  identically.
+- **compatibility_risk**: none for valid inputs; a value the oracle would
+  have spliced dangerously now fails fast.
+- **safety_or_correctness_rationale**: the splice boundary is the correct
+  place to enforce the invariant (the PKGBUILD is executed by makepkg).
+- **regression_test**: build crate `splice_unsafe_index_rejects_splice_
+  breaking_bytes`; the gate itself is in the production `build_task` (the
+  UI soft-lock + splice regressions are covered by the rendering suite).
+- **oracle_witness**: the frozen source's unvalidated splice
+  (conf-window.cpp:328-339, 401-406).
+- **candidate_witness**: `splice_unsafe_index` + the build_task gate.
+- **maintainer_notes**: keep the validators in the build crate (the courted
+  splice witnesses stay pure); the gate belongs to the production boundary.
+
+## D-007 — desktop entry StartupWMClass (IMPLEMENTED, witnessed)
 - **oracle_behavior**: the installed desktop entry has NO StartupWMClass
   key; Qt's WM_CLASS (set by QApplication from the argv[0] basename) gives
   KWin the identity it needs to group the three windows under one taskbar

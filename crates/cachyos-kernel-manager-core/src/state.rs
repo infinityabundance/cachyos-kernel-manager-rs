@@ -182,8 +182,15 @@ pub enum AppEvent {
     DiscoveryFinished,
     KernelToggled { row: usize },
     ExecuteRequested,
+    /// The worker started the commit run (the phase projection shows
+    /// `TransactionRunning` for the real work, not a parked Planning).
+    TransactionStarted,
     TransactionFinished { changed: bool },
     TransactionFailed { message: String },
+    /// The failure error dialog was acknowledged — the transaction returns to
+    /// Idle (the oracle's `m_running` releases after the worker's finished
+    /// path, after the message box).
+    TransactionErrorAcknowledged,
     ConfigureRequested,
     ConfigurePrepared,
     BuildRequested,
@@ -342,6 +349,15 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
             next.lifecycle = LifecycleState::Ready;
             next.catalog = CatalogState::Loaded;
             effects.push(Effect::HideProgress);
+            // a transaction that CHANGED the package state parked the
+            // transaction in Complete + RefreshPending; this discovery IS the
+            // post-transaction refresh — the transaction returns to Idle so
+            // the OK button re-enables (km-window.cpp:174 / the refresh
+            // completion path). The STARTUP discovery (catalog == Unloaded)
+            // leaves Idle untouched.
+            if state.catalog == CatalogState::RefreshPending {
+                next.transaction = TransactionState::Idle;
+            }
         }
         AppEvent::KernelToggled { row } => {
             crate::selection::toggle_row(&mut next.selection, row);
@@ -355,15 +371,24 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
             effects.push(Effect::Authenticate);
             effects.push(Effect::RunTransaction);
         }
+        // The worker actually started the commit run (the UI sends this when
+        // the terminal-helper spawns) — the phase projection shows the real
+        // work instead of parking on Planning for the whole run.
+        AppEvent::TransactionStarted => {
+            next.transaction = TransactionState::Running;
+        }
         AppEvent::TransactionFinished { changed } => {
-            next.transaction = TransactionState::Complete { changed };
             if changed {
+                next.transaction = TransactionState::Complete { changed };
                 next.catalog = CatalogState::RefreshPending;
                 effects.push(Effect::RefreshKernels);
                 effects.push(Effect::ShowProgress {
                     message: "Please wait...\nInitializing kernels..".into(),
                 });
             } else {
+                // nothing changed: the oracle re-enables the OK button
+                // immediately (km-window.cpp:174) — back to Idle, no refresh.
+                next.transaction = TransactionState::Idle;
                 next.catalog = CatalogState::Loaded;
                 effects.push(Effect::HideProgress);
             }
@@ -371,6 +396,12 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
         AppEvent::TransactionFailed { message } => {
             next.transaction = TransactionState::Failed;
             effects.push(Effect::ShowError { message });
+        }
+        // the error dialog was acknowledged: the worker is done, the OK
+        // button re-enables (the oracle's m_running is released when the
+        // worker's finished path ends, after the message box).
+        AppEvent::TransactionErrorAcknowledged => {
+            next.transaction = TransactionState::Idle;
         }
         AppEvent::ConfigureRequested => {
             next.configuration = ConfigurationState::Preparing;
@@ -384,6 +415,14 @@ pub fn transition(state: &AppState, event: AppEvent) -> (AppState, Vec<Effect>) 
             effects.push(Effect::HideProgress);
         }
         AppEvent::BuildRequested => {
+            if state.build != BuildState::Idle {
+                // the Configure window's on_execute guard: `if (m_running)
+                // return;` (conf-window.cpp:696-701) — a double-click/double-
+                // press must NEVER spawn a concurrent makepkg run (they race
+                // on .done-status and confuse finished_proc). m_running
+                // covers the build AND the artifact install.
+                return (next, effects);
+            }
             next.build = BuildState::Running;
             // the Configure window's on_execute (`conf-window.cpp:696-735`):
             // makepkg runs in the variant's PKGBUILD dir under the cache
@@ -484,9 +523,87 @@ mod tests {
 
         let (s3, fx3) = transition(&s, AppEvent::TransactionFinished { changed: false });
         assert_eq!(s3.catalog, CatalogState::Loaded);
-        assert_eq!(s3.phase(), AppPhase::TransactionComplete);
+        // NOTHING changed: the transaction returns to Idle immediately — the
+        // OK button re-enables (km-window.cpp:174). Regression: it used to
+        // park in Complete forever, soft-locking Execute for the process
+        // lifetime.
+        assert_eq!(s3.transaction, TransactionState::Idle);
         assert!(fx3.contains(&Effect::HideProgress));
         assert!(!fx3.contains(&Effect::RefreshKernels));
+    }
+
+    #[test]
+    fn changed_transaction_returns_to_idle_after_the_refresh_discovery() {
+        // changed:true -> Complete + RefreshPending; the post-transaction
+        // DiscoveryFinished IS the refresh completion -> Idle (the OK button
+        // re-enables after the tree is rebuilt).
+        let mut s = ready_state();
+        s.transaction = TransactionState::Running;
+        let (s2, _) = transition(&s, AppEvent::TransactionFinished { changed: true });
+        assert_eq!(s2.transaction, TransactionState::Complete { changed: true });
+        assert_eq!(s2.catalog, CatalogState::RefreshPending);
+        let (s3, _) = transition(&s2, AppEvent::DiscoveryFinished);
+        assert_eq!(s3.transaction, TransactionState::Idle);
+        assert_eq!(s3.catalog, CatalogState::Loaded);
+        assert!(s3.execute_enabled() || s3.selection.change_list().is_empty());
+        // the STARTUP discovery (catalog Unloaded) leaves Idle untouched
+        let (s4, _) = transition(&AppState::default(), AppEvent::DiscoveryFinished);
+        assert_eq!(s4.transaction, TransactionState::Idle);
+    }
+
+    #[test]
+    fn transaction_error_acknowledged_returns_to_idle() {
+        // failed -> the error dialog; acknowledging it releases the worker's
+        // m_running equivalent and re-enables the OK button.
+        let mut s = ready_state();
+        let (s2, fx) = transition(&s, AppEvent::TransactionFailed {
+            message: "alpm init failed".into(),
+        });
+        assert_eq!(s2.transaction, TransactionState::Failed);
+        assert_eq!(s2.phase(), AppPhase::TransactionFailed);
+        assert!(fx.contains(&Effect::ShowError { message: "alpm init failed".into() }));
+        let (s3, _) = transition(&s2, AppEvent::TransactionErrorAcknowledged);
+        assert_eq!(s3.transaction, TransactionState::Idle);
+        assert!(s3.execute_enabled() || s3.selection.change_list().is_empty());
+    }
+
+    #[test]
+    fn transaction_started_enters_running() {
+        let mut s = ready_state();
+        s.transaction = TransactionState::Planning;
+        let (s2, fx) = transition(&s, AppEvent::TransactionStarted);
+        assert_eq!(s2.transaction, TransactionState::Running);
+        assert_eq!(s2.phase(), AppPhase::TransactionRunning);
+        assert!(s2.transaction_in_progress());
+        assert!(fx.is_empty());
+    }
+
+    #[test]
+    fn build_requested_is_gated_while_a_build_or_install_runs() {
+        // conf-window.cpp:696-701 `if (m_running) return;` — a second Execute
+        // while the build OR the artifact install runs is a complete no-op
+        // (a double-click must never spawn concurrent makepkg runs).
+        for blocked in [
+            BuildState::Running,
+            BuildState::Completed,
+            BuildState::Failed,
+            BuildState::Installing,
+        ] {
+            let mut s = ready_state();
+            s.configuration = ConfigurationState::Editing;
+            s.build = blocked;
+            let (s2, fx) = transition(&s, AppEvent::BuildRequested);
+            assert_eq!(s2, s, "build must stay {blocked:?} under a second Execute");
+            assert!(fx.is_empty());
+        }
+        // and the guarded path still starts a fresh build
+        let mut s = ready_state();
+        s.configuration = ConfigurationState::Editing;
+        let (s2, fx) = transition(&s, AppEvent::BuildRequested);
+        assert_eq!(s2.build, BuildState::Running);
+        assert!(fx.iter().any(
+            |e| matches!(e, Effect::RunBuild { variant_dir } if variant_dir == "linux-cachyos")
+        ));
     }
 
     #[test]
