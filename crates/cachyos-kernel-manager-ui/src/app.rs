@@ -17,6 +17,7 @@ use crate::i18n::{resolve, ResolvedLocale};
 use crate::main_window::rows;
 use crate::scx_window::ScxWindowModel;
 use crate::strings;
+use crate::strings::standard_buttons::StandardButton;
 use crate::{KernelRowView, Message};
 use cachyos_kernel_manager_config::KernelManagerConfig;
 use cachyos_kernel_manager_core::discovery::DiscoveredKernel;
@@ -1026,13 +1027,22 @@ impl App {
             })
             .collect();
         ui.set_rows(ModelRc::new(slint::VecModel::from(rows)));
-        ui.set_description(strings::main_description_plain().into());
+        // the description + tree headers resolve through tr() like the
+        // oracle's (the MainWindow context catalogs translate the whole
+        // HTML block and the four column headers — audit P2: the old sync
+        // fed the English constants straight through, so a German session
+        // showed English headers); the catalog key for the description is
+        // the RAW HTML literal (km-window.ui:27), the view strips it.
+        ui.set_description(
+            strings::main_description_plain(&self.tr(tr_ctx::MAIN, strings::MAIN_DESCRIPTION_HTML))
+                .into(),
+        );
         ui.set_execute_enabled(self.state.execute_enabled());
         ui.set_schedext_visible(self.schedext_button_visible());
-        ui.set_label_choose(strings::tree_columns::CHOOSE.into());
-        ui.set_label_pkgname(strings::tree_columns::PKG_NAME.into());
-        ui.set_label_version(strings::tree_columns::VERSION.into());
-        ui.set_label_category(strings::tree_columns::CATEGORY.into());
+        ui.set_label_choose(self.tr(tr_ctx::MAIN, strings::tree_columns::CHOOSE).into());
+        ui.set_label_pkgname(self.tr(tr_ctx::MAIN, strings::tree_columns::PKG_NAME).into());
+        ui.set_label_version(self.tr(tr_ctx::MAIN, strings::tree_columns::VERSION).into());
+        ui.set_label_category(self.tr(tr_ctx::MAIN, strings::tree_columns::CATEGORY).into());
         ui.set_label_execute(self.tr(tr_ctx::MAIN, strings::main_buttons::EXECUTE).into());
         ui.set_label_configure(
             self.tr(tr_ctx::MAIN, strings::main_buttons::CONFIGURE)
@@ -1055,6 +1065,11 @@ impl App {
         ui.set_dialog_path_visible(pav);
         ui.set_dialog_path_title(pat.into());
         ui.set_dialog_path_value(pavv.into());
+        // the standard dialog buttons (Qt's own translations)
+        ui.set_dialog_button_ok(self.standard_button(StandardButton::Ok).into());
+        ui.set_dialog_button_yes(self.standard_button(StandardButton::Yes).into());
+        ui.set_dialog_button_no(self.standard_button(StandardButton::No).into());
+        ui.set_dialog_button_cancel(self.standard_button(StandardButton::Cancel).into());
         // the Configure/SchedExt windows follow their states
         self.sync_configure_window();
         self.sync_scx_window();
@@ -1106,6 +1121,12 @@ impl App {
         self.locale.tr(context, source).to_string()
     }
 
+    /// Qt's OWN standard-button text for the resolved catalog (the qtbase
+    /// QMessageBox buttons; English fallback for an unresolvable locale).
+    pub fn standard_button(&self, button: StandardButton) -> &'static str {
+        strings::standard_buttons::text(self.locale.catalog, button)
+    }
+
     /// Push the Configure window: visibility (shown while Preparing/Editing),
     /// the variant combo, the 11 option checkboxes, the six option combos,
     /// the custom name, and the patches tab.
@@ -1119,13 +1140,19 @@ impl App {
         );
         if open {
             let c = &self.configure;
-            // the variant combo (the 10 courted labels)
+            // the variant combo (the 10 courted labels). The oracle builds
+            // them with `ConfWindow::tr()` (conf-window.cpp:487-488) — the
+            // ConfWindow catalog context, NOT ConfOptionsPage (audit P2: the
+            // old sync resolved them in the options-page context; all
+            // variant translations are empty/unfinished in the frozen .ts,
+            // so the resolved text is the same today, but the context must
+            // match the oracle's lookup exactly).
             let variants: Vec<slint::SharedString> =
                 cachyos_kernel_manager_core::options::KernelVariant::ALL
                     .iter()
                     .map(|v| {
                         self.tr(
-                            tr_ctx::CONF_OPTIONS,
+                            tr_ctx::CONF,
                             crate::configure_window::variant_label(*v),
                         )
                         .into()
@@ -1298,6 +1325,10 @@ impl App {
             w.set_dialog_path_visible(pav);
             w.set_dialog_path_title(pat.into());
             w.set_dialog_path_value(pavv.into());
+            w.set_dialog_button_ok(self.standard_button(StandardButton::Ok).into());
+            w.set_dialog_button_yes(self.standard_button(StandardButton::Yes).into());
+            w.set_dialog_button_no(self.standard_button(StandardButton::No).into());
+            w.set_dialog_button_cancel(self.standard_button(StandardButton::Cancel).into());
             let _ = w.show();
         } else {
             let _ = w.hide();
@@ -1364,6 +1395,10 @@ impl App {
                 w.set_dialog_path_visible(pav);
                 w.set_dialog_path_title(pat.into());
                 w.set_dialog_path_value(pavv.into());
+                w.set_dialog_button_ok(self.standard_button(StandardButton::Ok).into());
+                w.set_dialog_button_yes(self.standard_button(StandardButton::Yes).into());
+                w.set_dialog_button_no(self.standard_button(StandardButton::No).into());
+                w.set_dialog_button_cancel(self.standard_button(StandardButton::Cancel).into());
                 let _ = w.show();
                 // the belt-and-suspenders min-size clamp: run while visible
                 // (480x320 — must match scx_window.slint's content-root mins)

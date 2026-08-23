@@ -1,0 +1,7 @@
+{
+ "fixture": "i18n-rendered",
+ "raw_image_hash": "sha256:e0f1766b8cd0140ddbff13f4cf09f39c926385d17301d5289fe9ac03bc8d7ef9",
+ "baked_at": "2026-08-23T21:06:00Z",
+ "fixture_digest": "sha256:cbf36e320ef538192422d16b9fdedb3a1ee401fa85c916a13c37e8fb26151eaa",
+ "spec_sha256": "sha256:1db5d77a7822a62a7ef8641079c7fb4fe01d28ba847a7a03fdcdc2963bb9356d"
+}

@@ -293,6 +293,67 @@ pub fn compare_gui_drive(case_dir: &Path, court_id: &str) -> Result<Vec<Residual
     Ok(residuals)
 }
 
+/// Phase 12 hostile-review rendered-i18n court (ui/i18n-rendered --vm):
+/// compare the RENDERED main-window accessible projection per locale
+/// (de_DE + zh_CN) + the machine residuals byte-for-byte. Both sides run
+/// under the same generated locale; the projection (window title, the
+/// description, the four tree headers, the action buttons) is the audit
+/// P2 requirement — the i18n courts must witness rendered production
+/// projections, not just catalog lookup.
+pub fn compare_i18n_rendered(case_dir: &Path, court_id: &str) -> Result<Vec<Residual>, CaseError> {
+    let oracle_dir = case_dir.join("oracle");
+    let candidate_dir = case_dir.join("candidate");
+    let mut residuals = Vec::new();
+
+    // the machine residual (fixture-integrity): both sides run on fresh
+    // overlays of the SAME fixture image
+    let oracle_residual = std::fs::read(oracle_dir.join("residual.json"))?;
+    let candidate_residual = std::fs::read(candidate_dir.join("candidate-residual.json"))
+        .or_else(|_| std::fs::read(candidate_dir.join("residual.json")))?;
+    if oracle_residual != candidate_residual {
+        residuals.push(Residual {
+            id: format!("{court_id}-machine-residual-drift"),
+            court: court_id.into(),
+            layer: "machine-residual".into(),
+            oracle_fingerprint: sha256_bytes(&oracle_residual),
+            candidate_fingerprint: sha256_bytes(&candidate_residual),
+            classification: "fixture_drift".into(),
+            root_cause: None,
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+
+    // the rendered projection per locale: de_DE (the translated surface:
+    // description + headers + buttons resolve through the catalogs) and
+    // zh_CN (gap-009's rendered projection: BOTH sides render English —
+    // the oracle never loads its CJK catalog because QLocale reports
+    // zh_CN while the frozen qrc alias is zh-CN; the candidate reproduces
+    // the miss)
+    for locale in ["de_DE", "zh_CN"] {
+        let file = format!("i18n-{locale}.json");
+        let oracle_sem = std::fs::read(oracle_dir.join(&file))?;
+        let candidate_sem = std::fs::read(candidate_dir.join(&file))?;
+        if oracle_sem != candidate_sem {
+            residuals.push(Residual {
+                id: format!("{court_id}-i18n-{locale}"),
+                court: court_id.into(),
+                layer: "i18n-rendered".into(),
+                oracle_fingerprint: sha256_bytes(&oracle_sem),
+                candidate_fingerprint: sha256_bytes(&candidate_sem),
+                classification: "deterministic_mismatch".into(),
+                root_cause: None,
+                resolution: None,
+                commit: None,
+                regression_witness: None,
+            });
+        }
+    }
+
+    Ok(residuals)
+}
+
 /// Compare two observations field-by-field; returns residuals.
 pub fn compare_observations(
     court: &str,

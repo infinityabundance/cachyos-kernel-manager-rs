@@ -57,6 +57,12 @@ export component SchedExtWindow inherits Window {
     in property <bool> dialog-path-visible;
     in property <string> dialog-path-title;
     in property <string> dialog-path-value;
+    // the standard dialog button labels (Qt's own translations, resolved
+    // by the Rust side)
+    in property <string> dialog-button-ok;
+    in property <string> dialog-button-yes;
+    in property <string> dialog-button-no;
+    in property <string> dialog-button-cancel;
 
     callback dialog-error-dismissed();
     callback dialog-confirm-answered(bool);
@@ -182,6 +188,10 @@ export component SchedExtWindow inherits Window {
         path-visible: root.dialog-path-visible;
         path-title: root.dialog-path-title;
         path-value: root.dialog-path-value;
+        button-ok: root.dialog-button-ok;
+        button-yes: root.dialog-button-yes;
+        button-no: root.dialog-button-no;
+        button-cancel: root.dialog-button-cancel;
         error-dismissed => { root.dialog-error-dismissed(); }
         confirm-answered(yes) => { root.dialog-confirm-answered(yes); }
         path-dismissed => { root.dialog-path-dismissed(); }

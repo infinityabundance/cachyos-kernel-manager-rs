@@ -1,0 +1,12 @@
+assumptions = [
+  "The frozen oracle sources + the frozen translation catalogs (oracle/upstream/lang @ 6b4a373e, hash-verified by oracle/UPSTREAM.lock) are the single authority for the rendered strings; the Qt standard-button strings come from Qt 6's qtbase translations (the candidate's standard_buttons table, documented in crates/cachyos-kernel-manager-ui/src/strings.rs).",
+  "The generated locales (de_DE.UTF-8, zh_CN.UTF-8) are baked into the fixture by localedef — the oracle's QLocale::system() must resolve the same way on both boots; an ungenerated locale would silently fall back to C and both sides would render English (the court would then witness a DIFFERENT — still identical — projection).",
+  "The projection is the main window's translation-sensitive chrome only (title, description, headers, buttons); the kernel rows are courted by ui/gui-drive and are structurally incomparable across the bridges (Qt tree items vs Slint cells) — they are not projected.",
+  "The driver classifies the chrome side-agnostically: the description is the longest text node in the main window; the four column headers precede the rows; the action buttons follow them. Qt exposes the headers as TABLE_COLUMN_HEADER roles; Slint exposes them as button-role nodes before the first kernel row.",
+  "gap-009's rendered projection: with zh_CN, BOTH sides render English (QLocale zh_CN vs the frozen zh-CN qrc alias — the oracle never loads its CJK catalog; the candidate reproduces the miss via ui/i18n-resolution). The non-Latin glyph-rendering question (slint's software renderer limits text to western scripts) is therefore NOT reachable through the shipped app's locale resolution and is documented as such; the rendered zh_CN projection is the witness.",
+  "A side whose GUI cannot be driven (no app, or an empty projection) fails the claim — the missing-side shape must be identical on both sides.",
+]
+
+normalizers = [
+  { name = "i18n-projection", version = "1.0.0", source_hash = "vm/in-vm/i18n-drive.py", input_domain = "the startup AT-SPI tree of each packaged GUI under the generated locale", transformation = "project the main window's translation-sensitive chrome (window_title, description, headers, buttons) into i18n-<locale>.json", justification = "the Qt and Slint bridges expose structurally different trees (Qt exposes the hidden configure/sched-ext windows too; the row models differ); only the chrome projection is comparable", falsifier = "a byte in i18n-de_DE.json, i18n-zh_CN.json, or the residuals differing between the boots" },
+]

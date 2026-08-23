@@ -324,6 +324,7 @@ fn court_list() -> ExitCode {
                     "[mutate]",
                     "scx = ",
                     "gui_drive = ",
+                    "i18n_rendered = ",
                 ]
                 .iter()
                 .any(|m| comparator.contains(m));
@@ -763,7 +764,11 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     // the INSTALLED BINARY itself, never a witness CLI (the audit's
     // "drive the packaged Rust GUI" requirement).
     let is_gui_drive = case.comparator.gui_drive;
-    if is_gui_drive {
+    // Phase 12 hostile-review rendered-i18n court (ui/i18n-rendered --vm):
+    // like gui-drive, the PACKAGED binaries are driven under a GENERATED
+    // non-English locale; the release binary is staged the same way.
+    let is_i18n_rendered = case.comparator.i18n_rendered;
+    if is_gui_drive || is_i18n_rendered {
         let gui_src = repo_root().join("target/release/cachyos-kernel-manager");
         if !gui_src.exists() {
             eprintln!("build the release GUI first: cargo build --release --features gui-alpm");
@@ -825,7 +830,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             }
             match side {
                 "oracle" => {
-                    let script = if is_gui_drive {
+                    let script = if is_i18n_rendered {
+                        "oracle-i18n-drive.sh"
+                    } else if is_gui_drive {
                         "oracle-gui-drive.sh"
                     } else if is_scx {
                         "scx-loader-observe.sh"
@@ -863,7 +870,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                     run("bash", &[ctl, "exec", &cmd])?;
                 }
                 "candidate" => {
-                    let script = if is_gui_drive {
+                    let script = if is_i18n_rendered {
+                        "candidate-i18n-drive.sh"
+                    } else if is_gui_drive {
                         "candidate-gui-drive.sh"
                     } else if is_scx {
                         "scx-loader-candidate.sh"
@@ -1041,6 +1050,14 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             Ok(mut r) => residuals.append(&mut r),
             Err(e) => {
                 eprintln!("gui-drive comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else if is_i18n_rendered {
+        match cachyos_kernel_manager_casefile::vm_court::compare_i18n_rendered(&case.dir, case_id) {
+            Ok(mut r) => residuals.append(&mut r),
+            Err(e) => {
+                eprintln!("i18n-rendered comparison error: {e}");
                 return ExitCode::FAILURE;
             }
         }

@@ -27,6 +27,13 @@ export component DialogOverlay {
     in property <bool> path-visible: false;
     in property <string> path-title;
     in property <string> path-value;
+    // the standard dialog buttons (Qt's OWN translations — qtbase's
+    // QMessageBox standard buttons, resolved by the Rust side from the
+    // standard_buttons table; defaults are Qt's English strings)
+    in property <string> button-ok: "OK";
+    in property <string> button-yes: "Yes";
+    in property <string> button-no: "No";
+    in property <string> button-cancel: "Cancel";
 
     callback error-dismissed();
     callback confirm-answered(bool);
@@ -66,7 +73,7 @@ export component DialogOverlay {
                     Text { text: root.error-message; wrap: word-wrap; color: Palette.foreground; }
                     HorizontalBox {
                         alignment: center;
-                        CachyosButton { text: "OK"; primary: true; clicked => { root.error-dismissed(); } }
+                        CachyosButton { text: root.button-ok; primary: true; clicked => { root.error-dismissed(); } }
                     }
                 }
             }
@@ -82,8 +89,8 @@ export component DialogOverlay {
                     HorizontalBox {
                         alignment: center;
                         spacing: 8px;
-                        CachyosButton { text: "Yes"; primary: true; clicked => { root.confirm-answered(true); } }
-                        Button { text: "No"; clicked => { root.confirm-answered(false); } }
+                        CachyosButton { text: root.button-yes; primary: true; clicked => { root.confirm-answered(true); } }
+                        Button { text: root.button-no; clicked => { root.confirm-answered(false); } }
                     }
                 }
             }
@@ -103,8 +110,8 @@ export component DialogOverlay {
                     HorizontalBox {
                         alignment: end;
                         spacing: 8px;
-                        Button { text: "Cancel"; clicked => { root.path-dismissed(); } }
-                        CachyosButton { text: "OK"; primary: true; clicked => { root.path-submitted(root.current-path-value); } }
+                        Button { text: root.button-cancel; clicked => { root.path-dismissed(); } }
+                        CachyosButton { text: root.button-ok; primary: true; clicked => { root.path-submitted(root.current-path-value); } }
                     }
                 }
             }

@@ -152,6 +152,18 @@ pub struct Comparator {
     /// identity proof) byte-for-byte + the machine residual.
     #[serde(default)]
     pub gui_drive: bool,
+    /// Phase 12 hostile-review rendered-i18n court (ui/i18n-rendered --vm):
+    /// when true, the runner drives the PACKAGED GUI under a GENERATED
+    /// non-English locale (de_DE.UTF-8 + zh_CN.UTF-8) and compares the
+    /// RENDERED main-window accessible projection (window title, the
+    /// description, the four tree headers, the action buttons) byte-for-byte
+    /// — the audit P2 requirement that the i18n courts witness rendered
+    /// production projections, not just catalog lookup (and gap-009's
+    /// rendered zh_CN projection: BOTH sides show English — the oracle
+    /// never loads its CJK catalog because QLocale reports zh_CN vs the
+    /// zh-CN qrc alias).
+    #[serde(default)]
+    pub i18n_rendered: bool,
 }
 
 /// The `[mutate]` comparator section: the Configure-window actions the

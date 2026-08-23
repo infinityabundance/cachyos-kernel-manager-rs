@@ -31,9 +31,11 @@ pub const MAIN_DESCRIPTION_HTML: &str = "<html>\n<body>\n<p>Here you'll see info
 /// HTML renderer, so the view strips the tags (the courted string
 /// inventory keeps the raw HTML literal unchanged — only the presentation
 /// differs, which the window-choreography note in `app.rs` declares a
-/// rendering choice).
-pub fn main_description_plain() -> String {
-    strip_html(MAIN_DESCRIPTION_HTML)
+/// rendering choice). The input is the LOCALE-RESOLVED html (the catalog
+/// key is the raw HTML; the German catalog translates the whole block), so
+/// the caller passes the resolved string.
+pub fn main_description_plain(html: &str) -> String {
+    strip_html(html)
 }
 
 /// Remove the markup from a small fixed HTML string and keep the paragraph
@@ -635,13 +637,89 @@ pub fn inventory() -> &'static [(&'static str, &'static str, &'static str)] {
     ]
 }
 
+/// Qt's OWN standard-button translations (the `QMessageBox` standard
+/// buttons are localized by the qtbase catalogs — the qt_*.qm files, NOT
+/// the app's .ts — audit P2: the dialog overlay used to hardcode English
+/// OK/Yes/No/Cancel). The candidate ships no qtbase catalogs, so the four
+/// buttons resolve from this derived table, quoted from Qt 6's official
+/// qtbase translations (qtbase/src/widgets/dialogs, the qt_<lang>.ts
+/// standard-button strings). The locale WITHOUT a compiled catalog keeps
+/// Qt's English fallback, exactly like the oracle's unlocalized session.
+pub mod standard_buttons {
+    /// (catalog alias, OK, Yes, No, Cancel) — the shipped catalog set.
+    const TABLE: &[(&str, &str, &str, &str, &str)] = &[
+        ("de", "OK", "Ja", "Nein", "Abbrechen"),
+        ("es", "Aceptar", "Sí", "No", "Cancelar"),
+        ("it", "OK", "Sì", "No", "Annulla"),
+        ("fr", "OK", "Oui", "Non", "Annuler"),
+        ("pt", "OK", "Sim", "Não", "Cancelar"),
+        ("nl", "OK", "Ja", "Nee", "Annuleren"),
+        ("pl", "OK", "Tak", "Nie", "Anuluj"),
+        ("cs", "OK", "Ano", "Ne", "Zrušit"),
+        ("sk", "OK", "Áno", "Nie", "Zrušiť"),
+        ("sv", "OK", "Ja", "Nej", "Avbryt"),
+        ("ru", "OK", "Да", "Нет", "Отмена"),
+        ("uk", "OK", "Так", "Ні", "Скасувати"),
+        ("bg", "OK", "Да", "Не", "Отказ"),
+        ("ja", "OK", "はい", "いいえ", "キャンセル"),
+        ("ko", "확인", "예", "아니요", "취소"),
+        ("zh-CN", "确定", "是", "否", "取消"),
+    ];
+
+    /// Which standard dialog button.
+    #[derive(Clone, Copy)]
+    pub enum StandardButton {
+        Ok,
+        Yes,
+        No,
+        Cancel,
+    }
+
+    /// The Qt standard-button text for the resolved catalog alias
+    /// (English fallback for an unresolvable locale).
+    pub fn text(catalog: Option<&str>, button: StandardButton) -> &'static str {
+        let row = catalog.and_then(|c| TABLE.iter().find(|(alias, ..)| *alias == c));
+        let (_, ok, yes, no, cancel) = row.unwrap_or(&("", "OK", "Yes", "No", "Cancel"));
+        match button {
+            StandardButton::Ok => ok,
+            StandardButton::Yes => yes,
+            StandardButton::No => no,
+            StandardButton::Cancel => cancel,
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn german_standard_buttons_match_qt() {
+            assert_eq!(text(Some("de"), StandardButton::Ok), "OK");
+            assert_eq!(text(Some("de"), StandardButton::Yes), "Ja");
+            assert_eq!(text(Some("de"), StandardButton::No), "Nein");
+            assert_eq!(text(Some("de"), StandardButton::Cancel), "Abbrechen");
+        }
+
+        #[test]
+        fn unlocalized_locale_keeps_qt_english_fallback() {
+            assert_eq!(text(None, StandardButton::Ok), "OK");
+            assert_eq!(text(None, StandardButton::Yes), "Yes");
+            assert_eq!(text(None, StandardButton::No), "No");
+            assert_eq!(text(None, StandardButton::Cancel), "Cancel");
+            // a catalog alias outside the shipped set also falls back
+            assert_eq!(text(Some("xx"), StandardButton::Cancel), "Cancel");
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn description_plain_text_drops_the_markup() {
-        let plain = main_description_plain();
+        // the locale-resolved html (English catalog fallback == the source)
+        let plain = main_description_plain(MAIN_DESCRIPTION_HTML);
         assert!(!plain.contains('<'));
         assert!(!plain.contains("</p>"));
         assert!(plain.contains(

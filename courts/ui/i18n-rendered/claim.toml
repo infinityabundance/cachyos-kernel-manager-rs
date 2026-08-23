@@ -1,0 +1,41 @@
+# CLAIM — ui/i18n-rendered
+
+claim = "The PACKAGED GUI — the installed binary, not a witness CLI — renders the same TRANSLATION-SENSITIVE main-window chrome under the same GENERATED locale as the frozen oracle. The Phase 12 hostile-review rendered-i18n court drives each side's real GUI (oracle: the frozen Qt binary; candidate: the release Slint binary built with --features gui-alpm) under Xvfb + AT-SPI with de_DE.UTF-8 and zh_CN.UTF-8 and projects the RENDERED accessible surface of the main window: the window title, the description, the four tree column headers, and the action buttons. The projection must be byte-identical between the sides per locale. For de_DE this witnesses the audit P2 requirement — the i18n courts must include rendered production projections, not just catalog lookup (the candidate resolves the description + headers through tr(); German translates PkgName to Paketname and Category to Kategorie). For zh_CN it witnesses gap-009's rendered projection: BOTH sides render English, because Qt's QLocale reports zh_CN while the frozen qrc alias is zh-CN — the oracle never loads its CJK catalog, and the candidate reproduces the miss. The machine residual after each side's run must also match."
+
+model = "Oracle: the frozen Qt GUI (QLocale::system() + the embedded .qm catalogs from oracle/upstream/lang + Qt's own qtbase translations). Candidate: the Slint GUI's ResolvedLocale (ui/i18n-resolution semantics, ui/src/i18n.rs) + the standard_buttons table (Qt's own QMessageBox standard-button strings). The driver (vm/in-vm/i18n-drive.py) is side-agnostic: it projects the main window's accessible chrome from the startup tree, never assuming the bridge structure."
+
+assumptions = [
+  "The frozen oracle sources + the frozen translation catalogs (oracle/upstream/lang, hash-verified by oracle/UPSTREAM.lock) are the single authority.",
+  "Both sides run on the same baked fixture with the SAME GENERATED locales (localedef de_DE.UTF-8 + zh_CN.UTF-8 at bake time) — the oracle's QLocale::system() must resolve the locale the same way on both boots.",
+  "The AT-SPI bridges differ structurally (Qt exposes THREE windows — main, configure, sched-ext — with the hidden ones present; Slint exposes only the main window at startup) — the projection is scoped to the MAIN window's chrome (window title, description, headers, buttons) and the kernel ROWS are deliberately not projected (their identity text was already courted byte-for-byte by ui/gui-drive).",
+  "The description is the longest text node in the main window on both sides; the four column headers precede the kernel rows; the action buttons follow them — the driver classifies by role + position, side-agnostically.",
+  "The zh_CN locale renders the ENGLISH projection on both sides (gap-009: QLocale zh_CN vs the zh-CN qrc alias) — the court witnesses the rendered projection of that catalog-resolution miss, and the CJK glyph-rendering question is not reachable through the shipped app's locale resolution.",
+  "A side whose GUI cannot be driven (no app, no projection) fails the claim (the missing-side shape must be identical on both sides).",
+]
+
+observables = [
+  "per locale (de_DE, zh_CN): window_title, description, headers (4), buttons (the action row)",
+  "machine residual (residual.json / residual.json.after) equality",
+]
+
+witness = "cargo build --release --features gui-alpm; cargo xtask vm bake i18n-rendered; then cargo xtask court run ui/i18n-rendered --vm (the runner stages the release binary into the share, drives oracle-i18n-drive.sh and candidate-i18n-drive.sh, and compares i18n-de_DE.json + i18n-zh_CN.json + the residuals)."
+
+independence = "the oracle side is the frozen Qt binary with its embedded catalogs; the candidate side is the release Rust binary with its compiled catalogs — two independent implementations of the same contract, each driven by the SAME side-agnostic AT-SPI driver."
+
+falsifier = "Any byte difference in the rendered projection for either locale, or any machine-residual difference between the two boots."
+
+[[evidence]]
+artifact = "oracle/i18n-de_DE.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/i18n-de_DE.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "oracle/i18n-zh_CN.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/i18n-zh_CN.json"
+sha256 = "pending"

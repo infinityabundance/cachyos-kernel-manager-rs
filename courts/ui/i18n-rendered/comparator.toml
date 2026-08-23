@@ -1,0 +1,20 @@
+version = "1.0.0"
+fixture = "i18n-rendered"
+i18n_rendered = true
+
+# The rendered i18n projection per locale + the machine residual must match
+# byte-for-byte; the raw trees and app stderr are raw evidence only.
+ignore = [
+  "oracle.stdout",
+  "oracle.stderr",
+  "candidate.stdout",
+  "candidate.stderr",
+]
+byte_exact = [
+  "i18n-de_DE.json",
+  "i18n-zh_CN.json",
+  "residual.json",
+  "residual.json.after",
+]
+json_semantic = []
+volatile_prefixes = []
