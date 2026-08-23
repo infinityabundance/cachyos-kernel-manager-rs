@@ -325,6 +325,7 @@ fn court_list() -> ExitCode {
                     "scx = ",
                     "gui_drive = ",
                     "i18n_rendered = ",
+                    "close_transaction = ",
                 ]
                 .iter()
                 .any(|m| comparator.contains(m));
@@ -768,7 +769,11 @@ fn court_run_vm(case_id: &str) -> ExitCode {
     // like gui-drive, the PACKAGED binaries are driven under a GENERATED
     // non-English locale; the release binary is staged the same way.
     let is_i18n_rendered = case.comparator.i18n_rendered;
-    if is_gui_drive || is_i18n_rendered {
+    // Phase 12 hostile-review gap-010 court (ui/close-during-transaction
+    // --vm): like gui-drive/i18n, the PACKAGED binaries are driven; the
+    // release binary is staged the same way.
+    let is_close_transaction = case.comparator.close_transaction;
+    if is_gui_drive || is_i18n_rendered || is_close_transaction {
         let gui_src = repo_root().join("target/release/cachyos-kernel-manager");
         if !gui_src.exists() {
             eprintln!("build the release GUI first: cargo build --release --features gui-alpm");
@@ -830,7 +835,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             }
             match side {
                 "oracle" => {
-                    let script = if is_i18n_rendered {
+                    let script = if is_close_transaction {
+                        "oracle-close-transaction.sh"
+                    } else if is_i18n_rendered {
                         "oracle-i18n-drive.sh"
                     } else if is_gui_drive {
                         "oracle-gui-drive.sh"
@@ -870,7 +877,9 @@ fn court_run_vm(case_id: &str) -> ExitCode {
                     run("bash", &[ctl, "exec", &cmd])?;
                 }
                 "candidate" => {
-                    let script = if is_i18n_rendered {
+                    let script = if is_close_transaction {
+                        "candidate-close-transaction.sh"
+                    } else if is_i18n_rendered {
                         "candidate-i18n-drive.sh"
                     } else if is_gui_drive {
                         "candidate-gui-drive.sh"
@@ -1058,6 +1067,16 @@ fn court_run_vm(case_id: &str) -> ExitCode {
             Ok(mut r) => residuals.append(&mut r),
             Err(e) => {
                 eprintln!("i18n-rendered comparison error: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else if is_close_transaction {
+        match cachyos_kernel_manager_casefile::vm_court::compare_close_transaction(
+            &case.dir, case_id,
+        ) {
+            Ok(mut r) => residuals.append(&mut r),
+            Err(e) => {
+                eprintln!("close-transaction comparison error: {e}");
                 return ExitCode::FAILURE;
             }
         }

@@ -1,0 +1,11 @@
+assumptions = [
+  "The frozen oracle sources (oracle/upstream/src @ 6b4a373e) are the single authority for the close behavior (km-window.cpp:327-338 closeEvent: m_running=true, m_thread_running=false, notify, alpm_release, QWidget::closeEvent; the worker QThread stays blocked in runCmdTerminal's QProcess wait).",
+  "The machine residuals are compared byte-for-byte: the slow-pacman wrapper keeps the transaction in-flight 15s and the close happens during the sleep, so the REAL pacman never runs and the machine state is the pre-transaction state on both sides — any difference would mean the close corrupted one side's transaction.",
+  "The exit-outcome DIVERGENCE is the D-008 INTENTIONAL_CORRECTION (the candidate is safer — no QThread-destroyed abort); the comparator validates the expected outcomes as residuals rather than byte-comparing them.",
+  "The closer sends WM_DELETE_WINDOW (ClientMessage) to the window whose WM_NAME EXACTLY equals 'CachyOS Kernel Manager' — the same close path a WM triggers; without a WM the event must be synthesized.",
+  "A side whose transaction never goes in-flight (transaction_inflight=false) fails the claim — the close would then witness nothing.",
+]
+
+normalizers = [
+  { name = "close-outcome", version = "1.0.0", source_hash = "vm/in-vm/oracle-close-transaction.sh + vm/in-vm/candidate-close-transaction.sh", input_domain = "the app process exit after the mid-transaction close", transformation = "record exit_outcome (crash/clean/still-alive), exit_rc, transaction_inflight into close-outcome.json", justification = "the oracle's crash (SIGABRT) and the candidate's clean exit are the documented D-008 divergence; only the machine residuals are byte-compared", falsifier = "a residual byte differing, or an exit outcome violating the documented expectations (oracle crash, candidate clean)" },
+]

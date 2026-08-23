@@ -1,0 +1,7 @@
+{
+ "fixture": "close-transaction",
+ "raw_image_hash": "sha256:da27dbe4a03f442444323483cb0324362f70bddf57fef6885f1b248c431c2ed8",
+ "baked_at": "2026-08-23T22:39:55Z",
+ "fixture_digest": "sha256:6948fd5eb9f1e79028147f49c670c5862d0ee8c42f4eb8355bc60691fa7b4fb0",
+ "spec_sha256": "sha256:d098292da95d98081fb9c579a37c437fb35c07117c6e3c90fab1017caa5a92a4"
+}

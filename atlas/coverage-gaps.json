@@ -119,8 +119,12 @@
    "id": "gap-010",
    "surface": "worker-thread close-race during transaction",
    "evidence": "km-window.cpp:327-338 releases alpm without joining the worker",
-   "court_needed": "ui/main-window-semantics (close-during-transaction)",
-   "note": "The oracle's closeEvent releases the alpm handle while the worker may still be mid-transaction (a latent use-after-free race in the ORACLE). The candidate does NOT reproduce it: the worker work runs as runtime-owned tasks and close simply exits the app (Effect::Close -> the event-loop exit; the per-task alpm handles are dropped on their own threads). Characterized, not differentially witnessed; witnessing the oracle's actual crash behavior is race-hunting — Phase 12 (hostile review: race/mutation testing) owns it."
+   "court_needed": "ui/close-during-transaction",
+   "status": "covered",
+   "covered_by": [
+    "ui/close-during-transaction"
+   ],
+   "note": "REPRODUCED + courted (2026-08-23): ui/close-during-transaction PASS on fixture close-transaction (a slow-pacman wrapper keeps the transaction terminal in-flight 30s; the court closes the MAIN window via WM_DELETE_WINDOW). The frozen Qt app ABORTS on close-during-transaction — SIGABRT (Qt's 'QThread: Destroyed while thread is still running' after closeEvent's alpm_release lets the app exit while the worker QThread is blocked in the transaction) — while the release Slint binary exits CLEANLY (the transaction task is a runtime-owned detached thread; Effect::Close exits the event loop). The machine residuals match byte-for-byte: the close corrupts nothing on either side. D-008 INTENTIONAL_CORRECTION."
   },
   {
    "id": "gap-011",

@@ -1,0 +1,32 @@
+# CLAIM — ui/close-during-transaction
+
+claim = "The PACKAGED GUI's close-during-transaction behavior is witnessed on the same machine, and the machine outcome is identical: closing the MAIN window while a REAL transaction is in-flight does NOT corrupt the machine (the residuals match byte-for-byte) on either side. The app-exit outcomes follow the documented D-008 INTENTIONAL_CORRECTION divergence: the ORACLE ABORTS (SIGABRT — closeEvent at km-window.cpp:327-338 releases the alpm handle and the app exits while the worker QThread is still blocked in the transaction; Qt aborts with 'QThread: Destroyed while thread is still running'), the CANDIDATE exits CLEANLY (the transaction task is a runtime-owned detached thread; the close exits the event loop). This is the gap-010 race-hunt court: the audit's 'witnessing the oracle's actual crash behavior is race-hunting, explicitly Phase 12's mandate' — now REPRODUCED (2026-08-23) and witnessed differentially."
+
+model = "Oracle: the frozen Qt GUI's closeEvent (km-window.cpp:327-338) + the worker QThread (Work/runCmdTerminal blocking). Candidate: the Slint GUI's close (Effect::Close -> quit_event_loop) with the transaction task as a runtime-owned spawned thread. The court drives each side's packaged binary through a real transaction (toggle a kernel row + Execute) under the slow-pacman fixture (the transaction terminal deterministically stays in-flight 15s), closes the MAIN window via WM_DELETE_WINDOW (the same ClientMessage a WM sends — no WM in the court VM), and records the exit outcome."
+
+assumptions = [
+  "The frozen oracle sources (oracle/upstream/src @ 6b4a373e) are the single authority; the archive is hash-verified by oracle/UPSTREAM.lock.",
+  "The close is the WM_DELETE_WINDOW ClientMessage to the window whose WM_NAME EXACTLY matches 'CachyOS Kernel Manager' (the Configure window's title is a strict superset — the closer prefers the exact match).",
+  "The slow-pacman fixture wrapper (/usr/local/bin/pacman, 15s sleep then exec the real pacman) keeps the transaction terminal in-flight so the close deterministically hits the blocked worker; the real pacman is never reached during the court (the close happens during the sleep), so the machine residual is the pre-transaction state.",
+  "The exit-outcome divergence is the documented D-008 INTENTIONAL_CORRECTION (the candidate is SAFER: no QThread-destroyed abort). The court validates the EXPECTED outcomes (oracle crash, candidate clean) as residuals when violated, and byte-matches the machine residuals.",
+  "A side whose GUI cannot be driven (no transaction in-flight) fails the claim (transaction_inflight=false is recorded and validated).",
+]
+
+observables = [
+  "per side: exit_outcome (crash | clean | still-alive), exit_rc, transaction_inflight",
+  "machine residual (residual.json / residual.json.after) equality",
+]
+
+witness = "cargo build --release --features gui-alpm; cargo xtask vm bake close-transaction; then cargo xtask court run ui/close-during-transaction --vm (the runner stages the release binary into the share, drives oracle-close-transaction.sh and candidate-close-transaction.sh, and compares the residuals + validates the D-008 exit-outcome expectations)."
+
+independence = "the oracle side is the frozen Qt binary with its QThread worker; the candidate side is the release Rust binary with its runtime-owned task threads — two independent implementations, driven by the same court script pattern (each side's driver uses its own GUI's AT-SPI bridge)."
+
+falsifier = "Any machine-residual difference between the boots, OR the oracle NOT aborting (the gap-010 race not manifesting), OR the candidate NOT exiting cleanly (the D-008 correction regressed), OR either side failing to start a transaction."
+
+[[evidence]]
+artifact = "oracle/close-outcome.json"
+sha256 = "pending"
+
+[[evidence]]
+artifact = "candidate/close-outcome.json"
+sha256 = "pending"

@@ -1,0 +1,21 @@
+version = "1.0.0"
+fixture = "close-transaction"
+close_transaction = true
+
+# The machine residuals must match byte-for-byte (the close corrupts
+# nothing); the exit-outcome expectations (oracle crash, candidate clean)
+# are validated by the comparator, not compared as raw bytes (they are the
+# documented D-008 divergence).
+ignore = [
+  "oracle.stdout",
+  "oracle.stderr",
+  "candidate.stderr",
+  "oracle/candidate-state.json",
+  "candidate/candidate-state.json",
+]
+byte_exact = [
+  "residual.json",
+  "residual.json.after",
+]
+json_semantic = []
+volatile_prefixes = []

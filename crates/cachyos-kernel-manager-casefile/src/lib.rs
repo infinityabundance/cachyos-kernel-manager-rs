@@ -164,6 +164,16 @@ pub struct Comparator {
     /// zh-CN qrc alias).
     #[serde(default)]
     pub i18n_rendered: bool,
+    /// Phase 12 hostile-review gap-010 court (ui/close-during-transaction
+    /// --vm): when true, the runner drives each side's PACKAGED GUI through
+    /// a REAL transaction (toggle + Execute), closes the MAIN window while
+    /// the transaction is in-flight (WM_DELETE_WINDOW), and compares the
+    /// machine residuals byte-for-byte + validates the documented D-008
+    /// exit-outcome divergence (the oracle ABORTS — Qt's QThread destroyed
+    /// while running after closeEvent's alpm_release — the candidate exits
+    /// CLEANLY).
+    #[serde(default)]
+    pub close_transaction: bool,
 }
 
 /// The `[mutate]` comparator section: the Configure-window actions the

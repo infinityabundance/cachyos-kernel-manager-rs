@@ -354,6 +354,88 @@ pub fn compare_i18n_rendered(case_dir: &Path, court_id: &str) -> Result<Vec<Resi
     Ok(residuals)
 }
 
+/// Phase 12 hostile-review gap-010 court (ui/close-during-transaction
+/// --vm): the machine residuals (the in-flight transaction is NOT corrupted
+/// by the close on either side) must match byte-for-byte, and the exit
+/// outcomes must match the documented D-008 divergence: the ORACLE aborts
+/// (closeEvent at km-window.cpp:327-338 releases the alpm handle and the
+/// app exits while the worker QThread is still blocked in the transaction
+/// — Qt's "QThread: Destroyed while thread is still running" SIGABRT), the
+/// CANDIDATE exits cleanly (runtime-owned task; the close exits the event
+/// loop). The expectation check is itself a residual when violated.
+pub fn compare_close_transaction(
+    case_dir: &Path,
+    court_id: &str,
+) -> Result<Vec<Residual>, CaseError> {
+    let oracle_dir = case_dir.join("oracle");
+    let candidate_dir = case_dir.join("candidate");
+    let mut residuals = Vec::new();
+
+    // the machine residual (fixture-integrity): both sides run on fresh
+    // overlays of the SAME fixture image; the close must leave the same
+    // machine state (the in-flight transaction is not corrupted)
+    let oracle_residual = std::fs::read(oracle_dir.join("residual.json"))?;
+    let candidate_residual = std::fs::read(candidate_dir.join("candidate-residual.json"))
+        .or_else(|_| std::fs::read(candidate_dir.join("residual.json")))?;
+    if oracle_residual != candidate_residual {
+        residuals.push(Residual {
+            id: format!("{court_id}-machine-residual-drift"),
+            court: court_id.into(),
+            layer: "machine-residual".into(),
+            oracle_fingerprint: sha256_bytes(&oracle_residual),
+            candidate_fingerprint: sha256_bytes(&candidate_residual),
+            classification: "fixture_drift".into(),
+            root_cause: None,
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+
+    // the D-008 exit-outcome expectations (the divergence the correction
+    // exists for): oracle crash, candidate clean. Violations are residuals.
+    let read_outcome = |dir: &std::path::Path| -> Result<(String, String), CaseError> {
+        let raw = std::fs::read_to_string(dir.join("close-outcome.json"))?;
+        let v: serde_json::Value = serde_json::from_str(&raw)?;
+        Ok((
+            v["exit_outcome"].as_str().unwrap_or("unknown").to_string(),
+            v["exit_rc"].as_str().unwrap_or("").to_string(),
+        ))
+    };
+    let (oracle_outcome, oracle_rc) = read_outcome(&oracle_dir)?;
+    let (candidate_outcome, candidate_rc) = read_outcome(&candidate_dir)?;
+    if oracle_outcome != "crash" {
+        residuals.push(Residual {
+            id: format!("{court_id}-oracle-expected-crash"),
+            court: court_id.into(),
+            layer: "gap-010-oracle".into(),
+            oracle_fingerprint: oracle_outcome.clone(),
+            candidate_fingerprint: format!("{oracle_outcome} rc={oracle_rc}"),
+            classification: "divergence_expectation".into(),
+            root_cause: Some("the oracle did not abort on close-during-transaction — the gap-010 race did not manifest; the documented witness (Qt QThread destroyed while running -> SIGABRT) is expected".into()),
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+    if candidate_outcome != "clean" {
+        residuals.push(Residual {
+            id: format!("{court_id}-candidate-expected-clean"),
+            court: court_id.into(),
+            layer: "gap-010-candidate".into(),
+            oracle_fingerprint: candidate_outcome.clone(),
+            candidate_fingerprint: format!("{candidate_outcome} rc={candidate_rc}"),
+            classification: "divergence_expectation".into(),
+            root_cause: Some("the candidate did not exit cleanly on close-during-transaction — the D-008 correction (runtime-owned tasks) regressed".into()),
+            resolution: None,
+            commit: None,
+            regression_witness: None,
+        });
+    }
+
+    Ok(residuals)
+}
+
 /// Compare two observations field-by-field; returns residuals.
 pub fn compare_observations(
     court: &str,

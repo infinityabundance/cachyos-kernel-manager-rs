@@ -1040,9 +1040,15 @@ impl App {
         ui.set_execute_enabled(self.state.execute_enabled());
         ui.set_schedext_visible(self.schedext_button_visible());
         ui.set_label_choose(self.tr(tr_ctx::MAIN, strings::tree_columns::CHOOSE).into());
-        ui.set_label_pkgname(self.tr(tr_ctx::MAIN, strings::tree_columns::PKG_NAME).into());
+        ui.set_label_pkgname(
+            self.tr(tr_ctx::MAIN, strings::tree_columns::PKG_NAME)
+                .into(),
+        );
         ui.set_label_version(self.tr(tr_ctx::MAIN, strings::tree_columns::VERSION).into());
-        ui.set_label_category(self.tr(tr_ctx::MAIN, strings::tree_columns::CATEGORY).into());
+        ui.set_label_category(
+            self.tr(tr_ctx::MAIN, strings::tree_columns::CATEGORY)
+                .into(),
+        );
         ui.set_label_execute(self.tr(tr_ctx::MAIN, strings::main_buttons::EXECUTE).into());
         ui.set_label_configure(
             self.tr(tr_ctx::MAIN, strings::main_buttons::CONFIGURE)
@@ -1151,11 +1157,8 @@ impl App {
                 cachyos_kernel_manager_core::options::KernelVariant::ALL
                     .iter()
                     .map(|v| {
-                        self.tr(
-                            tr_ctx::CONF,
-                            crate::configure_window::variant_label(*v),
-                        )
-                        .into()
+                        self.tr(tr_ctx::CONF, crate::configure_window::variant_label(*v))
+                            .into()
                     })
                     .collect();
             let variant_index = cachyos_kernel_manager_core::options::KernelVariant::ALL

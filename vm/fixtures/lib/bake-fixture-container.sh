@@ -54,6 +54,16 @@ step "stage fixture scripts into chroot"
 mkdir -p "$ROOT/opt/cachyos-km-vm"
 cp /in/fixture-lib.sh "$ROOT/opt/cachyos-km-vm/fixture-lib.sh"
 cp /in/fixture/spec.sh "$ROOT/opt/cachyos-km-vm/fixture-spec.sh"
+# any PAYLOAD files in the fixture spec dir (e.g. the packaged
+# terminal-helper/rootshell.sh the close-transaction fixture installs) are
+# staged next to the spec so the spec can install them
+for f in /in/fixture/*; do
+    [ -f "$f" ] || continue
+    base="$(basename "$f")"
+    [ "$base" = "spec.sh" ] && continue
+    cp "$f" "$ROOT/opt/cachyos-km-vm/payload-$base"
+    chmod +x "$ROOT/opt/cachyos-km-vm/payload-$base" 2>/dev/null || true
+done
 chmod +x "$ROOT/opt/cachyos-km-vm/fixture-spec.sh"
 
 step "run fixture spec (arch-chroot with live bind mounts)"

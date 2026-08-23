@@ -73,6 +73,18 @@ surface (the oracle's abort is not a contract).
 - **compatibility_risk**: a user who closes Configure expecting the build
   to continue (oracle behavior) now gets a cancelled build. Documented;
   the VM oracle court (Phase 12) witnesses the difference.
+
+Related (same correction family, MAIN window): closing the app during a
+TRANSACTION. The frozen oracle ABORTS — `closeEvent` (km-window.cpp:
+327-338) releases the alpm handle and lets the app exit while the worker
+QThread is still blocked in `runCmdTerminal`; Qt aborts with "QThread:
+Destroyed while thread is still running" (SIGABRT, witnessed 2026-08-23
+by `ui/close-during-transaction`, fixture `close-transaction` — the
+gap-010 race-hunt mandate). The candidate exits CLEANLY (the transaction
+task is a runtime-owned detached thread; `Effect::Close` exits the event
+loop); the machine residuals match byte-for-byte (the close corrupts
+nothing on either side — the in-flight transaction is left to the
+terminal the same way).
 - **safety_or_correctness_rationale**: no orphaned root/pacman/makepkg
   processes; deterministic failure instead of invisible progress.
 - **regression_test**: `configure_trace` (close hides, build keeps

@@ -262,9 +262,24 @@ enablement stub is required for registration; the bridge cannot serve
 the tree past the first model rebuild, so the candidate driver captures
 the header/row screen positions from the LIVE tree and delivers every
 click by XTEST, witnessing the sorted orders + toggled identities from
-the app's own KM_VERBOSE courted trace. The remaining Phase 8/12 work is
-courted in `atlas/status.json`: the CJK software-renderer court and the
-close-during-transaction worker race (gap-010, race-hunting in Phase 12).
+the app's own KM_VERBOSE courted trace. The hostile-review i18n court
+`ui/i18n-rendered` PASSES (fixture `i18n-rendered`, generated
+de_DE.UTF-8 + zh_CN.UTF-8): the packaged binaries' RENDERED main-window
+chrome (title, description, four headers, action buttons) is byte-
+identical per locale — de_DE witnesses the audit P2 tr() fixes (the
+description + headers now resolve through the catalogs; the variant
+labels use the ConfWindow context; the dialog overlay's standard buttons
+resolve from the qtbase-derived `standard_buttons` table), zh_CN
+witnesses gap-009's rendered projection (both sides English). The
+gap-010 race is REPRODUCED + courted: `ui/close-during-transaction`
+PASSES (fixture `close-transaction`, slow-pacman in-flight window): the
+frozen Qt app ABORTS on close-during-transaction (SIGABRT — Qt's QThread
+destroyed while running after closeEvent's alpm_release) while the
+release Slint binary exits CLEANLY (D-008), and the machine residuals
+match byte-for-byte. The remaining Phase 8/12 work is courted in
+`atlas/status.json`: the close-during-transaction worker race is now
+covered; D-001 (the production privilege replacement) is Phase 13
+implementation work.
 
 ## Phase 9 status (full differential matrix) — IN PROGRESS
 
