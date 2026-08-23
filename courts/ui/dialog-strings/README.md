@@ -1,7 +1,7 @@
 # ui/dialog-strings
 
 Non-VM differential court for the candidate's user-visible string table:
-every string the Iced UI will render (window titles, tree columns, buttons,
+every string the Slint UI renders (window titles, tree columns, buttons,
 variant labels, combo options, progress labels, dialogs, stdout/stderr
 lines) must be **byte-identical** to the frozen oracle's strings.
 
@@ -11,7 +11,7 @@ lines) must be **byte-identical** to the frozen oracle's strings.
   `oracle/scx-authority/`), with the file:line reference of every string.
 - **Candidate side**: `crates/cachyos-kernel-manager-ui/src/strings.rs`
   (rendered by the `cachyos-kernel-manager-strings` bin) — the table the
-  Iced UI is built from.
+  Slint UI is built from.
 
 Both hand-writings were produced **independently** from the same authority;
 the court catches any drift between them. The descriptor is

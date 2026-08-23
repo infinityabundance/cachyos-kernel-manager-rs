@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 authors.workspace = true
-description = "Iced application (Phase 8). Semantic messages/state + the rendering layer."
+description = "Slint application (Phase 8). Semantic messages/state + the rendering layer."
 publish = false
 
 [dependencies]
@@ -23,9 +23,12 @@ serde_json = { workspace = true }
 
 # Phase 8: the Slint rendering layer (feature-gated; the semantic models
 # and the strings/main-window/configure-window courts do not need it).
-# Slint's default desktop backend = winit + the FEMTOVG software renderer:
-# no GL/Vulkan requirement, so the GUI runs in VMs with zero GPU setup
-# (the wgpu-based iced port needed WGPU_BACKEND=gl + software GL in qemu).
+# Slint's desktop backend = winit. For GPU-less VMs the courts + CI run the
+# winit-SOFTWARE renderer (SLINT_BACKEND=winit-software) — the default
+# FemtoVG renderer is GPU-accelerated and REQUIRES OpenGL. The VM court
+# scripts set SLINT_BACKEND=winit-software explicitly (never rely on backend
+# selection), so the GUI runs in qemu without any GL/Vulkan setup (the
+# wgpu-based iced port needed WGPU_BACKEND=gl + software GL in qemu).
 slint = { version = "1.17", optional = true }
 # the internal core crate, used to set the runtime ACCENT COLOR (the fluent
 # style derives every accent from SlintContext.accent_color via accentify;

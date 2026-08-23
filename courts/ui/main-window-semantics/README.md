@@ -23,7 +23,7 @@ transaction-running, double-toggle):
 
 The exact alpm vercmp is courted by the version-state/epoch courts; this
 court fixes the comparator and pins the **row assembly** — the semantics
-the Iced tree widget will be built on (Phase 8).
+the Slint tree widget is built on (Phase 8).
 
 Status: defined. Run:
 

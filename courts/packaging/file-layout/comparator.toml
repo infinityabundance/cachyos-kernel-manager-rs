@@ -4,7 +4,16 @@ version = "1.0.0"
 # surface, the candidate side is the PKGBUILD install layout; compared
 # byte-for-byte. No baked fixture image (the VM-capability marker key is
 # deliberately ABSENT).
-ignore = []
+#
+# shared-files.sha256 is IGNORED (raw evidence only): the desktop entry is
+# an intentional divergence (D-007 — StartupWMClass adaptation, recorded in
+# KNOWN_DIVERGENCES.md), so the raw 14-hash list honestly differs on the
+# desktop line. The NORMALIZED list (shared-files.normalized.sha256, the
+# desktop-startupwmclass-strip v1 normalizer applied to both sides) is
+# compared byte-exact and MUST be equal — proving the desktop entry differs
+# from the frozen oracle ONLY by the documented lines. The taskbar/
+# application-identity court (Phase 12) is the behavioral witness for D-007.
+ignore = ["shared-files.sha256"]
 byte_exact = []
 json_semantic = []
 volatile_prefixes = []

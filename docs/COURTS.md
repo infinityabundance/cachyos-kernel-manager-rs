@@ -206,12 +206,12 @@ Before running courts, `vm-ctl.sh cleanup` removes stale qemu processes
 (they survive process-tree kills because they run in their own systemd
 scopes); the court runner calls it automatically before each side.
 
-## Phase 8 status (Iced UI) — IN PROGRESS
+## Phase 8 status (Slint UI) — SEALED (re-sealed 2026-08-23 after the toolkit switch)
 
 Phase 8 builds the semantic + rendered UI over the pinned-down substrate.
-The 4 new Phase 8 courts (all PASS with verified evidence):
+The 4 Phase 8 courts (all PASS with verified evidence):
 
-- `ui/dialog-strings` — PASS (non-VM). Every user-visible string the Iced
+- `ui/dialog-strings` — PASS (non-VM). Every user-visible string the Slint
   UI renders (window titles, tree columns, buttons, variant labels, combo
   options, progress labels, dialogs, stdout/stderr lines) is byte-identical
   to the frozen source's literals (with file:line refs). Witness:
@@ -234,12 +234,15 @@ The 4 new Phase 8 courts (all PASS with verified evidence):
   `zh_CN` resolves to NO catalog (the compiled alias is `zh-CN`).
   Witness: `tools/run-i18n-corpus.sh`.
 
-The rendering layer itself (the iced `Application`) is verified by the
+The rendering layer itself (the Slint `app`) is verified by the
 `cargo test -p cachyos-kernel-manager-ui --features rendering` suite (the
 message → event → transition pipeline, the dialog/install flows, the i18n
-catalogs) and the `gui`/`gui-alpm` CI jobs. The remaining Phase 8 work is
-courted in `atlas/status.json`: the differential VM court matrix for the
-running GUI and the close-during-transaction worker race (gap-010).
+catalogs, the layout-preview geometry test) and the `gui`/`gui-alpm` CI
+jobs. The remaining Phase 8/12 work is courted in `atlas/status.json`: the
+production integration closure (driving the INSTALLED Slint binary via
+AT-SPI — gap-011, unblocked by slint's accesskit bridge), the CJK
+software-renderer court, and the close-during-transaction worker race
+(gap-010, race-hunting in Phase 12).
 
 ## Phase 9 status (full differential matrix) — IN PROGRESS
 

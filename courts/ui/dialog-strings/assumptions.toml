@@ -1,6 +1,6 @@
 assumptions = [
   "The frozen oracle sources (oracle/upstream/src @ 6b4a373e; the schedext window at oracle/scx-authority/scx-manager @ f3eeaf6) are the single authority for every string; the archive is hash-verified by oracle/UPSTREAM.lock.",
-  "The candidate's Iced UI must render these exact strings; this court pins the table before any rendering work, so a later UI bug cannot be blamed on the strings layer.",
+  "The candidate's Slint UI must render these exact strings; this court pins the table before any rendering work, so a later UI bug cannot be blamed on the strings layer.",
   "The string table is fixed: no corpus, no fixture inputs — the witness renders the table itself.",
   "The JSON descriptor is rendered identically by both sides (serde_json pretty, fixed row order).",
 ]

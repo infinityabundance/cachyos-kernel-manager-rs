@@ -23,7 +23,7 @@ sentinel, save-state):
 
 The variant-switch transitions themselves are the core
 `VariantSwitchState`'s (courted by `option-transitions/variant-switch`);
-this court pins the **window assembly** — the semantics the Iced Configure
+this court pins the **window assembly** — the semantics the Slint Configure
 window will be built on (Phase 8).
 
 Status: defined. Run:

@@ -420,6 +420,43 @@ pub fn run_cmd_terminal(cmd: &str, escalate: Escalate) -> i32 {
     }
 }
 
+/// Spawn the oracle's `terminal-helper` WITHOUT waiting — the caller owns the
+/// child (for the Configure window's cancellation: closing the window kills
+/// the in-flight process, `conf-window.cpp:688-690`). Same argv surface as
+/// [`run_cmd_terminal_at`] with the SAME working-directory contract.
+pub fn spawn_cmd_terminal(
+    cmd: &str,
+    escalate: Escalate,
+    cwd: &str,
+) -> std::io::Result<std::process::Child> {
+    let argv = terminal_helper_argv(cmd, escalate);
+    let mut proc = Command::new(&argv[0]);
+    for arg in &argv[1..] {
+        proc.arg(arg);
+    }
+    proc.current_dir(cwd);
+    proc.spawn()
+}
+
+/// `runCmdTerminal` with the oracle's `QProcess::setWorkingDirectory`
+/// (`conf-window.cpp:733,746` — the makepkg build AND the later
+/// `sudo pacman -U` both run with the working directory set to the variant
+/// dir). The terminal-helper process (and the terminal emulator + shell it
+/// spawns) inherit this cwd, so `makepkg` finds the PKGBUILD and
+/// `.done-status` lands in the variant dir — the exact oracle
+/// working-directory contract the review flagged.
+pub fn run_cmd_terminal_at(cmd: &str, escalate: Escalate, cwd: &str) -> i32 {
+    match spawn_cmd_terminal(cmd, escalate, cwd) {
+        Ok(mut child) => {
+            match child.wait() {
+                Ok(status) => status.code().unwrap_or(0),
+                Err(_) => 0, // wait failure parity: exitCode() == 0
+            }
+        }
+        Err(_) => 0, // FailedToStart parity: exitCode() == 0
+    }
+}
+
 /// The oracle's `run_process` (`utils.cpp:137-151`) — QProcess with
 /// `ForwardedChannels`, wait, `FailedToStart → -1`, else the exit code.
 pub fn run_process(program: &str, args: &[String]) -> i32 {

@@ -68,8 +68,8 @@ jobs:
       - name: MSRV check
         run: cargo check --workspace --all-targets
 
-  # Phase 8: the Iced GUI compiles iced+wgpu (~700 crates, 10+ min on a
-  # runner) — verified in its own job so the pure layer stays fast.
+  # Phase 8: the Slint GUI (winit + the winit-software renderer in CI) —
+  # verified in its own job so the pure layer stays fast.
   gui:
     runs-on: ubuntu-latest
     steps:

@@ -1,4 +1,4 @@
-//! The sched-ext window's semantic model — the Iced rendering side of the
+//! The sched-ext window's semantic model — the Slint rendering side of the
 //! courted `scx/window-init` + `scx/apply` + `scx/disable` decisions.
 //!
 //! The DECISIONS live in the scx crate (`window.rs`, `apply.rs` — courted);

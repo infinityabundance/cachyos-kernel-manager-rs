@@ -8,7 +8,7 @@
 //!
 //! Architecture:
 //! ```text
-//! Iced UI → typed Rust SCX client → D-Bus (org.scx.Loader) → scx_loader
+//! Slint UI → typed Rust SCX client → D-Bus (org.scx.Loader) → scx_loader
 //! ```
 //!
 //! The crate is layered so the courts can pin every decision without the

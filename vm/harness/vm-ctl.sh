@@ -75,14 +75,18 @@ cmd_start() {
     # the hostfwd port and/or the overlay open, silently breaking this start
     # (the new qemu dies on the port bind while wait_ssh connects to the
     # STALE guest). Fail fast with actionable guidance instead.
+    #
+    # NOTE: this must NOT reject unrelated qemu instances — the interactive
+    # demo VM (vm/demo) runs its own qemu without the harness hostfwd port.
+    # Only the harness's own port and pidfile prove staleness.
     if ss -tln 2>/dev/null | grep -q ":$SSHPORT "; then
-        echo "vm-ctl: port $SSHPORT already in use — a stale qemu is running." >&2
+        echo "vm-ctl: port $SSHPORT already in use — a stale harness VM is running." >&2
         echo "vm-ctl: run: bash vm/harness/vm-ctl.sh stop; pkill -f qemu-system; rm -f $PIDFILE" >&2
         return 1
     fi
-    if pgrep -f qemu-system >/dev/null 2>&1; then
-        echo "vm-ctl: a qemu-system process is already running (stale VM)." >&2
-        echo "vm-ctl: run: bash vm/harness/vm-ctl.sh stop; pkill -f qemu-system" >&2
+    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+        echo "vm-ctl: the harness pidfile $PIDFILE is still alive — a stale harness VM is running." >&2
+        echo "vm-ctl: run: bash vm/harness/vm-ctl.sh stop; rm -f $PIDFILE" >&2
         return 1
     fi
 

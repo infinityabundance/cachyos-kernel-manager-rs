@@ -120,14 +120,14 @@
    "surface": "worker-thread close-race during transaction",
    "evidence": "km-window.cpp:327-338 releases alpm without joining the worker",
    "court_needed": "ui/main-window-semantics (close-during-transaction)",
-   "note": "The oracle's closeEvent releases the alpm handle while the worker may still be mid-transaction (a latent use-after-free race in the ORACLE). The candidate does NOT reproduce it: the worker work runs as runtime-owned tasks and close simply exits the app (Effect::Close -> iced::exit; the per-task alpm handles are dropped on their own threads). Characterized, not differentially witnessed; witnessing the oracle's actual crash behavior is race-hunting — Phase 12 (hostile review: race/mutation testing) owns it."
+   "note": "The oracle's closeEvent releases the alpm handle while the worker may still be mid-transaction (a latent use-after-free race in the ORACLE). The candidate does NOT reproduce it: the worker work runs as runtime-owned tasks and close simply exits the app (Effect::Close -> the event-loop exit; the per-task alpm handles are dropped on their own threads). Characterized, not differentially witnessed; witnessing the oracle's actual crash behavior is race-hunting — Phase 12 (hostile review: race/mutation testing) owns it."
   },
   {
    "id": "gap-011",
    "surface": "running-candidate-GUI differential court (AT-SPI)",
-   "evidence": "the oracle GUI is courted via AT-SPI (Phase 2 harness); the candidate's Iced GUI has no a11y tree bridge (iced 0.13 has no accesskit feature) so a running-GUI AT-SPI differential court cannot be built yet",
-   "court_needed": "ui/gui-atspi (blocked: requires an iced a11y bridge or a semantic-equivalent witness)",
-   "note": "The candidate GUI's runtime is verified by the rendering test suite (message->event->transition pipeline), the 35 rendering tests, the gui/gui-alpm CI jobs, and a display smoke test; the semantic surface is courted by ui/*. The oracle-side differential courts (kernel-discovery/*, transaction-plan/*, nvidia/zfs-companion, git-cache, mutation) already witness the ORACLE GUI against the candidate's semantic models. An AT-SPI court for the CANDIDATE's running GUI waits on an iced accessibility bridge (tracked here)."
+   "evidence": "the oracle GUI is courted via AT-SPI (Phase 2 harness); the Slint candidate exposes an accessibility tree through its accesskit bridge (accesskit_unix -> AT-SPI, enabled by slint's default `accessibility` feature) — the running-GUI differential court is now BUILDABLE",
+   "court_needed": "gui-integration/* (the Phase 12 production integration closure: drive the INSTALLED Slint binary via AT-SPI and compare against the oracle GUI driven identically)",
+   "note": "The candidate GUI's runtime is verified by the rendering test suite (message->event->transition pipeline), the rendering tests, the layout-preview geometry test, and the gui/gui-alpm CI jobs; the semantic surface is courted by ui/*. The oracle-side differential courts (kernel-discovery/*, transaction-plan/*, nvidia/zfs-companion, git-cache, mutation) already witness the ORACLE GUI against the candidate's semantic models. With Slint (accesskit_unix) the CANDIDATE's running GUI can be driven via AT-SPI the same way — the first Phase 12 slice."
   }
  ]
 }

@@ -1,4 +1,4 @@
-//! The Iced UI's translation layer (Phase 8) — the candidate side of the
+//! The Slint UI's translation layer (Phase 8) — the candidate side of the
 //! `ui/i18n-resolution` court.
 //!
 //! Reconstructed from `main.cpp:62-106` (`initTranslations`) +

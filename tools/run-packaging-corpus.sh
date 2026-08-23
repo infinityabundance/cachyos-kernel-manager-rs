@@ -57,9 +57,32 @@ extract_shared_hashes() { # extract_shared_hashes <base> <out>
     } > "$out"
 }
 
+# The same hashes with the desktop entry NORMALIZED (D-007): the candidate's
+# desktop file deliberately adds the StartupWMClass line + its explanatory
+# comment (the Qt oracle got its taskbar grouping from Qt's WM_CLASS; winit
+# windows need StartupWMClass to restore it). The normalizer strips exactly
+# those lines so the normalized hashes prove the desktop entry differs from
+# the frozen oracle ONLY by the documented adaptation.
+# normalizer: desktop-startupwmclass-strip v1
+extract_shared_hashes_norm() { # extract_shared_hashes_norm <base> <out>
+    local base="$1" out="$2"
+    {
+        sha256sum "$base/usr/lib/cachyos-kernel-manager/terminal-helper" | cut -d' ' -f1
+        sha256sum "$base/usr/lib/cachyos-kernel-manager/rootshell.sh" | cut -d' ' -f1
+        sed -e '/^# KWin groups all three windows/,/^StartupWMClass=org.cachyos.KernelManager$/d' \
+            "$base/usr/share/applications/org.cachyos.KernelManager.desktop" \
+            | sha256sum | cut -d' ' -f1
+        sha256sum "$base/usr/share/polkit-1/actions/org.cachyos.KernelManager.pkexec.policy" | cut -d' ' -f1
+        for d in 16x16 22x22 32x32 44x44 48x48 64x64 128x128 150x150 256x256 310x310; do
+            sha256sum "$base/usr/share/icons/hicolor/$d/apps/org.cachyos.KernelManager.png" | cut -d' ' -f1
+        done
+    } > "$out"
+}
+
 rm -rf /tmp/pkg-oracle-x && mkdir -p /tmp/pkg-oracle-x
 bsdtar -xf "$PKG" -C /tmp/pkg-oracle-x
 extract_shared_hashes /tmp/pkg-oracle-x "$ORACLE/shared-files.sha256"
+extract_shared_hashes_norm /tmp/pkg-oracle-x "$ORACLE/shared-files.normalized.sha256"
 
 # the candidate's packaging tree has the icons WITHOUT the apps/ dir; the
 # PKGBUILD installs them INTO apps/ — materialize the install layout
@@ -71,6 +94,7 @@ for d in 16x16 22x22 32x32 44x44 48x48 64x64 128x128 150x150 256x256 310x310; do
         "/tmp/pkg-cand-x/usr/share/icons/hicolor/$d/apps/"
 done
 extract_shared_hashes /tmp/pkg-cand-x "$CANDIDATE/shared-files.sha256"
+extract_shared_hashes_norm /tmp/pkg-cand-x "$CANDIDATE/shared-files.normalized.sha256"
 rm -rf /tmp/pkg-oracle-x /tmp/pkg-cand-x
 
 echo "packaging witness written to $ORACLE and $CANDIDATE"

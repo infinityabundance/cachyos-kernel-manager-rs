@@ -25,12 +25,13 @@ use cachyos_kernel_manager_core::options::{
 };
 use cachyos_kernel_manager_core::selection::KernelRow;
 use cachyos_kernel_manager_core::state::{
-    transition, AppEvent, AppState, ConfigurationState, DialogsState, Effect, ScxState,
+    transition, AppEvent, AppState, BuildState, ConfigurationState, DialogsState, Effect, ScxState,
 };
 use cachyos_kernel_manager_plan::HardwareProfile;
 use slint::ModelRc;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 // The Slint-generated glue. `include_modules!()` includes only ONE generated
@@ -478,7 +479,7 @@ pub enum ConfTab {
     Patches,
 }
 
-/// A file-path entry dialog (iced has no native picker; the oracle's
+/// A file-path entry dialog (Slint has no native picker; the oracle's
 /// QFileDialog is a rendering concern).
 #[derive(Debug, Clone)]
 pub struct PathDialog {
@@ -495,7 +496,7 @@ pub enum PathDialogKind {
     AddLocalPatch,
 }
 
-/// The Iced-level message: semantic UI messages (the courted vocabulary)
+/// The UI-level message: semantic UI messages (the courted vocabulary)
 /// plus rendering-only messages (task results, dialogs, widgets).
 #[derive(Debug, Clone)]
 pub enum UiMessage {
@@ -650,6 +651,17 @@ pub struct App {
     configure_window: slint::Weak<ConfigureWindow>,
     /// The sched-ext window (shown while `scx == Visible`).
     scx_window: slint::Weak<SchedExtWindow>,
+    /// The Configure-window build's cancellation contract (review: closing
+    /// the Configure window owns + terminates the in-flight operation — the
+    /// oracle destroys its `QProcess m_cmd` member, conf-window.cpp:688-690,
+    /// courted by `configure_trace`). The flag is set on Configure
+    /// cancel/close while a build runs; the worker aborts (the oracle's
+    /// FAILURE branch: no `.done-status` → BuildFinished{false}).
+    build_cancel: Arc<AtomicBool>,
+    /// The in-flight terminal-helper child (the build's owned process
+    /// handle; `None` while no build runs). The cancel path takes + kills it
+    /// so the worker's wait returns and reports the failure branch.
+    build_proc: Arc<Mutex<Option<std::process::Child>>>,
 }
 
 impl App {
@@ -677,6 +689,8 @@ impl App {
             ui: slint::Weak::default(),
             configure_window: slint::Weak::default(),
             scx_window: slint::Weak::default(),
+            build_cancel: Arc::new(AtomicBool::new(false)),
+            build_proc: Arc::new(Mutex::new(None)),
         };
         let task = app.on_event(AppEvent::Started);
         (app, task)
@@ -1550,7 +1564,7 @@ fn probe_patch_entries(
 // Background tasks (blocking work bridges into the Slint event loop)
 // ---------------------------------------------------------------------------
 
-/// A runtime action the backend dispatches (the iced `Task` analogue).
+/// A runtime action the backend dispatches (the slint event-loop analogue).
 /// LAZY: a `Spawn` action runs only when dispatched — the tests never
 /// dispatch, so no worker threads are created and no side effects happen.
 #[derive(Default)]
@@ -1785,8 +1799,14 @@ impl App {
         let variant = self.configure.variant;
         let patches = self.configure.patches.clone();
         let custom_name = self.configure.custom_name.clone();
+        // the owned cancellation contract (the Configure window's close/cancel
+        // terminates the in-flight build — conf-window.cpp:688-690)
+        let cancel = self.build_cancel.clone();
+        let proc_slot = self.build_proc.clone();
         blocking(
             move || {
+                // a fresh build clears any previous cancellation
+                cancel.store(false, Ordering::Relaxed);
                 let cache = cachyos_kernel_manager_platform::cache_root(&home);
                 let repo = cachyos_kernel_manager_platform::pkgbuilds_dir(&home);
                 // 1. prepare_build_environment — the courted git-cache plan
@@ -1822,24 +1842,63 @@ impl App {
                     km_eprintln!("cachyos-kernel-manager: Failed to set custom name in pkgbuild");
                     return false;
                 }
-                // 6. run the build through the courted terminal-helper
-                //    (BuildFlowPlan::render with the PKGBUILDS ROOT — the
-                //    render appends the variant dir, so the done-status
-                //    check and the bash cwd agree; review seam #7).
+                // 6. run the build through the courted terminal-helper IN the
+                //    variant directory (the oracle's
+                //    `QProcess::setWorkingDirectory(working_path)`,
+                //    conf-window.cpp:733 — makepkg must find the PKGBUILD
+                //    there and `.done-status` lands in the variant dir). The
+                //    child is OWned by this task so the Configure close/cancel
+                //    can terminate it (the oracle destroys its QProcess).
                 let plan = BuildFlowPlan::render(variant, repo.to_str().unwrap_or_default(), &[]);
+                if cancel.load(Ordering::Relaxed) {
+                    vlog!("build aborted by Configure cancel before the terminal launch");
+                    return false;
+                }
                 vlog!(
                     "build: cwd={} cmd={:?} done={}",
                     plan.working_path,
                     plan.terminal_argv,
                     plan.done_status
                 );
-                cachyos_kernel_manager_exec::run_cmd_terminal(
+                let child = match cachyos_kernel_manager_exec::spawn_cmd_terminal(
                     &plan.build_command,
                     cachyos_kernel_manager_exec::Escalate::None,
-                );
+                    &plan.working_path,
+                ) {
+                    Ok(c) => c,
+                    Err(_) => {
+                        km_eprintln!(
+                            "cachyos-kernel-manager: terminal-helper failed to start"
+                        );
+                        return false;
+                    }
+                };
+                *proc_slot.lock().unwrap() = Some(child);
+                // wait for the helper; the cancel path takes + kills the
+                // child, which makes this poll see an empty slot and exit
+                loop {
+                    let finished = proc_slot
+                        .lock()
+                        .unwrap()
+                        .as_mut()
+                        .map_or(true, |c| c.try_wait().ok().flatten().is_some());
+                    if finished {
+                        break;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+                *proc_slot.lock().unwrap() = None;
                 // 7. success = `.done-status` PRESENT, never the exit code.
+                //    The marker is REMOVED at the exact oracle transition
+                //    point (finished_proc:384-389 checks existence, then
+                //    deletes it BEFORE the install question) — a stale
+                //    marker must never misclassify a later failed build.
                 let ok = std::path::Path::new(&plan.done_status).exists();
-                vlog!("build finished, done-status present: {ok}");
+                let _ = std::fs::remove_file(&plan.done_status);
+                // a cancelled build is the oracle's FAILURE branch (the
+                // destroyed QProcess never completes)
+                let ok = ok && !cancel.load(Ordering::Relaxed);
+                vlog!("build finished, done-status present: {ok} (marker removed)");
                 ok
             },
             |success| UiMessage::BuildFinished { success },
@@ -1865,10 +1924,16 @@ impl App {
                         pkgbuild.display()
                     );
                 } else {
+                    // the oracle runs the install through ordinary
+                    // run_cmd_async with the working directory set to the
+                    // variant dir (m_build_conf_path) — the terminal is NOT
+                    // launched through the pkexec root-shell path; `sudo`
+                    // stays INSIDE the command (finished_proc:394-401).
                     let cmd = format!("sudo pacman -U {}", globs.join(" "));
-                    let _ = cachyos_kernel_manager_exec::run_cmd_terminal(
+                    let _ = cachyos_kernel_manager_exec::run_cmd_terminal_at(
                         &cmd,
-                        cachyos_kernel_manager_exec::Escalate::PkexecRootShell,
+                        cachyos_kernel_manager_exec::Escalate::None,
+                        &variant_dir.to_string_lossy(),
                     );
                 }
             },
@@ -1968,11 +2033,27 @@ impl From<Message> for UiMessage {
     }
 }
 
-/// The iced update function.
+/// The update function: one UI message -> the courted semantic transition
+/// + the UI-side model updates + the presentation sync.
 pub fn update(app: &mut App, message: UiMessage) -> Task {
     vlog!("update: {message:?}");
     match message {
-        UiMessage::Semantic(m) => app.on_semantic(m),
+        UiMessage::Semantic(m) => {
+            // The Configure window's Cancel/Close OWNS the in-flight build:
+            // closing the window terminates the build process (the oracle
+            // destroys its `QProcess m_cmd` member — conf-window.cpp:688-690,
+            // courted by `configure_trace`). Signal + kill the worker's
+            // terminal-helper so it reports the oracle's FAILURE branch
+            // (no `.done-status` → BuildFinished{false}).
+            if matches!(
+                m,
+                Message::ConfigurationCancelRequested | Message::ConfigurationCloseRequested
+            ) && app.state.build == BuildState::Running
+            {
+                cancel_build_process(app);
+            }
+            app.on_semantic(m)
+        }
         UiMessage::CatalogLoaded(payload) => {
             let payload = *payload;
             // the core selection drives the OK button + planning: build it
@@ -2377,6 +2458,21 @@ pub fn update(app: &mut App, message: UiMessage) -> Task {
     }
 }
 
+/// Terminate the in-flight Configure build (the window's cancel/close OWNS
+/// the process — the oracle destroys its `QProcess m_cmd` member,
+/// conf-window.cpp:688-690, courted by `configure_trace`). Sets the worker's
+/// cancel flag and kills the owned terminal-helper child; the worker's wait
+/// returns and it reports the oracle's FAILURE branch
+/// (`BuildFinished { success: false }` → `BuildState::Failed`).
+fn cancel_build_process(app: &mut App) {
+    app.build_cancel.store(true, Ordering::Relaxed);
+    if let Some(mut child) = app.build_proc.lock().unwrap().take() {
+        vlog!("build cancelled: terminating the terminal-helper child");
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+}
+
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // run (the Slint entry point)
@@ -2384,9 +2480,10 @@ pub fn update(app: &mut App, message: UiMessage) -> Task {
 
 /// Launch the Slint application: build the windows, wire the callbacks to
 /// the courted semantic surface, and run the event loop. Slint's default
-/// backend is winit + the FemtoVG SOFTWARE renderer — no GL/Vulkan setup
-/// is needed, so the GUI runs in VMs without GPU acceleration (unlike the
-/// wgpu-based iced port).
+/// renderer is FemtoVG (GPU-accelerated, REQUIRES OpenGL); the GPU-less
+/// path is the winit-SOFTWARE renderer — the VM courts + CI set
+/// `SLINT_BACKEND=winit-software` explicitly so the GUI runs in qemu
+/// without any GL/Vulkan setup (unlike the wgpu-based iced port).
 pub fn run(flags: Flags) -> Result<(), slint::PlatformError> {
     let ui = MainWindow::new()?;
     // The initial window sizes: a `width` binding on a Window makes it
@@ -2794,6 +2891,36 @@ mod tests {
         );
         assert!(app.state.execute_enabled());
         assert_eq!(app.state.phase(), AppPhase::SelectionChanged);
+    }
+
+    #[test]
+    fn configure_cancel_while_build_running_arms_the_cancellation() {
+        // the review's process-ownership seam: closing Configure while a
+        // build runs must terminate the in-flight operation, not just close
+        // the window. The production cancel hook sets the worker's flag (and
+        // would kill the owned terminal-helper child); the worker then
+        // reports the oracle's FAILURE branch.
+        let mut app = app();
+        app.state.build = BuildState::Running;
+        let _ = update(
+            &mut app,
+            UiMessage::Semantic(Message::ConfigurationCancelRequested),
+        );
+        assert!(
+            app.build_cancel.load(Ordering::Relaxed),
+            "the build worker's cancel flag must be armed"
+        );
+        // the window closes, the app stays alive (NOT shutting down)
+        assert_eq!(app.state.configuration, ConfigurationState::Closed);
+        assert_ne!(app.state.lifecycle, LifecycleState::Shutdown);
+        // a cancel with NO build running does not arm the flag
+        let mut app2 = App::new(flags()).0;
+        assert_eq!(app2.state.build, BuildState::Idle);
+        let _ = update(
+            &mut app2,
+            UiMessage::Semantic(Message::ConfigurationCancelRequested),
+        );
+        assert!(!app2.build_cancel.load(Ordering::Relaxed));
     }
 
     #[test]

@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 authors.workspace = true
-description = "Native Rust custodial reimplementation of CachyOS Kernel Manager (Iced GUI in Phase 8)."
+description = "Native Rust custodial reimplementation of CachyOS Kernel Manager (Slint GUI in Phase 8)."
 publish = false
 
 [[bin]]
@@ -13,10 +13,10 @@ name = "cachyos-kernel-manager"
 path = "src/main.rs"
 
 [features]
-# Phase 8: the Iced GUI. NOT default — a debug build of the whole
-# wgpu/iced stack takes ~30+ minutes, which would stall every `cargo
-# test --workspace` and every CI typo. The GUI is verified in a dedicated
-# CI job (`--features gui`) and built by the packaging layer
+# Phase 8: the Slint GUI. NOT default — the GUI build pulls the slint stack
+# (winit + the winit-software renderer for GPU-less VMs), which would stall
+# every `cargo test --workspace` and every CI typo. The GUI is verified in a
+# dedicated CI job (`--features gui`) and built by the packaging layer
 # (`--features gui-alpm` = gui + the real libalpm discovery + the scx
 # D-Bus client).
 default = []

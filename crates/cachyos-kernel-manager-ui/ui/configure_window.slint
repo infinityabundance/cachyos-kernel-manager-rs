@@ -33,6 +33,7 @@ export struct ConfCheckRow {
 // small SVG-path icons on a pressable button.
 component PatchIconButton {
     in property <string> icon;
+    in property <string> label;
     callback clicked();
 
     i-touch := TouchArea {
@@ -43,6 +44,9 @@ component PatchIconButton {
         vertical-stretch: 0;
         width: 26px;
         height: 26px;
+        accessible-role: button;
+        accessible-label: root.accessible-label;
+        accessible-action-default => { root.clicked(); }
         clicked => { root.clicked(); }
         Rectangle {
             width: 100%;
@@ -165,14 +169,17 @@ export component ConfigureWindow inherits Window {
             ComboBox {
                 model: root.variant-labels;
                 current-index: root.variant-index;
+                accessible-label: root.label-variant;
+                accessible-role: button;
+                accessible-id: "configure-variant";
                 selected(v) => { root.variant-selected(v); }
             }
         }
 
         HorizontalBox {
             spacing: 8px;
-            CachyosButton { text: root.label-tab-options; primary: root.tab-options; clicked => { root.tab-options = true; } }
-            CachyosButton { text: root.label-tab-patches; primary: !root.tab-options; clicked => { root.tab-options = false; } }
+            CachyosButton { text: root.label-tab-options; primary: root.tab-options; accessible-role: button; accessible-id: "tab-options"; clicked => { root.tab-options = true; } }
+            CachyosButton { text: root.label-tab-patches; primary: !root.tab-options; accessible-role: button; accessible-id: "tab-patches"; clicked => { root.tab-options = false; } }
         }
 
         // ---------- the Options tab (the oracle's conf-options-page.ui) ----------
@@ -200,6 +207,9 @@ export component ConfigureWindow inherits Window {
                         Text { text: root.label-custom-name; vertical-alignment: center; }
                         LineEdit {
                             text: root.custom-name;
+                            accessible-label: root.label-custom-name;
+                            accessible-role: text-input;
+                            accessible-id: "custom-name";
                             edited => { root.custom-name-changed(self.text); }
                         }
                     }
@@ -214,38 +224,41 @@ export component ConfigureWindow inherits Window {
                         text: c.label;
                         checked: c.checked;
                         enabled: c.enabled;
+                        accessible-label: c.label;
+                        accessible-role: checkbox;
+                        accessible-id: "conf-check-" + i;
                         toggled => { root.check-toggled(i); }
                     }
                     // the six combos, ONE PER LINE like the oracle
                     HorizontalBox {
                         spacing: 8px;
                         Text { text: root.label-hz; vertical-alignment: center; width: 220px; }
-                        ComboBox { model: root.hz-items; current-index: root.hz-index; selected(v) => { root.hz-selected(v); } horizontal-stretch: 1; }
+                        ComboBox { model: root.hz-items; current-index: root.hz-index; accessible-label: root.label-hz; accessible-id: "combo-hz"; selected(v) => { root.hz-selected(v); } horizontal-stretch: 1; }
                     }
                     HorizontalBox {
                         spacing: 8px;
                         Text { text: root.label-tickless; vertical-alignment: center; width: 220px; }
-                        ComboBox { model: root.tickless-items; current-index: root.tickless-index; selected(v) => { root.tickless-selected(v); } horizontal-stretch: 1; }
+                        ComboBox { model: root.tickless-items; current-index: root.tickless-index; accessible-label: root.label-tickless; accessible-id: "combo-tickless"; selected(v) => { root.tickless-selected(v); } horizontal-stretch: 1; }
                     }
                     HorizontalBox {
                         spacing: 8px;
                         Text { text: root.label-preempt; vertical-alignment: center; width: 220px; }
-                        ComboBox { model: root.preempt-items; current-index: root.preempt-index; selected(v) => { root.preempt-selected(v); } horizontal-stretch: 1; }
+                        ComboBox { model: root.preempt-items; current-index: root.preempt-index; accessible-label: root.label-preempt; accessible-id: "combo-preempt"; selected(v) => { root.preempt-selected(v); } horizontal-stretch: 1; }
                     }
                     HorizontalBox {
                         spacing: 8px;
                         Text { text: root.label-hugepage; vertical-alignment: center; width: 220px; }
-                        ComboBox { model: root.hugepage-items; current-index: root.hugepage-index; selected(v) => { root.hugepage-selected(v); } horizontal-stretch: 1; }
+                        ComboBox { model: root.hugepage-items; current-index: root.hugepage-index; accessible-label: root.label-hugepage; accessible-id: "combo-hugepage"; selected(v) => { root.hugepage-selected(v); } horizontal-stretch: 1; }
                     }
                     HorizontalBox {
                         spacing: 8px;
                         Text { text: root.label-cpuopt; vertical-alignment: center; width: 220px; }
-                        ComboBox { model: root.cpuopt-items; current-index: root.cpuopt-index; selected(v) => { root.cpuopt-selected(v); } horizontal-stretch: 1; }
+                        ComboBox { model: root.cpuopt-items; current-index: root.cpuopt-index; accessible-label: root.label-cpuopt; accessible-id: "combo-cpuopt"; selected(v) => { root.cpuopt-selected(v); } horizontal-stretch: 1; }
                     }
                     HorizontalBox {
                         spacing: 8px;
                         Text { text: root.label-lto; vertical-alignment: center; width: 220px; }
-                        ComboBox { model: root.lto-items; current-index: root.lto-index; selected(v) => { root.lto-selected(v); } horizontal-stretch: 1; }
+                        ComboBox { model: root.lto-items; current-index: root.lto-index; accessible-label: root.label-lto; accessible-id: "combo-lto"; selected(v) => { root.lto-selected(v); } horizontal-stretch: 1; }
                     }
                     // the last 3 checkboxes (zfs, nvidia-open, build-debug)
                     // — index offset +8 into the full 11-check model
@@ -253,6 +266,9 @@ export component ConfigureWindow inherits Window {
                         text: c.label;
                         checked: c.checked;
                         enabled: c.enabled;
+                        accessible-label: c.label;
+                        accessible-role: checkbox;
+                        accessible-id: "conf-check-" + (i + 8);
                         toggled => { root.check-toggled(i + 8); }
                     }
                 }
@@ -260,14 +276,16 @@ export component ConfigureWindow inherits Window {
             // the Options footer (the oracle's footer_widget)
             HorizontalBox {
                 spacing: 8px;
-                Button { text: root.label-load; clicked => { root.load-clicked(); } }
-                Button { text: root.label-save; clicked => { root.save-clicked(); } }
+                Button { text: root.label-load; accessible-id: "configure-load"; clicked => { root.load-clicked(); } }
+                Button { text: root.label-save; accessible-id: "configure-save"; clicked => { root.save-clicked(); } }
                 Rectangle { horizontal-stretch: 1; }
-                Button { text: root.label-cancel; clicked => { root.cancel-clicked(); } }
+                Button { text: root.label-cancel; accessible-id: "configure-cancel"; clicked => { root.cancel-clicked(); } }
                 CachyosButton {
                     text: root.label-execute;
                     primary: true;
                     enabled: !root.build-running;
+                    accessible-role: button;
+                    accessible-id: "configure-execute";
                     clicked => { root.execute-clicked(); }
                 }
             }
@@ -289,6 +307,9 @@ export component ConfigureWindow inherits Window {
                 vertical-stretch: 1;
                 for p[i] in root.patches : TouchArea {
                     clicked => { root.selected-patch = i; }
+                    accessible-role: list-item;
+                    accessible-label: p;
+                    accessible-id: "patch-row-" + i;
                     Rectangle {
                         background: i == root.selected-patch ? #00a88f33 : transparent;
                         Text { text: p; }
@@ -307,18 +328,27 @@ export component ConfigureWindow inherits Window {
                     icon: "M 3 6 H 21 M 9 2.5 H 15 M 6 6 L 7 21 H 17 L 18 6 Z";
                     width: 26px;
                     height: 26px;
+                    label: root.label-remove;
+                    accessible-role: button;
+                    accessible-id: "patch-remove";
                     clicked => { root.patch-remove(root.selected-patch); }
                 }
                 PatchIconButton {
                     icon: "M 12 3 L 19 12 H 15 V 21 H 9 V 12 H 5 Z";
                     width: 26px;
                     height: 26px;
+                    label: root.label-up;
+                    accessible-role: button;
+                    accessible-id: "patch-up";
                     clicked => { root.patch-up(root.selected-patch); }
                 }
                 PatchIconButton {
                     icon: "M 12 21 L 5 12 H 9 V 3 H 15 V 12 H 19 Z";
                     width: 26px;
                     height: 26px;
+                    label: root.label-down;
+                    accessible-role: button;
+                    accessible-id: "patch-down";
                     clicked => { root.patch-down(root.selected-patch); }
                 }
             }
@@ -327,8 +357,8 @@ export component ConfigureWindow inherits Window {
                 alignment: end;
                 vertical-stretch: 0;
                 spacing: 8px;
-                Button { text: root.label-add-remote; clicked => { root.patches-add-remote(); } }
-                Button { text: root.label-add-local; clicked => { root.patches-add-local(); } }
+                Button { text: root.label-add-remote; accessible-id: "patch-add-remote"; clicked => { root.patches-add-remote(); } }
+                Button { text: root.label-add-local; accessible-id: "patch-add-local"; clicked => { root.patches-add-local(); } }
             }
         }
     }

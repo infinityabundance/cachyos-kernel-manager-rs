@@ -86,6 +86,10 @@ export component MainWindow inherits Window {
             HorizontalBox {
                 TouchArea {
                     width: 52px;
+                    accessible-role: button;
+                    accessible-label: root.label-choose;
+                    accessible-id: "header-choose";
+                    accessible-action-default => { root.sort-clicked(0); }
                     clicked => { root.sort-clicked(0); }
                     Text {
                         text: root.label-choose;
@@ -98,6 +102,10 @@ export component MainWindow inherits Window {
                 }
                 TouchArea {
                     horizontal-stretch: 1;
+                    accessible-role: button;
+                    accessible-label: root.label-pkgname;
+                    accessible-id: "header-pkgname";
+                    accessible-action-default => { root.sort-clicked(1); }
                     clicked => { root.sort-clicked(1); }
                     Text {
                         text: root.label-pkgname;
@@ -109,6 +117,10 @@ export component MainWindow inherits Window {
                 }
                 TouchArea {
                     width: 150px;
+                    accessible-role: button;
+                    accessible-label: root.label-version;
+                    accessible-id: "header-version";
+                    accessible-action-default => { root.sort-clicked(2); }
                     clicked => { root.sort-clicked(2); }
                     Text {
                         text: root.label-version;
@@ -120,6 +132,10 @@ export component MainWindow inherits Window {
                 }
                 TouchArea {
                     width: 180px;
+                    accessible-role: button;
+                    accessible-label: root.label-category;
+                    accessible-id: "header-category";
+                    accessible-action-default => { root.sort-clicked(3); }
                     clicked => { root.sort-clicked(3); }
                     Text {
                         text: root.label-category;
@@ -140,6 +156,13 @@ export component MainWindow inherits Window {
                     CheckBox {
                         width: 52px;
                         checked: row.checked;
+                        // the STABLE package identity is the checkbox's
+                        // accessible name (the AT-SPI driver toggles by
+                        // identity, never by presentation index — sorting
+                        // must not change which kernel a toggle targets)
+                        accessible-label: row.raw;
+                        accessible-role: checkbox;
+                        accessible-id: "row-toggle-" + i;
                         // NEVER disabled: the oracle's `init_kernels_tree_widget`
                         // (km-window.cpp:89-106) keeps every checkbox user-
                         // toggleable — installed kernels start CHECKED with the
@@ -149,9 +172,9 @@ export component MainWindow inherits Window {
                         // the oracle.
                         toggled => { root.row-toggled(i); }
                     }
-                    Text { text: row.raw; horizontal-stretch: 1; }
-                    Text { text: row.version; width: 150px; }
-                    Text { text: row.category; width: 180px; }
+                    Text { text: row.raw; horizontal-stretch: 1; accessible-label: row.raw; }
+                    Text { text: row.version; width: 150px; accessible-label: row.version; }
+                    Text { text: row.category; width: 180px; accessible-label: row.category; }
                 }
             }
         }
@@ -162,20 +185,28 @@ export component MainWindow inherits Window {
             spacing: 8px;
             if root.schedext-visible : Button {
                 text: root.label-schedext;
+                accessible-role: button;
+                accessible-id: "button-schedext";
                 clicked => { root.schedext-clicked(); }
             }
             Button {
                 text: root.label-configure;
+                accessible-role: button;
+                accessible-id: "button-configure";
                 clicked => { root.configure-clicked(); }
             }
             Button {
                 text: root.label-cancel;
+                accessible-role: button;
+                accessible-id: "button-cancel";
                 clicked => { root.cancel-clicked(); }
             }
             CachyosButton {
                 text: root.label-execute;
                 enabled: root.execute-enabled;
                 primary: true;
+                accessible-role: button;
+                accessible-id: "button-execute";
                 clicked => { root.execute-clicked(); }
             }
         }

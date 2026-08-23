@@ -1,12 +1,14 @@
-//! Iced application — Phase 8.
+//! Slint application — Phase 8.
 //!
-//! This crate currently defines the *semantic* message/state surface
-//! (directive §7/§8) against the core domain types, with NO Iced dependency.
-//! The rendering layer (Phase 8) will translate these messages into Iced
-//! `Message`s and vice versa; the core domain remains presentation-free.
+//! This crate defines the *semantic* message/state surface (directive §7/§8)
+//! against the core domain types, with NO Slint dependency in the semantic
+//! layer. The rendering layer (feature `rendering`) translates those
+//! messages into the courted `AppEvent`s and renders the three native
+//! windows with Slint; the core domain remains presentation-free.
 //!
-//! Nothing in this crate is rendered yet; the phase is not claimed complete
-//! (docs/ARCHITECTURE.md phase table).
+//! The rendering layer is verified by the `--features rendering` test suite
+//! + the offscreen layout-preview geometry test (docs/ARCHITECTURE.md phase
+//! table).
 
 #![cfg_attr(not(feature = "rendering"), forbid(unsafe_code))]
 // The Slint-generated glue (the `include_modules!` code in `app`, enabled

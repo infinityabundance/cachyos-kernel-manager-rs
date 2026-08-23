@@ -94,6 +94,9 @@ export component SchedExtWindow inherits Window {
                 model: root.schedulers;
                 current-index: root.scheduler-index;
                 enabled: root.enabled;
+                accessible-label: root.label-scheduler;
+                accessible-role: combobox;
+                accessible-id: "scx-scheduler";
                 selected(v) => { root.scheduler-selected(v); }
                 horizontal-stretch: 0;
                 height: 32px;
@@ -108,6 +111,9 @@ export component SchedExtWindow inherits Window {
                 model: root.profiles;
                 current-index: root.profile-index;
                 enabled: root.enabled;
+                accessible-label: root.label-profile;
+                accessible-role: combobox;
+                accessible-id: "scx-profile";
                 selected(v) => { root.profile-selected(v); }
                 horizontal-stretch: 0;
                 height: 32px;
@@ -121,6 +127,9 @@ export component SchedExtWindow inherits Window {
             LineEdit {
                 text: root.flags;
                 enabled: root.enabled;
+                accessible-label: root.label-flags;
+                accessible-role: text-input;
+                accessible-id: "scx-flags";
                 edited => { root.flags-changed(self.text); }
                 horizontal-stretch: 0;
                 height: 32px;
@@ -137,6 +146,8 @@ export component SchedExtWindow inherits Window {
                 text: root.label-cancel;
                 min-width: 88px;
                 height: 32px;
+                accessible-role: button;
+                accessible-id: "scx-cancel";
                 clicked => { root.cancel-clicked(); }
             }
             Button {
@@ -144,6 +155,8 @@ export component SchedExtWindow inherits Window {
                 min-width: 88px;
                 height: 32px;
                 enabled: root.enabled;
+                accessible-role: button;
+                accessible-id: "scx-disable";
                 clicked => { root.disable-clicked(); }
             }
             CachyosButton {
@@ -151,6 +164,8 @@ export component SchedExtWindow inherits Window {
                 primary: true;
                 height: 32px;
                 enabled: root.enabled;
+                accessible-role: button;
+                accessible-id: "scx-apply";
                 clicked => { root.apply-clicked(); }
             }
         }

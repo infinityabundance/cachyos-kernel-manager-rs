@@ -27,7 +27,7 @@ pub mod titles {
 pub const MAIN_DESCRIPTION_HTML: &str = "<html>\n<body>\n<p>Here you'll see information about currently installed and available Linux kernels.</p>\n<p>You can install/uninstall kernel packages using the checkboxes on the leftmost column.</p>\n<p>This app won't work if you are already running a pacman instance.</p>\n</body>\n</html>";
 
 /// The main window's description rendered as PLAIN TEXT. The oracle shows
-/// the HTML literal above as Qt rich text (`km-window.ui:27`); iced has no
+/// the HTML literal above as Qt rich text (`km-window.ui:27`); Slint has no
 /// HTML renderer, so the view strips the tags (the courted string
 /// inventory keeps the raw HTML literal unchanged — only the presentation
 /// differs, which the window-choreography note in `app.rs` declares a

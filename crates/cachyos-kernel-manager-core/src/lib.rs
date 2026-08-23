@@ -1,7 +1,7 @@
 //! Pure domain model for CachyOS Kernel Manager.
 //!
-//! This crate is the semantic core. It must never import Iced (or any
-//! presentation technology) and must never execute external programs.
+//! This crate is the semantic core. It must never import any presentation
+//! technology (Iced, Slint, Qt) and must never execute external programs.
 //! Everything here is a reconstruction of the frozen oracle's behavior
 //! (oracle revision `6b4a373e`, v1.19.0) as pure data + pure functions,
 //! so the logic can be unit-tested, property-tested, and differentially
